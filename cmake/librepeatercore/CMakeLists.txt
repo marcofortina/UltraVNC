@@ -14,6 +14,7 @@ add_library(${PROJECT_NAME} STATIC)
 target_sources(${PROJECT_NAME}
     PRIVATE
         "${CMAKE_SOURCE_DIR}/../repeater/lists_functions.cpp"
+        "${CMAKE_SOURCE_DIR}/../repeater/socket_functions.cpp"
 )
 target_include_directories(${PROJECT_NAME}
     PRIVATE

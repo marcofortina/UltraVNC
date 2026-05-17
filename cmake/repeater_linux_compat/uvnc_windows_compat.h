@@ -56,6 +56,7 @@ typedef int BOOL;
 typedef uint32_t DWORD;
 typedef void *LPVOID;
 typedef int SOCKET;
+typedef fd_set FD_SET;
 typedef unsigned long ULONG;
 typedef char TCHAR;
 typedef char *LPTSTR;
@@ -74,6 +75,7 @@ typedef struct _SYSTEMTIME {
 #define closesocket(socket) close(socket)
 #define Sleep(milliseconds) usleep((milliseconds) * 1000)
 #define WSAGetLastError() errno
+#define timeGetTime() GetTickCount()
 #define _tcschr strchr
 #define _tcslen strlen
 #define _stscanf_s sscanf

@@ -319,6 +319,10 @@ DWORD WINAPI do_repeater(LPVOID lpParam)
     fd_set *ifds, *ofds;
     struct timeval *tmo;
 //    struct timeval win32_tmo;
+	DWORD start=0;
+	DWORD stop=0;
+	int measure_counter=0;
+	long temp_bytes=0;
 	
 	SOCKET local_in=0;
 	SOCKET local_out=0;
@@ -400,10 +404,6 @@ DWORD WINAPI do_repeater(LPVOID lpParam)
     ofds = FD_ALLOC(nfds);
     f_local = 1;				/* yes, read from local */
     f_remote = 1;				/* yes, read from remote */
-	DWORD start=0;
-	DWORD stop=0;
-	int measure_counter=0;
-	long temp_bytes=0;
 
     while ( f_local || f_remote ) {
 	if (measure_counter==0) start=timeGetTime();
