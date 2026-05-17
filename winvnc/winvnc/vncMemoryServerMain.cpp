@@ -36,6 +36,7 @@ void PrintUsage(const char *name)
               << "  --width <pixels>        Framebuffer width, default 640\n"
               << "  --height <pixels>       Framebuffer height, default 480\n"
               << "  --name <text>           Desktop name\n"
+              << "  --fill-byte <0-255>    Fill byte for the in-memory framebuffer, default 34\n"
               << "  --validate-config       Validate options and exit\n"
               << "  --smoke-test            Start on loopback, complete one RFB handshake, and exit\n"
               << "  --smoke-update-test     Start on loopback, request one raw framebuffer update, and exit\n"
@@ -93,6 +94,13 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly, 
             config.SetBindAddress(argv[++i]);
         } else if (arg == "--name" && i + 1 < argc) {
             config.SetDesktopName(argv[++i]);
+        } else if (arg == "--fill-byte" && i + 1 < argc) {
+            unsigned int fillByte = 0;
+            if (!ParseUnsigned(argv[++i], 0, 255, fillByte)) {
+                std::cerr << "invalid --fill-byte\n";
+                return false;
+            }
+            config.SetFillByte(static_cast<unsigned char>(fillByte));
         } else if (arg == "--port" && i + 1 < argc) {
             unsigned int port = 0;
             if (!ParseUnsigned(argv[++i], 0, 65535, port)) {
