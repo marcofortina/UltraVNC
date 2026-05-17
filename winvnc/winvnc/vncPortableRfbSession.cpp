@@ -221,6 +221,25 @@ bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Fram
     return false;
 }
 
+bool RfbServerSession::ServeFramebufferUpdates(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state) const
+{
+    if (updateCount == 0) {
+        return true;
+    }
+
+    unsigned int sent = 0;
+    for (unsigned int i = 0; i < maxMessages && sent < updateCount; ++i) {
+        bool updateSent = false;
+        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state)) {
+            return false;
+        }
+        if (updateSent) {
+            sent += 1;
+        }
+    }
+    return sent == updateCount;
+}
+
 } // namespace portable
 } // namespace winvnc
 } // namespace uvnc
