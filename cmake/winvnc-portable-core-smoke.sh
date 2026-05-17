@@ -20,7 +20,7 @@ cmake -S cmake -B "$build_dir" -G Ninja \
 
 cmake --build "$build_dir" -j"$(nproc)"
 
-expected_winvnc_tests=43
+expected_winvnc_tests=52
 actual_winvnc_tests=$(ctest --test-dir "$build_dir" -N -R '^winvnc_' | sed -n 's/^Total Tests: //p')
 if [[ -z "$actual_winvnc_tests" || "$actual_winvnc_tests" -lt "$expected_winvnc_tests" ]]; then
   echo "Expected at least $expected_winvnc_tests WinVNC portable tests, got ${actual_winvnc_tests:-0}" >&2
