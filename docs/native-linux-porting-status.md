@@ -38,6 +38,21 @@ For faster WinVNC-only iterations:
 cmake/winvnc-portable-core-smoke.sh /tmp/uvnc-winvnc-portable-core-build
 ```
 
+
+## Closed native Linux milestones
+
+The following milestones are considered closed for this incremental Linux-support
+track:
+
+- **Repeater Linux**: the headless Linux repeater target builds, validates,
+  smokes loopback listeners and installs through the dedicated closure helper.
+- **WinVNC portable core**: the native Linux portable WinVNC core builds and
+  exercises protocol/update/encoder/runtime/framebuffer/RFB session seams through
+  the dedicated closure helper.
+
+Use `docs/native-linux-milestone-closure.md` for the exact closure scope and
+validation commands.
+
 ## Still Windows-only
 
 The following areas are not native Linux implementations yet:
