@@ -22,6 +22,19 @@ static void BuildLogPath(char *path, size_t pathSize, const char *leaf)
 	char *separator;
 
 	if (path == NULL || pathSize == 0 || leaf == NULL) return;
+#ifndef _WIN32
+	if (saved_log_dir[0] != '\0') {
+		strcpy_s(path, pathSize, saved_log_dir);
+		if (path[0] != '\0') {
+			size_t len = strlen(path);
+			if (len > 0 && path[len - 1] != '/' && path[len - 1] != '\\') {
+				strcat_s(path, pathSize, "/");
+			}
+		}
+		strcat_s(path, pathSize, leaf);
+		return;
+	}
+#endif
 	if (!GetModuleFileName(NULL, path, pathSize)) {
 		strcpy_s(path, pathSize, leaf);
 		return;

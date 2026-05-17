@@ -24,6 +24,7 @@ int saved_portHTTP = 0;
 int saved_usecom = FALSE;
 int saved_quiet = FALSE;
 unsigned long saved_bind_address = htonl(INADDR_ANY);
+char saved_log_dir[MAX_PATH] = "";
 
 int saved_allow = FALSE;
 int saved_refuse = FALSE;
@@ -65,6 +66,7 @@ static void print_usage(const char *program)
     printf("  --viewer-port <port>   Viewer listen port, default 5901\n");
     printf("  --server-port <port>   Server listen port, default 5500\n");
     printf("  --bind-address <ipv4> Bind listeners to an IPv4 address, default 0.0.0.0\n");
+    printf("  --log-dir <path>      Write repeater access logs under this directory\n");
     printf("  --mode1                Enable direct mode 1 connections\n");
     printf("  --no-mode2             Disable mode 2 server listener\n");
     printf("  --keepalive            Enable repeater keepalive messages\n");
@@ -86,6 +88,15 @@ static int parse_port(const char *value, int *port)
     if (parsed <= 0 || parsed > 65535 || parsed > INT_MAX) return FALSE;
 
     *port = (int)parsed;
+    return TRUE;
+}
+
+static int parse_log_dir(const char *value)
+{
+    if (value == NULL || *value == '\0') return FALSE;
+    if (strlen(value) >= sizeof(saved_log_dir)) return FALSE;
+
+    strcpy_s(saved_log_dir, sizeof(saved_log_dir), value);
     return TRUE;
 }
 
@@ -144,6 +155,13 @@ static int parse_args(int argc, char **argv)
         if (strcmp(argv[i], "--bind-address") == 0) {
             if (i + 1 >= argc || !parse_bind_address(argv[++i])) {
                 fprintf(stderr, "Invalid --bind-address value\n");
+                return -1;
+            }
+            continue;
+        }
+        if (strcmp(argv[i], "--log-dir") == 0) {
+            if (i + 1 >= argc || !parse_log_dir(argv[++i])) {
+                fprintf(stderr, "Invalid --log-dir value\n");
                 return -1;
             }
             continue;

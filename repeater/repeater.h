@@ -79,6 +79,7 @@ void Stop_mode12listenerThread();
 extern int notstopped;
 #ifndef _WIN32
 extern unsigned long saved_bind_address;
+extern char saved_log_dir[MAX_PATH];
 #endif
 
 
