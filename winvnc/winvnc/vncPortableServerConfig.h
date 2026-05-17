@@ -26,12 +26,14 @@ public:
     unsigned int Width() const { return width_; }
     unsigned int Height() const { return height_; }
     const std::string& DesktopName() const { return desktopName_; }
+    unsigned char FillByte() const { return fillByte_; }
     rfbPixelFormat PixelFormat() const { return format_; }
 
     void SetBindAddress(const std::string& bindAddress) { bindAddress_ = bindAddress; }
     void SetPort(unsigned short port) { port_ = port; }
     void SetSize(unsigned int width, unsigned int height);
     void SetDesktopName(const std::string& desktopName) { desktopName_ = desktopName; }
+    void SetFillByte(unsigned char fillByte) { fillByte_ = fillByte; }
     void SetPixelFormat(const rfbPixelFormat& format) { format_ = format; }
 
     bool Validate(std::string *error = nullptr) const;
@@ -44,6 +46,7 @@ private:
     unsigned int width_;
     unsigned int height_;
     std::string desktopName_;
+    unsigned char fillByte_;
     rfbPixelFormat format_;
 };
 

@@ -25,7 +25,7 @@ bool MemoryServer::Start(const ServerConfig& config)
     }
     config_ = config;
     framebuffer_.Reset(config_.Width(), config_.Height(), config_.PixelFormat());
-    framebuffer_.Fill(0x22);
+    framebuffer_.Fill(config_.FillByte());
     return listener_.Listen(config_.BindAddress(), config_.Port());
 }
 
