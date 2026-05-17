@@ -20,7 +20,10 @@ The current CMake subset builds and tests the following components natively on L
   - portable runtime hooks for monotonic time, sleeping, process id, environment lookup
     and shutdown signalling;
   - portable framebuffer, dirty tracking, desktop-source, capture-pipeline and
-    update-encoder abstractions used as the first Linux server-side seam.
+    update-encoder abstractions used as the first Linux server-side seam;
+  - portable TCP, RFB handshake/session/message parsing and raw framebuffer
+    update serving for the experimental memory server;
+  - configurable in-memory framebuffer fill byte and multi-update smoke paths.
 
 Run the local validation helper from the repository root:
 
