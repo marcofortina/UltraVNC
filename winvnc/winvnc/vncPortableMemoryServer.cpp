@@ -55,6 +55,20 @@ bool MemoryServer::ServeOneUpdate()
            session.ServeUntilFramebufferUpdate(client, framebuffer_);
 }
 
+bool MemoryServer::ServeOneUpdates(unsigned int updateCount)
+{
+    if (!listener_.Valid()) {
+        return false;
+    }
+    TcpSocket client;
+    if (!listener_.Accept(client)) {
+        return false;
+    }
+    RfbServerSession session;
+    return session.RunHandshake(client, config_) &&
+           session.ServeFramebufferUpdates(client, framebuffer_, updateCount);
+}
+
 void MemoryServer::Stop()
 {
     listener_.Close();

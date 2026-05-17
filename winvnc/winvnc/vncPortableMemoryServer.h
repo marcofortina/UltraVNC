@@ -25,6 +25,7 @@ public:
     bool Start(const ServerConfig& config);
     bool ServeOne();
     bool ServeOneUpdate();
+    bool ServeOneUpdates(unsigned int updateCount);
     void Stop();
     bool Running() const { return listener_.Valid(); }
     unsigned short Port() const { return listener_.Port(); }
