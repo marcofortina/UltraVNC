@@ -9,6 +9,10 @@
 #include "vncLinuxX11FramebufferSource.h"
 
 #include <cstring>
+#if defined(UVNC_HAVE_X11_XSHM)
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#endif
 
 #if defined(UVNC_HAVE_X11)
 #include <X11/Xlib.h>
@@ -64,6 +68,80 @@ Display *OpenDisplay(const std::string& displayName)
 }
 
 #endif // defined(UVNC_HAVE_X11)
+
+bool CopyImageToFramebuffer(const XImage *image, unsigned int width, unsigned int height, portable::Framebuffer& destination, rfb::Region2D& changed)
+{
+    const rfbPixelFormat capturedFormat = PixelFormatFromImage(image);
+    if (!destination.Reset(width, height, capturedFormat)) {
+        changed.clear();
+        return false;
+    }
+
+    const unsigned int rowBytes = width * destination.BytesPerPixel();
+    for (unsigned int y = 0; y < height; ++y) {
+        const char *src = image->data + y * image->bytes_per_line;
+        std::memcpy(destination.PixelAt(0, y), src, rowBytes);
+    }
+    changed.reset(destination.Bounds());
+    return true;
+}
+
+#if defined(UVNC_HAVE_X11_XSHM)
+
+bool SnapshotViaXShm(Display *display, Drawable root, unsigned int width, unsigned int height, portable::Framebuffer& destination, rfb::Region2D& changed, rfbPixelFormat& format)
+{
+    XShmSegmentInfo shminfo;
+    std::memset(&shminfo, 0, sizeof(shminfo));
+
+    XImage *image = XShmCreateImage(display,
+                                    DefaultVisual(display, DefaultScreen(display)),
+                                    static_cast<unsigned int>(DefaultDepth(display, DefaultScreen(display))),
+                                    ZPixmap,
+                                    nullptr,
+                                    &shminfo,
+                                    width,
+                                    height);
+    if (image == nullptr) {
+        return false;
+    }
+
+    shminfo.shmid = shmget(IPC_PRIVATE, image->bytes_per_line * image->height, IPC_CREAT | 0600);
+    if (shminfo.shmid < 0) {
+        XDestroyImage(image);
+        return false;
+    }
+
+    shminfo.shmaddr = static_cast<char *>(shmat(shminfo.shmid, nullptr, 0));
+    if (shminfo.shmaddr == reinterpret_cast<char *>(-1)) {
+        shmctl(shminfo.shmid, IPC_RMID, nullptr);
+        XDestroyImage(image);
+        return false;
+    }
+
+    shminfo.readOnly = False;
+    image->data = shminfo.shmaddr;
+
+    bool ok = XShmAttach(display, &shminfo) != 0;
+    if (ok) {
+        XSync(display, False);
+        ok = XShmGetImage(display, root, image, 0, 0, AllPlanes) != 0;
+        if (ok) {
+            ok = CopyImageToFramebuffer(image, width, height, destination, changed);
+            if (ok) {
+                format = PixelFormatFromImage(image);
+            }
+        }
+        XShmDetach(display, &shminfo);
+        XSync(display, False);
+    }
+
+    shmdt(shminfo.shmaddr);
+    shmctl(shminfo.shmid, IPC_RMID, nullptr);
+    XDestroyImage(image);
+    return ok;
+}
+
+#endif // defined(UVNC_HAVE_X11_XSHM)
 
 } // namespace
 
@@ -122,6 +200,13 @@ bool X11DesktopSource::Snapshot(portable::Framebuffer& destination, rfb::Region2
     }
 
     Display *display = static_cast<Display *>(display_);
+#if defined(UVNC_HAVE_X11_XSHM)
+    if (IsXShmRuntimeAvailable(displayName_) &&
+        SnapshotViaXShm(display, static_cast<Drawable>(root_), width_, height_, destination, changed, format_)) {
+        return true;
+    }
+#endif
+
     XImage *image = XGetImage(display,
                               static_cast<Drawable>(root_),
                               0,
@@ -136,18 +221,9 @@ bool X11DesktopSource::Snapshot(portable::Framebuffer& destination, rfb::Region2
         return false;
     }
 
-    const rfbPixelFormat capturedFormat = PixelFormatFromImage(image);
-    bool ok = destination.Reset(width_, height_, capturedFormat);
+    bool ok = CopyImageToFramebuffer(image, width_, height_, destination, changed);
     if (ok) {
-        const unsigned int rowBytes = width_ * destination.BytesPerPixel();
-        for (unsigned int y = 0; y < height_; ++y) {
-            const char *src = image->data + y * image->bytes_per_line;
-            std::memcpy(destination.PixelAt(0, y), src, rowBytes);
-        }
-        changed.reset(destination.Bounds());
-        format_ = capturedFormat;
-    } else {
-        changed.clear();
+        format_ = PixelFormatFromImage(image);
     }
 
     XDestroyImage(image);
