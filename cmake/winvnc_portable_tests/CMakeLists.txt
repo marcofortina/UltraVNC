@@ -54,3 +54,11 @@ add_executable(winvnc_compression_smoke
 target_link_libraries(winvnc_compression_smoke PRIVATE libwinvncportablecore)
 
 add_test(NAME winvnc_compression_smoke COMMAND winvnc_compression_smoke)
+
+add_executable(winvnc_encoder_raw_smoke
+    "${CMAKE_SOURCE_DIR}/tests/winvnc_encoder_raw_smoke.cpp"
+)
+
+target_link_libraries(winvnc_encoder_raw_smoke PRIVATE libwinvncportablecore)
+
+add_test(NAME winvnc_encoder_raw_smoke COMMAND winvnc_encoder_raw_smoke)
