@@ -28,6 +28,7 @@ add_library(${PROJECT_NAME} STATIC
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/translate.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncencoder.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncencoderre.cpp"
+    "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncencodehext.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncEncodeZlib.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncEncodeZlibHex.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncEncodeUltra.cpp"
