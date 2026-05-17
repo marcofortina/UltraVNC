@@ -15,6 +15,14 @@ compatibility layer.
 5. Keep keyboard, pointer, clipboard and file-transfer mappings behind explicit
    platform boundaries.
 
+
+## Current boundary
+
+Repeater Linux and the WinVNC portable core are closed milestones, but native
+Linux viewer support is still open. Future viewer work should reuse the closed
+portable protocol/framebuffer/session pieces instead of introducing a broad
+Win32 compatibility layer.
+
 ## Initial milestones
 
 - Build portable RFB/client transport pieces natively on Linux.
