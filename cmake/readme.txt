@@ -116,6 +116,13 @@ obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --smoke-multi-update-te
 # session open until the configured number of framebuffer updates has been sent.
 obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --bind-address 127.0.0.1 --port 5901 --serve-updates --max-updates 3 --fill-byte 85 --width 64 --height 32 --name memory-manual-smoke
 
+# Notes:
+# - --bind-address accepts IPv4 addresses only in the current native subset.
+# - --fill-byte controls the synthetic framebuffer content used by the memory
+#   server while real Linux desktop capture backends are still pending.
+# - incremental framebuffer requests return empty updates when the synthetic
+#   framebuffer has not changed.
+
 # Load headless options from a simple key=value config file. Command-line
 # options are parsed in order, so options after --config override file values.
 cat >/tmp/uvnc-repeater-headless.conf <<EOF
