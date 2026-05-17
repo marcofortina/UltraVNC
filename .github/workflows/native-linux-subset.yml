@@ -1,0 +1,39 @@
+name: Native Linux subset
+
+on:
+  pull_request:
+    branches: [ main, master ]
+  push:
+    branches: [ main, master ]
+
+jobs:
+  native-linux-closure:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            pkg-config \
+            zlib1g-dev \
+            libzstd-dev \
+            liblzma-dev \
+            libjpeg-dev
+
+      - name: Repeater Linux closure smoke
+        run: |
+          cmake/repeater-linux-smoke.sh \
+            /tmp/uvnc-repeater-linux-build \
+            /tmp/uvnc-linux-closure-install
+
+      - name: WinVNC portable core closure smoke
+        run: |
+          cmake/winvnc-portable-core-closure.sh \
+            /tmp/uvnc-winvnc-portable-core-build \
+            /tmp/uvnc-linux-closure-install
