@@ -11,7 +11,9 @@
 
 #include "stdhdrs.h"
 #include "vncEncodeUltra2.h"
+#if defined(_WIN32) || defined(WIN32)
 #include <mmsystem.h>
+#endif
 
 struct jpeg_destination_mgr jpegDstManager;
 static JOCTET *jpegDstBuffer;
