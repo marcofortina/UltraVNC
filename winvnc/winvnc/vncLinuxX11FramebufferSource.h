@@ -19,19 +19,29 @@ namespace linuxfb {
 
 class X11DesktopSource : public portable::DesktopSource {
 public:
+    explicit X11DesktopSource(const std::string& displayName = std::string());
     X11DesktopSource(unsigned int width, unsigned int height, const rfbPixelFormat& format);
+    ~X11DesktopSource() override;
 
     rfb::Rect Size() const override;
     rfbPixelFormat Format() const override;
     bool Snapshot(portable::Framebuffer& destination, rfb::Region2D& changed) override;
 
-    static bool IsAvailable();
+    static bool IsBuildAvailable();
+    static bool IsAvailable(const std::string& displayName = std::string());
     static const char *UnavailableReason();
 
 private:
+    bool Initialize(std::string *error = nullptr);
+
+    std::string displayName_;
     unsigned int width_;
     unsigned int height_;
     rfbPixelFormat format_;
+    void *display_;
+    unsigned long root_;
+    int screen_;
+    bool initialized_;
 };
 
 } // namespace linuxfb
