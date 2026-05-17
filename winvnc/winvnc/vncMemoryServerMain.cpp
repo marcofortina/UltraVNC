@@ -8,6 +8,7 @@
 
 #include "vncLinuxCaptureBackend.h"
 #include "vncLinuxFramebufferSource.h"
+#include "vncLinuxX11FramebufferSource.h"
 #include "vncPortableFramebufferPattern.h"
 #include "vncPortableMemoryServer.h"
 #include "vncPortableRfb.h"
@@ -464,6 +465,14 @@ int main(int argc, char **argv)
         if (!LoadRawFramebufferFile(rawFramebufferFile, config.Width(), config.Height(), config.PixelFormat(), framebuffer, &loadError) ||
             !server.StartWithFramebuffer(config, framebuffer)) {
             std::cerr << "failed to start raw framebuffer file server: " << loadError << "\n";
+            return 1;
+        }
+    } else if (resolvedCaptureBackend == CaptureBackend::X11) {
+        X11DesktopSource source;
+        Framebuffer framebuffer;
+        rfb::Region2D changed;
+        if (!source.Snapshot(framebuffer, changed) || !server.StartWithFramebuffer(config, framebuffer)) {
+            std::cerr << "failed to start X11 framebuffer server\n";
             return 1;
         }
     } else if (!server.Start(config)) {
