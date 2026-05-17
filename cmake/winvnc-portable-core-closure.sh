@@ -22,7 +22,7 @@ ctest --test-dir "${BUILD_DIR}" --output-on-failure -L 'winvnc-portable'
     --smoke-multi-update-test \
     --max-updates 3 \
     --fill-byte 119 \
-    --pattern checker \
+    --pattern solid \
     --width 64 \
     --height 32 \
     --name winvnc-portable-closure
@@ -41,7 +41,7 @@ if [[ -n "${INSTALL_PREFIX}" ]]; then
         --smoke-multi-update-test \
         --max-updates 3 \
         --fill-byte 119 \
-        --pattern checker \
+        --pattern solid \
         --width 64 \
         --height 32 \
         --name installed-winvnc-portable-closure
