@@ -24,7 +24,8 @@ jobs:
             zlib1g-dev \
             libzstd-dev \
             liblzma-dev \
-            libjpeg-dev
+            libjpeg-dev \
+            libx11-dev
 
       - name: Repeater Linux closure smoke
         run: |
@@ -42,4 +43,10 @@ jobs:
         run: |
           cmake/memory-server-rfb-closure.sh \
             /tmp/uvnc-memory-server-rfb-build \
+            /tmp/uvnc-linux-closure-install
+
+      - name: X11 capture smoke
+        run: |
+          cmake/x11-capture-smoke.sh \
+            /tmp/uvnc-x11-capture-build \
             /tmp/uvnc-linux-closure-install
