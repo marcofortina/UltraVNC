@@ -15,6 +15,29 @@ extern int notstopped;
 
 static int visible;
 
+static void BuildLogPath(char *path, size_t pathSize, const char *leaf)
+{
+	char *slash;
+	char *backslash;
+	char *separator;
+
+	if (path == NULL || pathSize == 0 || leaf == NULL) return;
+	if (!GetModuleFileName(NULL, path, pathSize)) {
+		strcpy_s(path, pathSize, leaf);
+		return;
+	}
+
+	slash = strrchr(path, '/');
+	backslash = strrchr(path, '\\');
+	separator = backslash;
+	if (slash != NULL && (backslash == NULL || slash > backslash)) separator = slash;
+
+	if (separator != NULL) *(separator + 1) = '\0';
+	else path[0] = '\0';
+
+	strcat_s(path, pathSize, leaf);
+}
+
 
 void
 LogStats(int code,long recv,long send)
@@ -23,15 +46,9 @@ char szFileName[MAX_PATH];
 char tempchar[128];
 HANDLE hFile=NULL;
 FILE *f;
-	if (GetModuleFileName(NULL, szFileName, MAX_PATH))
-					{
-						char* p = strrchr(szFileName, '\\');
-						*p = '\0';
-						strcat_s (szFileName,MAX_PATH,"\\");
-						_itoa_s(code,tempchar,10);
-						strcat_s (szFileName,MAX_PATH, tempchar);
-						strcat_s (szFileName,MAX_PATH,".txt");
-					}
+	_itoa_s(code,tempchar,10);
+	strcat_s(tempchar, sizeof(tempchar), ".txt");
+	BuildLogPath(szFileName, MAX_PATH, tempchar);
 
 	if ((f = fopen((LPCSTR)szFileName, "a")) != NULL)
 		{
@@ -73,13 +90,7 @@ char szFileName[MAX_PATH];
 //char tempchar[128];
     HANDLE hFile=NULL;
 	FILE *f;
-	if (GetModuleFileName(NULL, szFileName, MAX_PATH))
-					{
-						char* p = strrchr(szFileName, '\\');
-						*p = '\0';
-						strcat_s(szFileName,"\\");
-						strcat_s(szFileName,"server_access.txt");
-					}
+	BuildLogPath(szFileName, MAX_PATH, "server_access.txt");
 
 	if ((f = fopen((LPCSTR)szFileName, "a")) != NULL)
 		{
@@ -118,13 +129,7 @@ char szFileName[MAX_PATH];
 //char tempchar[128];
     HANDLE hFile=NULL;
 	FILE *f;
-	if (GetModuleFileName(NULL, szFileName, MAX_PATH))
-					{
-						char* p = strrchr(szFileName, '\\');
-						*p = '\0';
-						strcat_s(szFileName,"\\");
-						strcat_s(szFileName,"viewer_access.txt");
-					}
+	BuildLogPath(szFileName, MAX_PATH, "viewer_access.txt");
 
 	if ((f = fopen((LPCSTR)szFileName, "a")) != NULL)
 		{
@@ -162,13 +167,7 @@ void LogStats_access(char *start,char *stop,int code,int viewer,int server ,long
 //	char tempchar[128];
     HANDLE hFile=NULL;
 	FILE *f;
-	if (GetModuleFileName(NULL, szFileName, MAX_PATH))
-					{
-						char* p = strrchr(szFileName, '\\');
-						*p = '\0';
-						strcat_s(szFileName,"\\");
-						strcat_s(szFileName,"connections.txt");
-					}
+	BuildLogPath(szFileName, MAX_PATH, "connections.txt");
 
 	if ((f = fopen((LPCSTR)szFileName, "a")) != NULL)
 		{
