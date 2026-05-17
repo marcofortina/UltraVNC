@@ -9,6 +9,8 @@
 #ifndef UVNC_WINVNC_PORTABLE_FRAMEBUFFER_PATTERN_H
 #define UVNC_WINVNC_PORTABLE_FRAMEBUFFER_PATTERN_H
 
+#include "vncPortableFramebuffer.h"
+
 #include <string>
 
 namespace uvnc {
@@ -24,6 +26,7 @@ enum class FramebufferPattern {
 
 const char *FramebufferPatternName(FramebufferPattern pattern);
 bool ParseFramebufferPattern(const std::string& value, FramebufferPattern& pattern);
+bool ApplyFramebufferPattern(Framebuffer& framebuffer, FramebufferPattern pattern, BYTE fillByte);
 
 } // namespace portable
 } // namespace winvnc

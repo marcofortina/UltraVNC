@@ -8,6 +8,25 @@
 
 #include "vncPortableFramebufferPattern.h"
 
+namespace {
+
+BYTE PatternValue(uvnc::winvnc::portable::FramebufferPattern pattern, unsigned int x, unsigned int y, unsigned int width, unsigned int height, BYTE fillByte)
+{
+    switch (pattern) {
+    case uvnc::winvnc::portable::FramebufferPattern::Solid:
+        return fillByte;
+    case uvnc::winvnc::portable::FramebufferPattern::Checker:
+        return ((x / 8 + y / 8) % 2) == 0 ? fillByte : static_cast<BYTE>(~fillByte);
+    case uvnc::winvnc::portable::FramebufferPattern::GradientX:
+        return width <= 1 ? fillByte : static_cast<BYTE>((x * 255U) / (width - 1));
+    case uvnc::winvnc::portable::FramebufferPattern::GradientY:
+        return height <= 1 ? fillByte : static_cast<BYTE>((y * 255U) / (height - 1));
+    }
+    return fillByte;
+}
+
+} // namespace
+
 namespace uvnc {
 namespace winvnc {
 namespace portable {
@@ -46,6 +65,27 @@ bool ParseFramebufferPattern(const std::string& value, FramebufferPattern& patte
         return true;
     }
     return false;
+}
+
+bool ApplyFramebufferPattern(Framebuffer& framebuffer, FramebufferPattern pattern, BYTE fillByte)
+{
+    if (framebuffer.Empty()) {
+        return false;
+    }
+
+    for (unsigned int y = 0; y < framebuffer.Height(); ++y) {
+        for (unsigned int x = 0; x < framebuffer.Width(); ++x) {
+            BYTE *pixel = framebuffer.PixelAt(x, y);
+            if (!pixel) {
+                return false;
+            }
+            const BYTE value = PatternValue(pattern, x, y, framebuffer.Width(), framebuffer.Height(), fillByte);
+            for (unsigned int byte = 0; byte < framebuffer.BytesPerPixel(); ++byte) {
+                pixel[byte] = value;
+            }
+        }
+    }
+    return true;
 }
 
 } // namespace portable
