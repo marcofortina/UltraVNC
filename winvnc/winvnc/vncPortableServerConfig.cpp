@@ -8,7 +8,22 @@
 
 #include "vncPortableServerConfig.h"
 
+#include <arpa/inet.h>
 #include <cstring>
+
+
+namespace {
+
+bool IsValidIpv4BindAddress(const std::string& address)
+{
+    if (address.empty()) {
+        return false;
+    }
+    in_addr parsed;
+    return inet_pton(AF_INET, address.c_str(), &parsed) == 1;
+}
+
+} // namespace
 
 namespace uvnc {
 namespace winvnc {
@@ -33,8 +48,8 @@ void ServerConfig::SetSize(unsigned int width, unsigned int height)
 
 bool ServerConfig::Validate(std::string *error) const
 {
-    if (bindAddress_.empty()) {
-        if (error) *error = "bind address must not be empty";
+    if (!IsValidIpv4BindAddress(bindAddress_)) {
+        if (error) *error = "bind address must be a valid IPv4 address";
         return false;
     }
     if (width_ == 0 || height_ == 0) {
