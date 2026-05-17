@@ -29,7 +29,7 @@ class vncEncoder;
 #include "rfb.h"
 #include "rfbRect.h"
 #include "translate.h"
-class VSocket;
+#include "vsocket_portable.h"
 class vncDesktop;
 #else
 #include "vncbuffer.h"
