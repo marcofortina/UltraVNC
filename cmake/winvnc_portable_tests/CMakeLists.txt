@@ -38,3 +38,11 @@ add_executable(winvnc_region_smoke
 target_link_libraries(winvnc_region_smoke PRIVATE libwinvncportablecore)
 
 add_test(NAME winvnc_region_smoke COMMAND winvnc_region_smoke)
+
+add_executable(winvnc_update_tracker_copyrect_smoke
+    "${CMAKE_SOURCE_DIR}/tests/winvnc_update_tracker_copyrect_smoke.cpp"
+)
+
+target_link_libraries(winvnc_update_tracker_copyrect_smoke PRIVATE libwinvncportablecore)
+
+add_test(NAME winvnc_update_tracker_copyrect_smoke COMMAND winvnc_update_tracker_copyrect_smoke)
