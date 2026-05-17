@@ -16,3 +16,4 @@ INSTALL_PREFIX="${3:-/tmp/uvnc-linux-closure-install}"
 
 "${SCRIPT_DIR}/repeater-linux-smoke.sh" "${REPEATER_BUILD_DIR}" "${INSTALL_PREFIX}"
 "${SCRIPT_DIR}/winvnc-portable-core-closure.sh" "${WINVNC_BUILD_DIR}" "${INSTALL_PREFIX}"
+"${SCRIPT_DIR}/memory-server-rfb-closure.sh" "${WINVNC_BUILD_DIR}" "${INSTALL_PREFIX}"
