@@ -23,6 +23,7 @@ int saved_portB = 5500;
 int saved_portHTTP = 0;
 int saved_usecom = FALSE;
 int saved_quiet = FALSE;
+unsigned long saved_bind_address = htonl(INADDR_ANY);
 
 int saved_allow = FALSE;
 int saved_refuse = FALSE;
@@ -63,6 +64,7 @@ static void print_usage(const char *program)
     printf("Options:\n");
     printf("  --viewer-port <port>   Viewer listen port, default 5901\n");
     printf("  --server-port <port>   Server listen port, default 5500\n");
+    printf("  --bind-address <ipv4> Bind listeners to an IPv4 address, default 0.0.0.0\n");
     printf("  --mode1                Enable direct mode 1 connections\n");
     printf("  --no-mode2             Disable mode 2 server listener\n");
     printf("  --keepalive            Enable repeater keepalive messages\n");
@@ -84,6 +86,17 @@ static int parse_port(const char *value, int *port)
     if (parsed <= 0 || parsed > 65535 || parsed > INT_MAX) return FALSE;
 
     *port = (int)parsed;
+    return TRUE;
+}
+
+static int parse_bind_address(const char *value)
+{
+    struct in_addr parsed;
+
+    if (value == NULL || *value == '\0') return FALSE;
+    if (inet_pton(AF_INET, value, &parsed) != 1) return FALSE;
+
+    saved_bind_address = parsed.s_addr;
     return TRUE;
 }
 
@@ -124,6 +137,13 @@ static int parse_args(int argc, char **argv)
         if (strcmp(argv[i], "--server-port") == 0) {
             if (i + 1 >= argc || !parse_port(argv[++i], &saved_portB)) {
                 fprintf(stderr, "Invalid --server-port value\n");
+                return -1;
+            }
+            continue;
+        }
+        if (strcmp(argv[i], "--bind-address") == 0) {
+            if (i + 1 >= argc || !parse_bind_address(argv[++i])) {
+                fprintf(stderr, "Invalid --bind-address value\n");
                 return -1;
             }
             continue;
@@ -208,6 +228,7 @@ static int run_smoke_test(void)
 
     saved_portA = viewer_port;
     saved_portB = server_port;
+    saved_bind_address = htonl(INADDR_LOOPBACK);
     saved_mode2 = TRUE;
     saved_mode1 = FALSE;
     saved_keepalive = FALSE;

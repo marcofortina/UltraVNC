@@ -77,6 +77,9 @@ void Stop_server_listenThread();
 void Stop_mode12listenerThread();
 
 extern int notstopped;
+#ifndef _WIN32
+extern unsigned long saved_bind_address;
+#endif
 
 
 //Settings

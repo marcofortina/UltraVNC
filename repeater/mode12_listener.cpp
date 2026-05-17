@@ -130,7 +130,11 @@ DWORD WINAPI mode12listener(LPVOID lpParam)
 
 		name.sin_family = AF_INET;
 		name.sin_port = htons (saved_portA);
+#ifdef _WIN32
 		name.sin_addr.s_addr = htonl (INADDR_ANY);
+#else
+		name.sin_addr.s_addr = saved_bind_address;
+#endif
 		if (bind (sock, (struct sockaddr *) &name, sizeof (name)) < 0)
 				fatal ("bind() failed, errno=%d\n", socket_errno());
 		else debug ("bind() succeded to port %i\n",saved_portA);
