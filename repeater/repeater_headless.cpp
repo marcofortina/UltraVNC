@@ -53,6 +53,8 @@ static void request_shutdown(int)
     notwebstopped = FALSE;
 }
 
+static int saved_smoke_test = FALSE;
+
 static void print_usage(const char *program)
 {
     printf("Usage: %s [options]\n", program);
@@ -63,6 +65,7 @@ static void print_usage(const char *program)
     printf("  --mode1                Enable direct mode 1 connections\n");
     printf("  --no-mode2             Disable mode 2 server listener\n");
     printf("  --keepalive            Enable repeater keepalive messages\n");
+    printf("  --smoke-test           Start listeners on free ports and verify they accept connections\n");
     printf("  --help                 Show this help text\n");
 }
 
@@ -101,6 +104,10 @@ static int parse_args(int argc, char **argv)
             saved_keepalive = TRUE;
             continue;
         }
+        if (strcmp(argv[i], "--smoke-test") == 0) {
+            saved_smoke_test = TRUE;
+            continue;
+        }
         if (strcmp(argv[i], "--viewer-port") == 0) {
             if (i + 1 >= argc || !parse_port(argv[++i], &saved_portA)) {
                 fprintf(stderr, "Invalid --viewer-port value\n");
@@ -121,6 +128,107 @@ static int parse_args(int argc, char **argv)
     return 0;
 }
 
+
+static int find_free_loopback_port(void)
+{
+    SOCKET probe = socket(AF_INET, SOCK_STREAM, 0);
+    struct sockaddr_in address;
+    socklen_t address_len = sizeof(address);
+
+    if (probe == INVALID_SOCKET) return -1;
+
+    memset(&address, 0, sizeof(address));
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    address.sin_port = 0;
+
+    if (bind(probe, (struct sockaddr *)&address, sizeof(address)) == SOCKET_ERROR ||
+        getsockname(probe, (struct sockaddr *)&address, &address_len) == SOCKET_ERROR) {
+        closesocket(probe);
+        return -1;
+    }
+
+    int port = ntohs(address.sin_port);
+    closesocket(probe);
+    return port;
+}
+
+static int wait_for_loopback_port(int port, int timeout_ms)
+{
+    int elapsed_ms = 0;
+
+    while (elapsed_ms < timeout_ms) {
+        SOCKET probe = socket(AF_INET, SOCK_STREAM, 0);
+        struct sockaddr_in address;
+
+        if (probe == INVALID_SOCKET) return FALSE;
+
+        memset(&address, 0, sizeof(address));
+        address.sin_family = AF_INET;
+        address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        address.sin_port = htons((u_short)port);
+
+        if (connect(probe, (struct sockaddr *)&address, sizeof(address)) == 0) {
+            closesocket(probe);
+            return TRUE;
+        }
+
+        closesocket(probe);
+        Sleep(50);
+        elapsed_ms += 50;
+    }
+
+    return FALSE;
+}
+
+static DWORD WINAPI run_repeater_for_smoke(LPVOID)
+{
+    return (DWORD)main_test();
+}
+
+static int run_smoke_test(void)
+{
+    int viewer_port = find_free_loopback_port();
+    int server_port = find_free_loopback_port();
+    DWORD thread_id = 0;
+    HANDLE repeater_thread;
+    int viewer_ready;
+    int server_ready;
+
+    if (viewer_port <= 0 || server_port <= 0 || viewer_port == server_port) {
+        fprintf(stderr, "Unable to allocate local smoke-test ports\n");
+        return 1;
+    }
+
+    saved_portA = viewer_port;
+    saved_portB = server_port;
+    saved_mode2 = TRUE;
+    saved_mode1 = FALSE;
+    saved_keepalive = FALSE;
+    notstopped = TRUE;
+    notwebstopped = TRUE;
+
+    repeater_thread = CreateThread(NULL, 0, run_repeater_for_smoke, NULL, 0, &thread_id);
+    if (repeater_thread == NULL) {
+        fprintf(stderr, "Unable to start smoke-test repeater thread\n");
+        return 1;
+    }
+
+    viewer_ready = wait_for_loopback_port(viewer_port, 5000);
+    server_ready = wait_for_loopback_port(server_port, 5000);
+
+    request_shutdown(0);
+    WaitForSingleObject(repeater_thread, 5000);
+    CloseHandle(repeater_thread);
+
+    if (!viewer_ready || !server_ready) {
+        fprintf(stderr, "Smoke test failed: viewer_ready=%d server_ready=%d\n", viewer_ready, server_ready);
+        return 1;
+    }
+
+    return 0;
+}
+
 char *lookup_comment(ULONG)
 {
     return NULL;
@@ -133,12 +241,17 @@ void win_log(char *line)
 
 int main(int argc, char **argv)
 {
+#ifdef SIGPIPE
+    signal(SIGPIPE, SIG_IGN);
+#endif
+
     int parse_result = parse_args(argc, argv);
     if (parse_result > 0) return 0;
     if (parse_result < 0) {
         print_usage(argv[0]);
         return 1;
     }
+    if (saved_smoke_test) return run_smoke_test();
 
     signal(SIGINT, request_shutdown);
     signal(SIGTERM, request_shutdown);
