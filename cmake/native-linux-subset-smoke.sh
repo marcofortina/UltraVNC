@@ -44,4 +44,6 @@ if [[ -n "${INSTALL_PREFIX}" ]]; then
     "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --help >/dev/null
     "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --validate-config --width 64 --height 32 --name installed-memory-smoke
     "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --smoke-test --width 64 --height 32 --name installed-memory-smoke
+    "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --smoke-update-test --width 64 --height 32 --name installed-update-smoke
+    "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --smoke-multi-update-test --max-updates 3 --width 64 --height 32 --name installed-multi-update-smoke
 fi
