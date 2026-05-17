@@ -32,6 +32,22 @@ inline rfbPixelFormat winvnc_test_true_colour_32()
     return format;
 }
 
+inline rfbPixelFormat winvnc_test_true_colour_16()
+{
+    rfbPixelFormat format = {};
+    format.bitsPerPixel = 16;
+    format.depth = 16;
+    format.bigEndian = 0;
+    format.trueColour = 1;
+    format.redMax = 31;
+    format.greenMax = 63;
+    format.blueMax = 31;
+    format.redShift = 11;
+    format.greenShift = 5;
+    format.blueShift = 0;
+    return format;
+}
+
 inline rfb::Rect winvnc_test_rect(int left, int top, int right, int bottom)
 {
     rfb::Rect rect;
