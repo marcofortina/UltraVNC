@@ -22,3 +22,11 @@ target_link_libraries(winvnc_update_tracker_smoke
 if(BUILD_TESTING)
     add_test(NAME winvnc_update_tracker_smoke COMMAND winvnc_update_tracker_smoke)
 endif()
+
+add_executable(winvnc_translate_smoke
+    "${CMAKE_SOURCE_DIR}/tests/winvnc_translate_smoke.cpp"
+)
+
+target_link_libraries(winvnc_translate_smoke PRIVATE libwinvncportablecore)
+
+add_test(NAME winvnc_translate_smoke COMMAND winvnc_translate_smoke)
