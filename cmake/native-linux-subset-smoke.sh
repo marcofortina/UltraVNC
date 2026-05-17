@@ -22,9 +22,22 @@ cmake --build "${BUILD_DIR}" -j"$(nproc)"
 ctest --test-dir "${BUILD_DIR}" --output-on-failure
 "${BUILD_DIR}/repeater_headless/uvnc_repeater_headless" --smoke-test --quiet
 
+CONFIG_FILE="${BUILD_DIR}/uvnc-repeater-headless-smoke.conf"
+cat >"${CONFIG_FILE}" <<EOF
+mode1=true
+mode2=false
+viewer-port=5901
+server-port=5500
+bind-address=127.0.0.1
+log-dir=${BUILD_DIR}
+quiet=true
+EOF
+"${BUILD_DIR}/repeater_headless/uvnc_repeater_headless" --config "${CONFIG_FILE}" --validate-config --quiet
+
 if [[ -n "${INSTALL_PREFIX}" ]]; then
     cmake --install "${BUILD_DIR}" --prefix "${INSTALL_PREFIX}"
     "${INSTALL_PREFIX}/bin/uvnc_repeater_headless" --help >/dev/null
     "${INSTALL_PREFIX}/bin/uvnc_repeater_headless" --mode1 --no-mode2 --validate-config --quiet
+    "${INSTALL_PREFIX}/bin/uvnc_repeater_headless" --config "${CONFIG_FILE}" --validate-config --quiet
     "${INSTALL_PREFIX}/bin/uvnc_repeater_headless" --smoke-test --quiet
 fi
