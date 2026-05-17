@@ -6,6 +6,7 @@
 //
 // SPDX-FileCopyrightText: Copyright (C) 2002-2025 UltraVNC Team Members. All Rights Reserved.
 
+#include "vncLinuxFramebufferSource.h"
 #include "vncPortableFramebufferPattern.h"
 #include "vncPortableMemoryServer.h"
 #include "vncPortableRfb.h"
@@ -19,6 +20,8 @@
 #include <thread>
 
 using uvnc::winvnc::portable::ServerConfig;
+using uvnc::winvnc::linuxfb::LoadRawFramebufferFile;
+using uvnc::winvnc::portable::Framebuffer;
 using uvnc::winvnc::portable::MemoryServer;
 using uvnc::winvnc::portable::FramebufferUpdateRequest;
 using uvnc::winvnc::portable::TcpSocket;
@@ -43,6 +46,7 @@ void PrintUsage(const char *name)
               << "  --name <text>           Desktop name\n"
               << "  --fill-byte <0-255>    Fill byte for the in-memory framebuffer, default 34\n"
               << "  --pattern <name>       Framebuffer pattern: solid, checker, gradient-x, gradient-y\n"
+              << "  --raw-framebuffer-file <path> Serve exact-size raw framebuffer file instead of synthetic pattern\n"
               << "  --validate-config       Validate options and exit\n"
               << "  --print-config          Print resolved configuration and exit\n"
               << "  --smoke-test            Start on loopback, complete one RFB handshake, and exit\n"
@@ -67,7 +71,7 @@ bool ParseUnsigned(const char *value, unsigned int min, unsigned int max, unsign
     return true;
 }
 
-bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& serveUpdates, unsigned int& maxUpdates)
+bool ParseArgs(int argc, char **argv, ServerConfig& config, std::string& rawFramebufferFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& serveUpdates, unsigned int& maxUpdates)
 {
     validateOnly = false;
     printConfig = false;
@@ -76,6 +80,7 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly, 
     smokeMultiUpdateTest = false;
     serveUpdates = false;
     maxUpdates = 3;
+    rawFramebufferFile.clear();
     for (int i = 1; i < argc; ++i) {
         const std::string arg(argv[i]);
         if (arg == "--help") {
@@ -108,6 +113,8 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly, 
             config.SetBindAddress(argv[++i]);
         } else if (arg == "--name" && i + 1 < argc) {
             config.SetDesktopName(argv[++i]);
+        } else if (arg == "--raw-framebuffer-file" && i + 1 < argc) {
+            rawFramebufferFile = argv[++i];
         } else if (arg == "--pattern" && i + 1 < argc) {
             FramebufferPattern pattern = FramebufferPattern::Solid;
             if (!ParseFramebufferPattern(argv[++i], pattern)) {
@@ -325,6 +332,7 @@ void PrintResolvedConfig(const ServerConfig& config, unsigned int maxUpdates)
 int main(int argc, char **argv)
 {
     ServerConfig config;
+    std::string rawFramebufferFile;
     bool validateOnly = false;
     bool printConfig = false;
     bool smokeTest = false;
@@ -332,7 +340,7 @@ int main(int argc, char **argv)
     bool smokeMultiUpdateTest = false;
     bool serveUpdates = false;
     unsigned int maxUpdates = 3;
-    if (!ParseArgs(argc, argv, config, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, serveUpdates, maxUpdates)) {
+    if (!ParseArgs(argc, argv, config, rawFramebufferFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, serveUpdates, maxUpdates)) {
         return 2;
     }
     std::string error;
@@ -358,7 +366,15 @@ int main(int argc, char **argv)
     }
 
     MemoryServer server;
-    if (!server.Start(config)) {
+    if (!rawFramebufferFile.empty()) {
+        Framebuffer framebuffer;
+        std::string loadError;
+        if (!LoadRawFramebufferFile(rawFramebufferFile, config.Width(), config.Height(), config.PixelFormat(), framebuffer, &loadError) ||
+            !server.StartWithFramebuffer(config, framebuffer)) {
+            std::cerr << "failed to start raw framebuffer file server: " << loadError << "\n";
+            return 1;
+        }
+    } else if (!server.Start(config)) {
         std::cerr << "failed to start memory server\n";
         return 1;
     }
