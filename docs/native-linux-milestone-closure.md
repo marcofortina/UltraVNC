@@ -44,6 +44,33 @@ cmake/winvnc-portable-core-closure.sh /tmp/uvnc-winvnc-portable-core-build /tmp/
 This does not mean a production Linux desktop server exists. Real Linux desktop
 capture, input injection and daemon/session integration remain future milestones.
 
+
+## Closed milestone: Memory server RFB
+
+Scope:
+
+- experimental native Linux `uvnc_winvnc_memory_server` executable;
+- RFB 3.8 no-auth handshake for local smoke validation;
+- server-init metadata for configurable framebuffer size/name;
+- client message handling for set-pixel-format, set-encodings, key events,
+  pointer events, client cut text and framebuffer update requests;
+- raw framebuffer update responses, clipped/empty update handling and incremental
+  empty updates when the synthetic framebuffer is unchanged;
+- configurable synthetic framebuffer patterns: `solid`, `checker`, `gradient-x`
+  and `gradient-y`;
+- single-client handshake, one-update and multi-update smoke coverage;
+- installed-binary smoke coverage.
+
+Validation:
+
+```sh
+cmake/memory-server-rfb-closure.sh /tmp/uvnc-memory-server-rfb-build /tmp/uvnc-linux-closure-install
+```
+
+This does not mean a real Linux desktop server exists. It means the native Linux
+RFB memory-server milestone is closed as a deterministic protocol/session test
+harness for the future real Linux framebuffer and input backends.
+
 ## Combined closure smoke
 
 ```sh
