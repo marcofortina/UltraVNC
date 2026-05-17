@@ -97,6 +97,11 @@ obj-linux/repeater_headless/uvnc_repeater_headless --smoke-test --quiet
 # is available on the default branch.
 UltraVNC/cmake/native-linux-subset-smoke.sh obj-linux
 
+# Use an explicit runtime log directory when the repeater binary is installed
+# under a read-only or shared location.
+mkdir -p /tmp/uvnc-repeater-logs
+obj-linux/repeater_headless/uvnc_repeater_headless --bind-address 127.0.0.1 --log-dir /tmp/uvnc-repeater-logs --viewer-port 5901 --server-port 5500
+
 ######################
 
 # Windows with cmake, generate Visual Studio project files
