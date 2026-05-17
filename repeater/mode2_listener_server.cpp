@@ -12,7 +12,7 @@
 #include "repeater.h"
 
 HANDLE hserver_listen=NULL;
-int sock_server_listen=NULL;
+int sock_server_listen=INVALID_SOCKET;
 
 DWORD WINAPI server_listen(LPVOID lpParam)
 {

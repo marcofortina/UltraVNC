@@ -62,7 +62,7 @@ FILE *f;
 			strcat_s(msg, tempchar);
 			strcat_s(msg,"k \n");
 	
-			fprintf(f,msg);
+			fprintf(f, "%s", msg);
 			fclose(f);
 	}
 }
@@ -172,7 +172,7 @@ void LogStats_access(char *start,char *stop,int code,int viewer,int server ,long
 
 	if ((f = fopen((LPCSTR)szFileName, "a")) != NULL)
 		{
-			fprintf(f,"%s;%s;%i;%s;%s;%u\n",start,stop,code,Viewers[viewer].hostname,Servers[server].hostname,bytes);
+			fprintf(f,"%s;%s;%i;%s;%s;%ld\n",start,stop,code,Viewers[viewer].hostname,Servers[server].hostname,bytes);
 			fclose(f);
 	}
 }
@@ -216,7 +216,7 @@ fatal( const char *fmt, ... )
 }
 
 void
-report_bytes( char *prefix, char *buf, int len )
+report_bytes( const char *prefix, char *buf, int len )
 {
     debug( "%s", prefix );
     while ( 0 < len ) {

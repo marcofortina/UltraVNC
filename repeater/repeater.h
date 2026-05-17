@@ -96,4 +96,4 @@ void LogStats_server(int code,int nummer);
 void LogStats_access(char *start,char *stop,int code,int viewer,int server ,long bytes);
 void error( const char *fmt, ... );
 void fatal( const char *fmt, ... );
-void report_bytes( char *prefix, char *buf, int len );
+void report_bytes( const char *prefix, char *buf, int len );
