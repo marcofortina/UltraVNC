@@ -55,6 +55,15 @@ if(BUILD_TESTING)
 
     add_test(NAME winvnc_memory_server_invalid_max_updates COMMAND uvnc_winvnc_memory_server --validate-config --max-updates 0)
     set_tests_properties(winvnc_memory_server_invalid_max_updates PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5 WILL_FAIL TRUE)
+
+    add_test(NAME winvnc_memory_server_print_capture_auto COMMAND uvnc_winvnc_memory_server --print-config --capture-backend auto)
+    set_tests_properties(winvnc_memory_server_print_capture_auto PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5 PASS_REGULAR_EXPRESSION "resolved_capture_backend=memory")
+
+    add_test(NAME winvnc_memory_server_invalid_capture_backend COMMAND uvnc_winvnc_memory_server --validate-config --capture-backend unknown)
+    set_tests_properties(winvnc_memory_server_invalid_capture_backend PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5 WILL_FAIL TRUE)
+
+    add_test(NAME winvnc_memory_server_unavailable_x11_backend COMMAND uvnc_winvnc_memory_server --validate-config --capture-backend x11)
+    set_tests_properties(winvnc_memory_server_unavailable_x11_backend PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5 WILL_FAIL TRUE)
 endif()
 
 install(TARGETS uvnc_winvnc_memory_server RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
