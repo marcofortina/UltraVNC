@@ -64,6 +64,10 @@ bool ServerConfig::Validate(std::string *error) const
         if (error) *error = "desktop name must not be empty";
         return false;
     }
+    if (desktopName_.size() > 1024) {
+        if (error) *error = "desktop name is too long";
+        return false;
+    }
     if (format_.bitsPerPixel != 8 && format_.bitsPerPixel != 16 && format_.bitsPerPixel != 32) {
         if (error) *error = "bitsPerPixel must be 8, 16, or 32";
         return false;
