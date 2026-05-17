@@ -7,13 +7,17 @@
 // SPDX-FileCopyrightText: Copyright (C) 2002-2025 UltraVNC Team Members. All Rights Reserved.
 
 #include "vncPortableMemoryServer.h"
+#include "vncPortableRfb.h"
+#include "vncPortableTcp.h"
 
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <thread>
 
 using uvnc::winvnc::portable::ServerConfig;
 using uvnc::winvnc::portable::MemoryServer;
+using uvnc::winvnc::portable::TcpSocket;
 
 namespace {
 
@@ -31,6 +35,7 @@ void PrintUsage(const char *name)
               << "  --height <pixels>       Framebuffer height, default 480\n"
               << "  --name <text>           Desktop name\n"
               << "  --validate-config       Validate options and exit\n"
+              << "  --smoke-test            Start on loopback, complete one RFB handshake, and exit\n"
               << "  --help                  Show this help\n";
 }
 
@@ -48,9 +53,10 @@ bool ParseUnsigned(const char *value, unsigned int min, unsigned int max, unsign
     return true;
 }
 
-bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly)
+bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly, bool& smokeTest)
 {
     validateOnly = false;
+    smokeTest = false;
     for (int i = 1; i < argc; ++i) {
         const std::string arg(argv[i]);
         if (arg == "--help") {
@@ -58,6 +64,10 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly)
             std::exit(0);
         } else if (arg == "--validate-config") {
             validateOnly = true;
+        } else if (arg == "--smoke-test") {
+            smokeTest = true;
+            config.SetBindAddress("127.0.0.1");
+            config.SetPort(0);
         } else if (arg == "--bind-address" && i + 1 < argc) {
             config.SetBindAddress(argv[++i]);
         } else if (arg == "--name" && i + 1 < argc) {
@@ -91,13 +101,58 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly)
     return true;
 }
 
+bool RunSmokeTest(const ServerConfig& config)
+{
+    MemoryServer server;
+    if (!server.Start(config)) {
+        std::cerr << "failed to start memory server smoke test\n";
+        return false;
+    }
+
+    bool serverOk = false;
+    std::thread worker([&]() {
+        serverOk = server.ServeOne();
+    });
+
+    TcpSocket client;
+    bool clientOk = TcpSocket::Connect("127.0.0.1", server.Port(), client);
+    if (clientOk) {
+        char version[sz_rfbProtocolVersionMsg] = {};
+        clientOk = client.ReadExact(version, sizeof(version));
+        const std::string clientVersion = uvnc::winvnc::portable::ProtocolVersion38();
+        clientOk = clientOk && client.WriteAll(clientVersion.data(), clientVersion.size());
+        CARD8 security[2] = {};
+        clientOk = clientOk && client.ReadExact(security, sizeof(security));
+        CARD8 selected = rfbNoAuth;
+        clientOk = clientOk && client.WriteAll(&selected, sizeof(selected));
+        CARD32 auth = 1;
+        clientOk = clientOk && client.ReadExact(&auth, sizeof(auth));
+        rfbClientInitMsg init;
+        init.flags = clientInitShared;
+        clientOk = clientOk && client.WriteAll(&init, sz_rfbClientInitMsg);
+        rfbServerInitMsg serverInit;
+        clientOk = clientOk && client.ReadExact(&serverInit, sz_rfbServerInitMsg);
+        const CARD32 nameLength = Swap32IfLE(serverInit.nameLength);
+        std::string name(nameLength, '\0');
+        clientOk = clientOk && client.ReadExact(&name[0], name.size());
+        clientOk = clientOk && Swap16IfLE(serverInit.framebufferWidth) == config.Width() &&
+                   Swap16IfLE(serverInit.framebufferHeight) == config.Height() &&
+                   name == config.DesktopName();
+    }
+
+    worker.join();
+    server.Stop();
+    return clientOk && serverOk;
+}
+
 } // namespace
 
 int main(int argc, char **argv)
 {
     ServerConfig config;
     bool validateOnly = false;
-    if (!ParseArgs(argc, argv, config, validateOnly)) {
+    bool smokeTest = false;
+    if (!ParseArgs(argc, argv, config, validateOnly, smokeTest)) {
         return 2;
     }
     std::string error;
@@ -107,6 +162,9 @@ int main(int argc, char **argv)
     }
     if (validateOnly) {
         return 0;
+    }
+    if (smokeTest) {
+        return RunSmokeTest(config) ? 0 : 1;
     }
 
     MemoryServer server;
