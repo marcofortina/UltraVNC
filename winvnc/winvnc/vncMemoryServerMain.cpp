@@ -42,7 +42,8 @@ void PrintUsage(const char *name)
               << "  --smoke-test            Start on loopback, complete one RFB handshake, and exit\n"
               << "  --smoke-update-test     Start on loopback, request one raw framebuffer update, and exit\n"
               << "  --smoke-multi-update-test Start on loopback, request multiple raw framebuffer updates, and exit\n"
-              << "  --max-updates <count>  Number of updates for multi-update smoke, default 3\n"
+              << "  --max-updates <count>  Number of updates for multi-update smoke/serve mode, default 3\n"
+              << "  --serve-updates        Serve one client through --max-updates framebuffer updates\n"
               << "  --help                  Show this help\n";
 }
 
@@ -60,12 +61,13 @@ bool ParseUnsigned(const char *value, unsigned int min, unsigned int max, unsign
     return true;
 }
 
-bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, unsigned int& maxUpdates)
+bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& serveUpdates, unsigned int& maxUpdates)
 {
     validateOnly = false;
     smokeTest = false;
     smokeUpdateTest = false;
     smokeMultiUpdateTest = false;
+    serveUpdates = false;
     maxUpdates = 3;
     for (int i = 1; i < argc; ++i) {
         const std::string arg(argv[i]);
@@ -86,6 +88,8 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly, 
             smokeMultiUpdateTest = true;
             config.SetBindAddress("127.0.0.1");
             config.SetPort(0);
+        } else if (arg == "--serve-updates") {
+            serveUpdates = true;
         } else if (arg == "--max-updates" && i + 1 < argc) {
             if (!ParseUnsigned(argv[++i], 1, 1024, maxUpdates)) {
                 std::cerr << "invalid --max-updates\n";
@@ -297,8 +301,9 @@ int main(int argc, char **argv)
     bool smokeTest = false;
     bool smokeUpdateTest = false;
     bool smokeMultiUpdateTest = false;
+    bool serveUpdates = false;
     unsigned int maxUpdates = 3;
-    if (!ParseArgs(argc, argv, config, validateOnly, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, maxUpdates)) {
+    if (!ParseArgs(argc, argv, config, validateOnly, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, serveUpdates, maxUpdates)) {
         return 2;
     }
     std::string error;
@@ -325,7 +330,7 @@ int main(int argc, char **argv)
         return 1;
     }
     std::cout << "listening on " << config.BindAddress() << ":" << server.Port() << "\n";
-    const bool served = server.ServeOne();
+    const bool served = serveUpdates ? server.ServeOneUpdates(maxUpdates) : server.ServeOne();
     server.Stop();
     return served ? 0 : 1;
 }
