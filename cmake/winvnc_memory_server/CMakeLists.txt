@@ -15,12 +15,12 @@ add_executable(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} PRIVATE libwinvncportablecore)
 
 if(BUILD_TESTING)
-    add_test(NAME uvnc_winvnc_memory_server_help COMMAND uvnc_winvnc_memory_server --help)
-    set_tests_properties(uvnc_winvnc_memory_server_help PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
+    add_test(NAME winvnc_memory_server_help COMMAND uvnc_winvnc_memory_server --help)
+    set_tests_properties(winvnc_memory_server_help PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
 
-    add_test(NAME uvnc_winvnc_memory_server_validate COMMAND uvnc_winvnc_memory_server --validate-config --width 320 --height 240 --name smoke)
-    set_tests_properties(uvnc_winvnc_memory_server_validate PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
+    add_test(NAME winvnc_memory_server_validate COMMAND uvnc_winvnc_memory_server --validate-config --width 320 --height 240 --name smoke)
+    set_tests_properties(winvnc_memory_server_validate PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
 
-    add_test(NAME uvnc_winvnc_memory_server_invalid_width COMMAND uvnc_winvnc_memory_server --validate-config --width 0)
-    set_tests_properties(uvnc_winvnc_memory_server_invalid_width PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5 WILL_FAIL TRUE)
+    add_test(NAME winvnc_memory_server_invalid_width COMMAND uvnc_winvnc_memory_server --validate-config --width 0)
+    set_tests_properties(winvnc_memory_server_invalid_width PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5 WILL_FAIL TRUE)
 endif()
