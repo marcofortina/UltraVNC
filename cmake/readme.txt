@@ -65,6 +65,30 @@ cp -a /usr/lib/gcc/x86_64-w64-mingw32/13-win32/libgcc_s_seh-1.dll .
 
 
 
+
+
+######################
+
+# Experimental native Linux subset
+
+# This does not build the Windows UltraVNC server/viewer applications.
+# It builds the portable native subset currently available for Linux,
+# including librdr and the headless repeater target.
+
+apt install git build-essential cmake ninja-build pkg-config zlib1g-dev libzstd-dev liblzma-dev
+
+cd $HOME/source
+git clone https://github.com/ultravnc/UltraVNC.git
+
+cmake -S UltraVNC/cmake -B obj-linux -G Ninja \
+    -DULTRAVNC_BUILD_PORTABLE_LIBS=ON \
+    -DULTRAVNC_BUILD_WINDOWS_APPS=OFF
+cmake --build obj-linux -j
+ctest --test-dir obj-linux --output-on-failure
+
+# Smoke check the experimental headless repeater CLI.
+obj-linux/repeater_headless/uvnc_repeater_headless --help
+
 ######################
 
 # Windows with cmake, generate Visual Studio project files
