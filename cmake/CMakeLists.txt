@@ -107,6 +107,7 @@ if(ULTRAVNC_BUILD_PORTABLE_LIBS)
     add_subdirectory(libminilzo)
     if(NOT WIN32)
         add_subdirectory(libvncauth)
+        add_subdirectory(librepeaterwebgui)
     endif()
 endif()
 
