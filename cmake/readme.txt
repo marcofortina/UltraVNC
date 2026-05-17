@@ -271,3 +271,11 @@ msbuild %_P% vncviewer\vncviewer.sln
 
 # Dedicated Memory server RFB closure smoke.
 cmake/memory-server-rfb-closure.sh /tmp/uvnc-memory-server-rfb-build /tmp/uvnc-linux-closure-install
+
+Native Linux capture backend registry:
+
+```sh
+obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --print-config --capture-backend auto
+obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --validate-config --capture-backend memory
+obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --validate-config --capture-backend x11 # expected to fail until X11 backend is implemented
+```
