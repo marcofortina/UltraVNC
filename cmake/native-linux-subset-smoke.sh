@@ -25,4 +25,6 @@ ctest --test-dir "${BUILD_DIR}" --output-on-failure
 if [[ -n "${INSTALL_PREFIX}" ]]; then
     cmake --install "${BUILD_DIR}" --prefix "${INSTALL_PREFIX}"
     "${INSTALL_PREFIX}/bin/uvnc_repeater_headless" --help >/dev/null
+    "${INSTALL_PREFIX}/bin/uvnc_repeater_headless" --mode1 --no-mode2 --validate-config --quiet
+    "${INSTALL_PREFIX}/bin/uvnc_repeater_headless" --smoke-test --quiet
 fi
