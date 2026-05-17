@@ -179,6 +179,15 @@ static int find_free_loopback_port(void)
     return port;
 }
 
+static int find_distinct_free_loopback_port(int excluded_port)
+{
+    for (int attempt = 0; attempt < 16; attempt++) {
+        int port = find_free_loopback_port();
+        if (port > 0 && port != excluded_port) return port;
+    }
+    return -1;
+}
+
 static int wait_for_loopback_port(int port, int timeout_ms)
 {
     int elapsed_ms = 0;
@@ -215,7 +224,7 @@ static DWORD WINAPI run_repeater_for_smoke(LPVOID)
 static int run_smoke_test(void)
 {
     int viewer_port = find_free_loopback_port();
-    int server_port = find_free_loopback_port();
+    int server_port = find_distinct_free_loopback_port(viewer_port);
     DWORD thread_id = 0;
     HANDLE repeater_thread;
     int viewer_ready;
