@@ -108,6 +108,7 @@ if(ULTRAVNC_BUILD_PORTABLE_LIBS)
     if(NOT WIN32)
         add_subdirectory(libvncauth)
         add_subdirectory(librepeaterwebgui)
+        add_subdirectory(librepeatercore)
     endif()
 endif()
 
