@@ -18,6 +18,7 @@ namespace uvnc {
 namespace winvnc {
 namespace portable {
 
+std::vector<CARD8> EmptyFramebufferUpdateBytes();
 std::vector<CARD8> RawFramebufferUpdateBytes(const Framebuffer& framebuffer,
                                              const FramebufferUpdateRequest& request);
 
