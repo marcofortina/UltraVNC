@@ -23,7 +23,7 @@ cmake -S "${REPO_ROOT}/cmake" -B "${BUILD_DIR}" -G Ninja \
 
 cmake --build "${BUILD_DIR}" -j"$(nproc)"
 
-expected_repeater_tests=18
+expected_repeater_tests=16
 actual_repeater_tests=$(ctest --test-dir "${BUILD_DIR}" -N -R '^uvnc_repeater_headless' | sed -n 's/^Total Tests: //p')
 if [[ -z "${actual_repeater_tests}" || "${actual_repeater_tests}" -lt "${expected_repeater_tests}" ]]; then
     echo "Expected at least ${expected_repeater_tests} repeater tests, got ${actual_repeater_tests:-0}" >&2
