@@ -6,6 +6,7 @@
 //
 // SPDX-FileCopyrightText: Copyright (C) 2002-2025 UltraVNC Team Members. All Rights Reserved.
 
+#include "vncPortableFramebufferPattern.h"
 #include "vncPortableMemoryServer.h"
 #include "vncPortableRfb.h"
 #include "vncPortableRfbMessages.h"
@@ -38,6 +39,7 @@ void PrintUsage(const char *name)
               << "  --height <pixels>       Framebuffer height, default 480\n"
               << "  --name <text>           Desktop name\n"
               << "  --fill-byte <0-255>    Fill byte for the in-memory framebuffer, default 34\n"
+              << "  --pattern <name>       Framebuffer pattern: solid, checker, gradient-x, gradient-y\n"
               << "  --validate-config       Validate options and exit\n"
               << "  --smoke-test            Start on loopback, complete one RFB handshake, and exit\n"
               << "  --smoke-update-test     Start on loopback, request one raw framebuffer update, and exit\n"
@@ -99,6 +101,13 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly, 
             config.SetBindAddress(argv[++i]);
         } else if (arg == "--name" && i + 1 < argc) {
             config.SetDesktopName(argv[++i]);
+        } else if (arg == "--pattern" && i + 1 < argc) {
+            FramebufferPattern pattern = FramebufferPattern::Solid;
+            if (!ParseFramebufferPattern(argv[++i], pattern)) {
+                std::cerr << "invalid --pattern\n";
+                return false;
+            }
+            config.SetPattern(pattern);
         } else if (arg == "--fill-byte" && i + 1 < argc) {
             unsigned int fillByte = 0;
             if (!ParseUnsigned(argv[++i], 0, 255, fillByte)) {
