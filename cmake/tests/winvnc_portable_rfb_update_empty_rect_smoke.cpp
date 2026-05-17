@@ -9,6 +9,7 @@
 #include "vncPortableFramebuffer.h"
 #include "vncPortableRfbMessages.h"
 #include "vncPortableRfbUpdate.h"
+#include "vncPortableServerConfig.h"
 
 #include <cassert>
 #include <cstring>

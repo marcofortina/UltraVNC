@@ -224,21 +224,14 @@ bool RunSmokeUpdateTest(const ServerConfig& config)
 
         rfbFramebufferUpdateMsg update;
         clientOk = clientOk && client.ReadExact(&update, sz_rfbFramebufferUpdateMsg);
-        if (i == 0) {
-            clientOk = clientOk && Swap16IfLE(update.nRects) == 1;
-            rfbFramebufferUpdateRectHeader header;
-            clientOk = clientOk && client.ReadExact(&header, sz_rfbFramebufferUpdateRectHeader);
-            clientOk = clientOk && Swap16IfLE(header.r.w) == config.Width() &&
-                       Swap16IfLE(header.r.h) == config.Height() &&
-                       Swap32IfLE(header.encoding) == rfbEncodingRaw;
-            std::string pixels(config.Width() * config.Height() * (config.PixelFormat().bitsPerPixel / 8), '\0');
-            clientOk = clientOk && client.ReadExact(&pixels[0], pixels.size());
-            clientOk = clientOk && std::all_of(pixels.begin(), pixels.end(), [&](char byte) {
-                return static_cast<unsigned char>(byte) == config.FillByte();
-            });
-        } else {
-            clientOk = clientOk && Swap16IfLE(update.nRects) == 0;
-        }
+        clientOk = clientOk && Swap16IfLE(update.nRects) == 1;
+        rfbFramebufferUpdateRectHeader header;
+        clientOk = clientOk && client.ReadExact(&header, sz_rfbFramebufferUpdateRectHeader);
+        clientOk = clientOk && Swap16IfLE(header.r.w) == config.Width() &&
+                   Swap16IfLE(header.r.h) == config.Height() &&
+                   Swap32IfLE(header.encoding) == rfbEncodingRaw;
+        std::string pixels(config.Width() * config.Height() * (config.PixelFormat().bitsPerPixel / 8), '\0');
+        clientOk = clientOk && client.ReadExact(&pixels[0], pixels.size());
         clientOk = clientOk && std::all_of(pixels.begin(), pixels.end(), [&](char byte) {
             return static_cast<unsigned char>(byte) == config.FillByte();
         });
@@ -277,14 +270,21 @@ bool RunSmokeMultiUpdateTest(const ServerConfig& config, unsigned int maxUpdates
 
         rfbFramebufferUpdateMsg update;
         clientOk = clientOk && client.ReadExact(&update, sz_rfbFramebufferUpdateMsg);
-        clientOk = clientOk && Swap16IfLE(update.nRects) == 1;
-        rfbFramebufferUpdateRectHeader header;
-        clientOk = clientOk && client.ReadExact(&header, sz_rfbFramebufferUpdateRectHeader);
-        clientOk = clientOk && Swap16IfLE(header.r.w) == config.Width() &&
-                   Swap16IfLE(header.r.h) == config.Height() &&
-                   Swap32IfLE(header.encoding) == rfbEncodingRaw;
-        std::string pixels(config.Width() * config.Height() * (config.PixelFormat().bitsPerPixel / 8), '\0');
-        clientOk = clientOk && client.ReadExact(&pixels[0], pixels.size());
+        if (i == 0) {
+            clientOk = clientOk && Swap16IfLE(update.nRects) == 1;
+            rfbFramebufferUpdateRectHeader header;
+            clientOk = clientOk && client.ReadExact(&header, sz_rfbFramebufferUpdateRectHeader);
+            clientOk = clientOk && Swap16IfLE(header.r.w) == config.Width() &&
+                       Swap16IfLE(header.r.h) == config.Height() &&
+                       Swap32IfLE(header.encoding) == rfbEncodingRaw;
+            std::string pixels(config.Width() * config.Height() * (config.PixelFormat().bitsPerPixel / 8), '\0');
+            clientOk = clientOk && client.ReadExact(&pixels[0], pixels.size());
+            clientOk = clientOk && std::all_of(pixels.begin(), pixels.end(), [&](char byte) {
+                return static_cast<unsigned char>(byte) == config.FillByte();
+            });
+        } else {
+            clientOk = clientOk && Swap16IfLE(update.nRects) == 0;
+        }
     }
 
     worker.join();
