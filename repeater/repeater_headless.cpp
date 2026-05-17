@@ -10,6 +10,8 @@
 
 #include "repeater.h"
 
+#include <errno.h>
+#include <limits.h>
 #include <signal.h>
 
 int saved_mode2 = TRUE;
@@ -67,9 +69,15 @@ static void print_usage(const char *program)
 static int parse_port(const char *value, int *port)
 {
     char *end = NULL;
-    long parsed = strtol(value, &end, 10);
-    if (value == NULL || *value == '\0' || end == NULL || *end != '\0') return FALSE;
-    if (parsed <= 0 || parsed > 65535) return FALSE;
+    long parsed;
+
+    if (value == NULL || *value == '\0' || port == NULL) return FALSE;
+
+    errno = 0;
+    parsed = strtol(value, &end, 10);
+    if (errno != 0 || end == value || end == NULL || *end != '\0') return FALSE;
+    if (parsed <= 0 || parsed > 65535 || parsed > INT_MAX) return FALSE;
+
     *port = (int)parsed;
     return TRUE;
 }
@@ -93,12 +101,18 @@ static int parse_args(int argc, char **argv)
             saved_keepalive = TRUE;
             continue;
         }
-        if (strcmp(argv[i], "--viewer-port") == 0 && i + 1 < argc) {
-            if (!parse_port(argv[++i], &saved_portA)) return -1;
+        if (strcmp(argv[i], "--viewer-port") == 0) {
+            if (i + 1 >= argc || !parse_port(argv[++i], &saved_portA)) {
+                fprintf(stderr, "Invalid --viewer-port value\n");
+                return -1;
+            }
             continue;
         }
-        if (strcmp(argv[i], "--server-port") == 0 && i + 1 < argc) {
-            if (!parse_port(argv[++i], &saved_portB)) return -1;
+        if (strcmp(argv[i], "--server-port") == 0) {
+            if (i + 1 >= argc || !parse_port(argv[++i], &saved_portB)) {
+                fprintf(stderr, "Invalid --server-port value\n");
+                return -1;
+            }
             continue;
         }
         fprintf(stderr, "Unknown option: %s\n", argv[i]);

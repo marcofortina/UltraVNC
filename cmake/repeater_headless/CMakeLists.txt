@@ -31,4 +31,8 @@ target_link_libraries(${PROJECT_NAME}
 
 if(BUILD_TESTING)
     add_test(NAME uvnc_repeater_headless_help COMMAND ${PROJECT_NAME} --help)
+    add_test(NAME uvnc_repeater_headless_rejects_bad_viewer_port COMMAND ${PROJECT_NAME} --viewer-port 0)
+    set_tests_properties(uvnc_repeater_headless_rejects_bad_viewer_port PROPERTIES WILL_FAIL TRUE)
+    add_test(NAME uvnc_repeater_headless_rejects_missing_server_port COMMAND ${PROJECT_NAME} --server-port)
+    set_tests_properties(uvnc_repeater_headless_rejects_missing_server_port PROPERTIES WILL_FAIL TRUE)
 endif()
