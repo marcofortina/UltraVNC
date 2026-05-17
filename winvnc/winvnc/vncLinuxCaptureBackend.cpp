@@ -8,6 +8,8 @@
 
 #include "vncLinuxCaptureBackend.h"
 
+#include "vncLinuxX11FramebufferSource.h"
+
 namespace uvnc {
 namespace winvnc {
 namespace linuxfb {
@@ -62,13 +64,13 @@ const char *CaptureBackendDescription(CaptureBackend backend)
 {
     switch (backend) {
     case CaptureBackend::Auto:
-        return "auto-select raw-file when configured, otherwise memory";
+        return "auto-select raw-file when configured, otherwise X11 when available, otherwise memory";
     case CaptureBackend::Memory:
         return "synthetic in-memory framebuffer";
     case CaptureBackend::RawFile:
         return "exact-size raw framebuffer file";
     case CaptureBackend::X11:
-        return "X11 capture backend placeholder";
+        return "X11 root-window capture using XGetImage";
     }
     return "unknown capture backend";
 }
@@ -82,7 +84,7 @@ bool IsCaptureBackendRuntimeAvailable(CaptureBackend backend, bool hasRawFramebu
     case CaptureBackend::RawFile:
         return hasRawFramebufferFile;
     case CaptureBackend::X11:
-        return false;
+        return X11DesktopSource::IsAvailable();
     }
     return false;
 }
@@ -93,7 +95,13 @@ bool ResolveCaptureBackend(CaptureBackend requested,
                            std::string *error)
 {
     if (requested == CaptureBackend::Auto) {
-        resolved = hasRawFramebufferFile ? CaptureBackend::RawFile : CaptureBackend::Memory;
+        if (hasRawFramebufferFile) {
+            resolved = CaptureBackend::RawFile;
+        } else if (X11DesktopSource::IsAvailable()) {
+            resolved = CaptureBackend::X11;
+        } else {
+            resolved = CaptureBackend::Memory;
+        }
         if (error) {
             error->clear();
         }
