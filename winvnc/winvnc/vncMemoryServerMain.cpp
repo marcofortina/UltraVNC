@@ -28,6 +28,7 @@ using uvnc::winvnc::linuxfb::CaptureBackendName;
 using uvnc::winvnc::linuxfb::LoadRawFramebufferFile;
 using uvnc::winvnc::linuxfb::ParseCaptureBackendName;
 using uvnc::winvnc::linuxfb::ResolveCaptureBackend;
+using uvnc::winvnc::linuxfb::X11DesktopSource;
 using uvnc::winvnc::portable::Framebuffer;
 using uvnc::winvnc::portable::MemoryServer;
 using uvnc::winvnc::portable::FramebufferUpdateRequest;
