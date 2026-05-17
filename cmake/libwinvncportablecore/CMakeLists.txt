@@ -13,10 +13,13 @@ project(libwinvncportablecore LANGUAGES CXX)
 add_library(${PROJECT_NAME} STATIC
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/rfbRegion_portable.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/rfbUpdateTracker.cpp"
+    "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/stdhdrs_portable.cpp"
+    "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/translate.cpp"
 )
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC
+        "${CMAKE_SOURCE_DIR}/.."
         "${CMAKE_SOURCE_DIR}/../winvnc/winvnc"
 )
 
