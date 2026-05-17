@@ -123,6 +123,11 @@ obj-linux/repeater_headless/uvnc_repeater_headless --config /tmp/uvnc-repeater-h
 # first server-side protocol/update core that now compiles and runs tests on Linux.
 ctest --test-dir obj-linux --output-on-failure -R winvnc_update_tracker_smoke
 
+# Native Linux porting status and strategy notes:
+# - docs/native-linux-porting-status.md
+# - docs/native-linux-viewer-strategy.md
+# - docs/native-linux-server-strategy.md
+
 ######################
 
 # Windows with cmake, generate Visual Studio project files
