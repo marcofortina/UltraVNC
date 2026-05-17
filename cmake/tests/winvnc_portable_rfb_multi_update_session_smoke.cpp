@@ -44,7 +44,7 @@ bool ClientHandshake(TcpSocket& client, const ServerConfig& config)
            Swap16IfLE(serverInit.framebufferHeight) == config.Height();
 }
 
-bool ReadUpdate(TcpSocket& client, unsigned int width, unsigned int height)
+bool ReadRawUpdate(TcpSocket& client, unsigned int width, unsigned int height)
 {
     rfbFramebufferUpdateMsg update;
     if (!client.ReadExact(&update, sz_rfbFramebufferUpdateMsg) || Swap16IfLE(update.nRects) != 1) return false;
@@ -53,6 +53,12 @@ bool ReadUpdate(TcpSocket& client, unsigned int width, unsigned int height)
     if (Swap16IfLE(rect.r.w) != width || Swap16IfLE(rect.r.h) != height || Swap32IfLE(rect.encoding) != rfbEncodingRaw) return false;
     std::string pixels(width * height * 4, '\0');
     return client.ReadExact(&pixels[0], pixels.size());
+}
+
+bool ReadEmptyUpdate(TcpSocket& client)
+{
+    rfbFramebufferUpdateMsg update;
+    return client.ReadExact(&update, sz_rfbFramebufferUpdateMsg) && Swap16IfLE(update.nRects) == 0;
 }
 
 } // namespace
@@ -86,11 +92,11 @@ int main()
     FramebufferUpdateRequest request{false, 0, 0, 4, 3};
     rfbFramebufferUpdateRequestMsg wire = EncodeFramebufferUpdateRequest(request);
     assert(client.WriteAll(&wire, sz_rfbFramebufferUpdateRequestMsg));
-    assert(ReadUpdate(client, 4, 3));
+    assert(ReadRawUpdate(client, 4, 3));
     request.incremental = true;
     wire = EncodeFramebufferUpdateRequest(request);
     assert(client.WriteAll(&wire, sz_rfbFramebufferUpdateRequestMsg));
-    assert(ReadUpdate(client, 4, 3));
+    assert(ReadEmptyUpdate(client));
 
     server.join();
     listener.Close();
