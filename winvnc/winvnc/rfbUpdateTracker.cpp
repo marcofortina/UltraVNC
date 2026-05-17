@@ -15,8 +15,12 @@
 // Tracks updated regions and a region-copy event, too
 //
 
+#if defined(UVNC_USE_PORTABLE_REGIONS)
+#include <assert.h>
+#else
 #include "stdhdrs.h"
 #include <assert.h>
+#endif
 #include "rfbUpdateTracker.h"
 
 using namespace rfb;

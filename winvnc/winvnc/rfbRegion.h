@@ -12,7 +12,9 @@
 
 //#define USE_X11_REGIONS
 
-#ifdef USE_X11_REGIONS
+#if defined(UVNC_USE_PORTABLE_REGIONS)
+#include "rfbRegion_portable.h"
+#elif defined(USE_X11_REGIONS)
 #include "rfbRegion_X11.h"
 #else
 

@@ -1,0 +1,26 @@
+# // This file is part of UltraVNC
+# // https://github.com/ultravnc/UltraVNC
+# // https://uvnc.com/
+# //
+# // SPDX-License-Identifier: GPL-3.0-or-later
+# //
+# // SPDX-FileCopyrightText: Copyright (C) 2002-2025 UltraVNC Team Members. All Rights Reserved.
+# // SPDX-FileCopyrightText: Copyright (C) 1999-2002 Vdacc-VNC & eSVNC Projects. All Rights Reserved.
+# //
+
+project(libwinvncportablecore LANGUAGES CXX)
+
+add_library(${PROJECT_NAME} STATIC
+    "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/rfbRegion_portable.cpp"
+    "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/rfbUpdateTracker.cpp"
+)
+
+target_include_directories(${PROJECT_NAME}
+    PUBLIC
+        "${CMAKE_SOURCE_DIR}/../winvnc/winvnc"
+)
+
+target_compile_definitions(${PROJECT_NAME}
+    PUBLIC
+        UVNC_USE_PORTABLE_REGIONS=1
+)
