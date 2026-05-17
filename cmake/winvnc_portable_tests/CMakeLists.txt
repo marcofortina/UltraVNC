@@ -46,3 +46,11 @@ add_executable(winvnc_update_tracker_copyrect_smoke
 target_link_libraries(winvnc_update_tracker_copyrect_smoke PRIVATE libwinvncportablecore)
 
 add_test(NAME winvnc_update_tracker_copyrect_smoke COMMAND winvnc_update_tracker_copyrect_smoke)
+
+add_executable(winvnc_compression_smoke
+    "${CMAKE_SOURCE_DIR}/tests/winvnc_compression_smoke.cpp"
+)
+
+target_link_libraries(winvnc_compression_smoke PRIVATE libwinvncportablecore)
+
+add_test(NAME winvnc_compression_smoke COMMAND winvnc_compression_smoke)
