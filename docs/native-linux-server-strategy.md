@@ -20,14 +20,20 @@ The native Linux subset already builds and tests a server-side portable core sli
 - regions and update tracking;
 - translation helpers;
 - compression helpers;
-- multiple WinVNC encoder paths.
+- multiple WinVNC encoder paths;
+- portable TCP/RFB handshake and client-message processing;
+- experimental `uvnc_winvnc_memory_server`, which serves a synthetic
+  in-memory framebuffer and raw framebuffer updates.
 
-This is not a Linux server yet. It is the necessary foundation for one.
+This is not a production Linux desktop server yet. It is now a real native
+Linux server-side skeleton, but it still lacks real desktop capture and input
+integration.
 
 ## Initial milestones
 
 - Continue increasing Linux coverage for portable WinVNC encoder/update code.
-- Add a platform-neutral framebuffer source abstraction.
+- Keep hardening the platform-neutral framebuffer source abstraction.
 - Add a Linux framebuffer/capture backend.
 - Add a Linux input backend.
-- Add a headless Linux server smoke target before any desktop UI integration.
+- Promote the memory-server smoke target only after it can exercise real Linux
+  capture/input backends.
