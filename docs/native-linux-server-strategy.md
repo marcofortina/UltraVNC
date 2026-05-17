@@ -36,7 +36,12 @@ The WinVNC portable core milestone is closed for this incremental Linux-support
 track. It provides tested protocol/update/encoding/runtime/framebuffer seams that
 future Linux desktop capture and input backends must plug into.
 
-The next server milestone is not more portable-core work. It is the first real
+The Memory server RFB milestone is also closed. It provides a deterministic
+native Linux RFB/session harness around the portable core: handshake,
+client-message processing, raw framebuffer updates, multi-update sessions and
+synthetic framebuffer patterns.
+
+The next server milestone is not more memory-server work. It is the first real
 Linux framebuffer/capture source wired behind the existing portable source seam.
 
 ## Initial milestones
@@ -45,7 +50,6 @@ Linux framebuffer/capture source wired behind the existing portable source seam.
 - Keep hardening the platform-neutral framebuffer source abstraction.
 - Add a Linux framebuffer/capture backend.
 - Add a Linux input backend.
-- Promote the memory-server smoke target only after it can exercise real Linux
-  capture/input backends. The pattern mode is intentionally synthetic: it keeps
-  protocol/session tests deterministic while the real capture backend is still
-  being isolated.
+- Keep the memory-server smoke target as the closed deterministic RFB harness.
+  Do not expand it into a fake desktop server; the next useful work is a real
+  Linux framebuffer/capture source and then input integration.
