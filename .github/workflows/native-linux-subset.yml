@@ -25,7 +25,8 @@ jobs:
             libzstd-dev \
             liblzma-dev \
             libjpeg-dev \
-            libx11-dev
+            libx11-dev \
+            libxext-dev
 
       - name: Repeater Linux closure smoke
         run: |
