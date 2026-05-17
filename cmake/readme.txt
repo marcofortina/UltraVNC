@@ -109,12 +109,12 @@ obj-linux/repeater_headless/uvnc_repeater_headless --bind-address 127.0.0.1 --lo
 # real Linux desktop yet; it verifies the native RFB handshake and raw framebuffer
 # update path against an in-memory framebuffer.
 obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --smoke-test --width 64 --height 32 --name memory-smoke
-obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --smoke-update-test --pattern checker --width 64 --height 32 --name memory-update-smoke
-obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --smoke-multi-update-test --max-updates 3 --pattern gradient-x --width 64 --height 32 --name memory-multi-update-smoke
+obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --smoke-update-test --width 64 --height 32 --name memory-update-smoke
+obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --smoke-multi-update-test --max-updates 3 --width 64 --height 32 --name memory-multi-update-smoke
 
 # Run the memory server manually for one client. --serve-updates keeps the client
 # session open until the configured number of framebuffer updates has been sent.
-obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --bind-address 127.0.0.1 --port 5901 --serve-updates --max-updates 3 --pattern checker --fill-byte 85 --width 64 --height 32 --name memory-manual-smoke
+obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --bind-address 127.0.0.1 --port 5901 --serve-updates --max-updates 3 --fill-byte 85 --width 64 --height 32 --name memory-manual-smoke
 
 # Notes:
 # - --bind-address accepts IPv4 addresses only in the current native subset.

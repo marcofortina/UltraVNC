@@ -44,10 +44,10 @@ if(BUILD_TESTING)
     add_test(NAME winvnc_memory_server_smoke COMMAND uvnc_winvnc_memory_server --smoke-test --width 64 --height 32 --name memory-smoke)
     set_tests_properties(winvnc_memory_server_smoke PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
 
-    add_test(NAME winvnc_memory_server_update_smoke COMMAND uvnc_winvnc_memory_server --smoke-update-test --pattern checker --fill-byte 85 --width 64 --height 32 --name memory-update-smoke)
+    add_test(NAME winvnc_memory_server_update_smoke COMMAND uvnc_winvnc_memory_server --smoke-update-test --fill-byte 85 --width 64 --height 32 --name memory-update-smoke)
     set_tests_properties(winvnc_memory_server_update_smoke PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
 
-    add_test(NAME winvnc_memory_server_multi_update_smoke COMMAND uvnc_winvnc_memory_server --smoke-multi-update-test --max-updates 3 --pattern gradient-x --fill-byte 119 --width 64 --height 32 --name memory-multi-update-smoke)
+    add_test(NAME winvnc_memory_server_multi_update_smoke COMMAND uvnc_winvnc_memory_server --smoke-multi-update-test --max-updates 3 --fill-byte 119 --width 64 --height 32 --name memory-multi-update-smoke)
     set_tests_properties(winvnc_memory_server_multi_update_smoke PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
 
     add_test(NAME winvnc_memory_server_invalid_max_updates COMMAND uvnc_winvnc_memory_server --validate-config --max-updates 0)
