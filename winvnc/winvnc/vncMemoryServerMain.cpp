@@ -6,6 +6,7 @@
 //
 // SPDX-FileCopyrightText: Copyright (C) 2002-2025 UltraVNC Team Members. All Rights Reserved.
 
+#include "vncLinuxCaptureBackend.h"
 #include "vncLinuxFramebufferSource.h"
 #include "vncPortableFramebufferPattern.h"
 #include "vncPortableMemoryServer.h"
@@ -21,7 +22,11 @@
 #include <thread>
 
 using uvnc::winvnc::portable::ServerConfig;
+using uvnc::winvnc::linuxfb::CaptureBackend;
+using uvnc::winvnc::linuxfb::CaptureBackendName;
 using uvnc::winvnc::linuxfb::LoadRawFramebufferFile;
+using uvnc::winvnc::linuxfb::ParseCaptureBackendName;
+using uvnc::winvnc::linuxfb::ResolveCaptureBackend;
 using uvnc::winvnc::portable::Framebuffer;
 using uvnc::winvnc::portable::MemoryServer;
 using uvnc::winvnc::portable::FramebufferUpdateRequest;
@@ -47,6 +52,7 @@ void PrintUsage(const char *name)
               << "  --name <text>           Desktop name\n"
               << "  --fill-byte <0-255>    Fill byte for the in-memory framebuffer, default 34\n"
               << "  --pattern <name>       Framebuffer pattern: solid, checker, gradient-x, gradient-y\n"
+              << "  --capture-backend <name> Capture backend: auto, memory, raw-file, x11\n"
               << "  --raw-framebuffer-file <path> Serve exact-size raw framebuffer file instead of synthetic pattern\n"
               << "  --validate-config       Validate options and exit\n"
               << "  --print-config          Print resolved configuration and exit\n"
@@ -73,7 +79,7 @@ bool ParseUnsigned(const char *value, unsigned int min, unsigned int max, unsign
     return true;
 }
 
-bool ParseArgs(int argc, char **argv, ServerConfig& config, std::string& rawFramebufferFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& serveUpdates, unsigned int& maxUpdates)
+bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& captureBackend, std::string& rawFramebufferFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& serveUpdates, unsigned int& maxUpdates)
 {
     validateOnly = false;
     printConfig = false;
@@ -83,6 +89,7 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, std::string& rawFram
     smokeRawFileUpdateTest = false;
     serveUpdates = false;
     maxUpdates = 3;
+    captureBackend = CaptureBackend::Auto;
     rawFramebufferFile.clear();
     for (int i = 1; i < argc; ++i) {
         const std::string arg(argv[i]);
@@ -120,6 +127,11 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, std::string& rawFram
             config.SetBindAddress(argv[++i]);
         } else if (arg == "--name" && i + 1 < argc) {
             config.SetDesktopName(argv[++i]);
+        } else if (arg == "--capture-backend" && i + 1 < argc) {
+            if (!ParseCaptureBackendName(argv[++i], captureBackend)) {
+                std::cerr << "invalid --capture-backend\n";
+                return false;
+            }
         } else if (arg == "--raw-framebuffer-file" && i + 1 < argc) {
             rawFramebufferFile = argv[++i];
         } else if (arg == "--pattern" && i + 1 < argc) {
@@ -400,6 +412,8 @@ bool RunSmokeRawFileUpdateTest(const ServerConfig& config)
 int main(int argc, char **argv)
 {
     ServerConfig config;
+    CaptureBackend captureBackend = CaptureBackend::Auto;
+    CaptureBackend resolvedCaptureBackend = CaptureBackend::Memory;
     std::string rawFramebufferFile;
     bool validateOnly = false;
     bool printConfig = false;
@@ -409,7 +423,7 @@ int main(int argc, char **argv)
     bool smokeRawFileUpdateTest = false;
     bool serveUpdates = false;
     unsigned int maxUpdates = 3;
-    if (!ParseArgs(argc, argv, config, rawFramebufferFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, serveUpdates, maxUpdates)) {
+    if (!ParseArgs(argc, argv, config, captureBackend, rawFramebufferFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, serveUpdates, maxUpdates)) {
         return 2;
     }
     std::string error;
@@ -438,7 +452,7 @@ int main(int argc, char **argv)
     }
 
     MemoryServer server;
-    if (!rawFramebufferFile.empty()) {
+    if (resolvedCaptureBackend == CaptureBackend::RawFile) {
         Framebuffer framebuffer;
         std::string loadError;
         if (!LoadRawFramebufferFile(rawFramebufferFile, config.Width(), config.Height(), config.PixelFormat(), framebuffer, &loadError) ||
