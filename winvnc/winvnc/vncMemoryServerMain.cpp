@@ -22,6 +22,7 @@ using uvnc::winvnc::portable::ServerConfig;
 using uvnc::winvnc::portable::MemoryServer;
 using uvnc::winvnc::portable::FramebufferUpdateRequest;
 using uvnc::winvnc::portable::TcpSocket;
+using uvnc::winvnc::portable::FramebufferPatternName;
 
 namespace {
 
@@ -41,6 +42,7 @@ void PrintUsage(const char *name)
               << "  --fill-byte <0-255>    Fill byte for the in-memory framebuffer, default 34\n"
               << "  --pattern <name>       Framebuffer pattern: solid, checker, gradient-x, gradient-y\n"
               << "  --validate-config       Validate options and exit\n"
+              << "  --print-config          Print resolved configuration and exit\n"
               << "  --smoke-test            Start on loopback, complete one RFB handshake, and exit\n"
               << "  --smoke-update-test     Start on loopback, request one raw framebuffer update, and exit\n"
               << "  --smoke-multi-update-test Start on loopback, request multiple raw framebuffer updates, and exit\n"
@@ -63,9 +65,10 @@ bool ParseUnsigned(const char *value, unsigned int min, unsigned int max, unsign
     return true;
 }
 
-bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& serveUpdates, unsigned int& maxUpdates)
+bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& serveUpdates, unsigned int& maxUpdates)
 {
     validateOnly = false;
+    printConfig = false;
     smokeTest = false;
     smokeUpdateTest = false;
     smokeMultiUpdateTest = false;
@@ -78,6 +81,8 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly, 
             std::exit(0);
         } else if (arg == "--validate-config") {
             validateOnly = true;
+        } else if (arg == "--print-config") {
+            printConfig = true;
         } else if (arg == "--smoke-test") {
             smokeTest = true;
             config.SetBindAddress("127.0.0.1");
@@ -301,18 +306,31 @@ bool RunSmokeMultiUpdateTest(const ServerConfig& config, unsigned int maxUpdates
     return clientOk && serverOk;
 }
 
+void PrintResolvedConfig(const ServerConfig& config, unsigned int maxUpdates)
+{
+    std::cout << "bind_address=" << config.BindAddress() << "\n"
+              << "port=" << config.Port() << "\n"
+              << "width=" << config.Width() << "\n"
+              << "height=" << config.Height() << "\n"
+              << "name=" << config.DesktopName() << "\n"
+              << "fill_byte=" << static_cast<unsigned int>(config.FillByte()) << "\n"
+              << "pattern=" << FramebufferPatternName(config.Pattern()) << "\n"
+              << "max_updates=" << maxUpdates << "\n";
+}
+
 } // namespace
 
 int main(int argc, char **argv)
 {
     ServerConfig config;
     bool validateOnly = false;
+    bool printConfig = false;
     bool smokeTest = false;
     bool smokeUpdateTest = false;
     bool smokeMultiUpdateTest = false;
     bool serveUpdates = false;
     unsigned int maxUpdates = 3;
-    if (!ParseArgs(argc, argv, config, validateOnly, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, serveUpdates, maxUpdates)) {
+    if (!ParseArgs(argc, argv, config, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, serveUpdates, maxUpdates)) {
         return 2;
     }
     std::string error;
@@ -321,6 +339,10 @@ int main(int argc, char **argv)
         return 2;
     }
     if (validateOnly) {
+        return 0;
+    }
+    if (printConfig) {
+        PrintResolvedConfig(config, maxUpdates);
         return 0;
     }
     if (smokeTest) {
