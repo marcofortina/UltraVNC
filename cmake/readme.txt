@@ -91,7 +91,11 @@ obj-linux/repeater_headless/uvnc_repeater_headless --help
 
 # Start the experimental headless repeater on local free ports,
 # verify that both listeners accept loopback connections, and shut it down.
-obj-linux/repeater_headless/uvnc_repeater_headless --smoke-test
+obj-linux/repeater_headless/uvnc_repeater_headless --smoke-test --quiet
+
+# Equivalent local validation helper, useful on feature branches before CI coverage
+# is available on the default branch.
+UltraVNC/cmake/native-linux-subset-smoke.sh obj-linux
 
 ######################
 
