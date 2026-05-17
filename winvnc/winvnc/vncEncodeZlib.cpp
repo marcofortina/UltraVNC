@@ -12,6 +12,13 @@
 #include "stdhdrs.h"
 #include "vncEncodeZlib.h"
 #include "../../common/UltraVncZ.h"
+
+namespace {
+rfb::Rect ToRfbRect(const RECT &rect)
+{
+	return rfb::Rect(rect.left, rect.top, rect.right, rect.bottom);
+}
+}
 //------------------------------------------------------------------
 vncEncodeZlib::vncEncodeZlib()
 {
@@ -161,14 +168,14 @@ inline UINT vncEncodeZlib::EncodeOneRect(BYTE *source, BYTE *dest, const RECT &r
 		}
 		m_buffer = new BYTE [rawDataSize+1000];
 		if (m_buffer == NULL)
-			return vncEncoder::EncodeRect(source, dest, rect);
+			return vncEncoder::EncodeRect(source, dest, ToRfbRect(rect));
 		m_bufflen = rawDataSize+999;
 	}
 
 	avail_in = rawDataSize;
-	Translate(source, m_buffer, rect);
+	Translate(source, m_buffer, ToRfbRect(rect));
 	if ((UINT)rawDataSize < ultraVncZ->minSize())
-		return vncEncoder::EncodeRect(source, dest, rect);
+		return vncEncoder::EncodeRect(source, dest, ToRfbRect(rect));
 
 	if (rawDataSize < 1000 && m_queueEnable) {
 		surh->encoding = Swap32IfLE(rfbEncodingRaw);
@@ -179,7 +186,7 @@ inline UINT vncEncodeZlib::EncodeOneRect(BYTE *source, BYTE *dest, const RECT &r
 	surh->encoding = Swap32IfLE(m_use_zstd ? rfbEncodingZstd : rfbEncodingZlib);
 	totalCompDataLen = ultraVncZ->compress(m_compresslevel, avail_in, maxCompSize, m_buffer, (dest + sz_rfbFramebufferUpdateRectHeader + sz_rfbZlibHeader));
 	if (totalCompDataLen == 0)
-		return vncEncoder::EncodeRect(source, dest, rect);	
+		return vncEncoder::EncodeRect(source, dest, ToRfbRect(rect));
 	rfbZlibHeader *zlibh=(rfbZlibHeader *)(dest+sz_rfbFramebufferUpdateRectHeader);
 	zlibh->nBytes = Swap32IfLE(totalCompDataLen);	
 	// Update statistics
