@@ -141,8 +141,14 @@ obj-linux/repeater_headless/uvnc_repeater_headless --config /tmp/uvnc-repeater-h
 # encoder paths, runtime hooks, framebuffer/capture seams and portable tests.
 ctest --test-dir obj-linux --output-on-failure -L winvnc-portable
 
+# Dedicated closure checks for the currently completed Linux milestones:
+UltraVNC/cmake/repeater-linux-smoke.sh /tmp/uvnc-repeater-linux-build /tmp/uvnc-linux-closure-install
+UltraVNC/cmake/winvnc-portable-core-closure.sh /tmp/uvnc-winvnc-portable-core-build /tmp/uvnc-linux-closure-install
+UltraVNC/cmake/native-linux-closure-smoke.sh /tmp/uvnc-repeater-linux-build /tmp/uvnc-winvnc-portable-core-build /tmp/uvnc-linux-closure-install
+
 # Native Linux porting status and strategy notes:
 # - docs/native-linux-porting-status.md
+# - docs/native-linux-milestone-closure.md
 # - docs/native-linux-viewer-strategy.md
 # - docs/native-linux-server-strategy.md
 
