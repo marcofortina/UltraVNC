@@ -44,6 +44,10 @@ VNC, the Remote Frame Buffer protocol (RFB) allows a desktop to be viewed and co
 Its embedded JavaViewer allows you to connect (and make File transfers) from a simple Web Browser on any system supporting Java (Linux, Mac OS, ...) to an UltraVNC Server.
 PcHelpWare and uvnc2me require XP or later.
 
+Experimental native Linux support is being developed incrementally. The current
+native Linux subset and porting strategy are tracked in
+[docs/native-linux-porting-status.md](docs/native-linux-porting-status.md).
+
 <p align="center">
   <a href="https://en.wikipedia.org/wiki/C_(programming_language)" target="_blank" rel="noopener"><img src="https://img.shields.io/badge/C-00599C?style=for-the-badge&logo=c&logoColor=white" alt="C"></a>
   <a href="https://en.wikipedia.org/wiki/C%2B%2B" target="_blank" rel="noopener"><img src="https://img.shields.io/badge/C%2B%2B-00599C?style=for-the-badge&logo=c%2B%2B&logoColor=white" alt="C++"></a>
