@@ -10,87 +10,23 @@
 
 project(winvnc_portable_tests LANGUAGES CXX)
 
-add_executable(winvnc_update_tracker_smoke
-    "${CMAKE_SOURCE_DIR}/tests/winvnc_update_tracker_smoke.cpp"
-)
+function(uvnc_add_winvnc_portable_test name source)
+    add_executable(${name}
+        "${CMAKE_SOURCE_DIR}/tests/${source}"
+    )
 
-target_link_libraries(winvnc_update_tracker_smoke
-    PRIVATE
-        libwinvncportablecore
-)
+    target_link_libraries(${name} PRIVATE libwinvncportablecore)
 
-if(BUILD_TESTING)
-    add_test(NAME winvnc_update_tracker_smoke COMMAND winvnc_update_tracker_smoke)
-endif()
+    add_test(NAME ${name} COMMAND ${name})
+endfunction()
 
-add_executable(winvnc_translate_smoke
-    "${CMAKE_SOURCE_DIR}/tests/winvnc_translate_smoke.cpp"
-)
-
-target_link_libraries(winvnc_translate_smoke PRIVATE libwinvncportablecore)
-
-add_test(NAME winvnc_translate_smoke COMMAND winvnc_translate_smoke)
-
-add_executable(winvnc_region_smoke
-    "${CMAKE_SOURCE_DIR}/tests/winvnc_region_smoke.cpp"
-)
-
-target_link_libraries(winvnc_region_smoke PRIVATE libwinvncportablecore)
-
-add_test(NAME winvnc_region_smoke COMMAND winvnc_region_smoke)
-
-add_executable(winvnc_update_tracker_copyrect_smoke
-    "${CMAKE_SOURCE_DIR}/tests/winvnc_update_tracker_copyrect_smoke.cpp"
-)
-
-target_link_libraries(winvnc_update_tracker_copyrect_smoke PRIVATE libwinvncportablecore)
-
-add_test(NAME winvnc_update_tracker_copyrect_smoke COMMAND winvnc_update_tracker_copyrect_smoke)
-
-add_executable(winvnc_compression_smoke
-    "${CMAKE_SOURCE_DIR}/tests/winvnc_compression_smoke.cpp"
-)
-
-target_link_libraries(winvnc_compression_smoke PRIVATE libwinvncportablecore)
-
-add_test(NAME winvnc_compression_smoke COMMAND winvnc_compression_smoke)
-
-add_executable(winvnc_encoder_raw_smoke
-    "${CMAKE_SOURCE_DIR}/tests/winvnc_encoder_raw_smoke.cpp"
-)
-
-target_link_libraries(winvnc_encoder_raw_smoke PRIVATE libwinvncportablecore)
-
-add_test(NAME winvnc_encoder_raw_smoke COMMAND winvnc_encoder_raw_smoke)
-
-add_executable(winvnc_encoder_offset_smoke
-    "${CMAKE_SOURCE_DIR}/tests/winvnc_encoder_offset_smoke.cpp"
-)
-
-target_link_libraries(winvnc_encoder_offset_smoke PRIVATE libwinvncportablecore)
-
-add_test(NAME winvnc_encoder_offset_smoke COMMAND winvnc_encoder_offset_smoke)
-
-add_executable(winvnc_encoder_format_smoke
-    "${CMAKE_SOURCE_DIR}/tests/winvnc_encoder_format_smoke.cpp"
-)
-
-target_link_libraries(winvnc_encoder_format_smoke PRIVATE libwinvncportablecore)
-
-add_test(NAME winvnc_encoder_format_smoke COMMAND winvnc_encoder_format_smoke)
-
-add_executable(winvnc_encoder_rre_fallback_smoke
-    "${CMAKE_SOURCE_DIR}/tests/winvnc_encoder_rre_fallback_smoke.cpp"
-)
-
-target_link_libraries(winvnc_encoder_rre_fallback_smoke PRIVATE libwinvncportablecore)
-
-add_test(NAME winvnc_encoder_rre_fallback_smoke COMMAND winvnc_encoder_rre_fallback_smoke)
-
-add_executable(winvnc_encoder_rre_metadata_smoke
-    "${CMAKE_SOURCE_DIR}/tests/winvnc_encoder_rre_metadata_smoke.cpp"
-)
-
-target_link_libraries(winvnc_encoder_rre_metadata_smoke PRIVATE libwinvncportablecore)
-
-add_test(NAME winvnc_encoder_rre_metadata_smoke COMMAND winvnc_encoder_rre_metadata_smoke)
+uvnc_add_winvnc_portable_test(winvnc_update_tracker_smoke winvnc_update_tracker_smoke.cpp)
+uvnc_add_winvnc_portable_test(winvnc_translate_smoke winvnc_translate_smoke.cpp)
+uvnc_add_winvnc_portable_test(winvnc_region_smoke winvnc_region_smoke.cpp)
+uvnc_add_winvnc_portable_test(winvnc_update_tracker_copyrect_smoke winvnc_update_tracker_copyrect_smoke.cpp)
+uvnc_add_winvnc_portable_test(winvnc_compression_smoke winvnc_compression_smoke.cpp)
+uvnc_add_winvnc_portable_test(winvnc_encoder_raw_smoke winvnc_encoder_raw_smoke.cpp)
+uvnc_add_winvnc_portable_test(winvnc_encoder_offset_smoke winvnc_encoder_offset_smoke.cpp)
+uvnc_add_winvnc_portable_test(winvnc_encoder_format_smoke winvnc_encoder_format_smoke.cpp)
+uvnc_add_winvnc_portable_test(winvnc_encoder_rre_fallback_smoke winvnc_encoder_rre_fallback_smoke.cpp)
+uvnc_add_winvnc_portable_test(winvnc_encoder_rre_metadata_smoke winvnc_encoder_rre_metadata_smoke.cpp)
