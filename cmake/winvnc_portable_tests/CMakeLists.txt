@@ -86,3 +86,11 @@ add_executable(winvnc_encoder_rre_fallback_smoke
 target_link_libraries(winvnc_encoder_rre_fallback_smoke PRIVATE libwinvncportablecore)
 
 add_test(NAME winvnc_encoder_rre_fallback_smoke COMMAND winvnc_encoder_rre_fallback_smoke)
+
+add_executable(winvnc_encoder_rre_metadata_smoke
+    "${CMAKE_SOURCE_DIR}/tests/winvnc_encoder_rre_metadata_smoke.cpp"
+)
+
+target_link_libraries(winvnc_encoder_rre_metadata_smoke PRIVATE libwinvncportablecore)
+
+add_test(NAME winvnc_encoder_rre_metadata_smoke COMMAND winvnc_encoder_rre_metadata_smoke)
