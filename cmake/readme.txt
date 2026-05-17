@@ -105,6 +105,13 @@ obj-linux/repeater_headless/uvnc_repeater_headless --mode1 --no-mode2 --validate
 mkdir -p /tmp/uvnc-repeater-logs
 obj-linux/repeater_headless/uvnc_repeater_headless --bind-address 127.0.0.1 --log-dir /tmp/uvnc-repeater-logs --viewer-port 5901 --server-port 5500
 
+# Smoke the experimental in-memory WinVNC server target. This does not capture a
+# real Linux desktop yet; it verifies the native RFB handshake and raw framebuffer
+# update path against an in-memory framebuffer.
+obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --smoke-test --width 64 --height 32 --name memory-smoke
+obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --smoke-update-test --width 64 --height 32 --name memory-update-smoke
+obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --smoke-multi-update-test --max-updates 3 --width 64 --height 32 --name memory-multi-update-smoke
+
 # Load headless options from a simple key=value config file. Command-line
 # options are parsed in order, so options after --config override file values.
 cat >/tmp/uvnc-repeater-headless.conf <<EOF
