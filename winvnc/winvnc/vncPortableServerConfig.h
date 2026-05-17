@@ -10,6 +10,7 @@
 #define UVNC_WINVNC_PORTABLE_SERVER_CONFIG_H
 
 #include "rfb.h"
+#include "vncPortableFramebufferPattern.h"
 
 #include <string>
 
@@ -27,6 +28,7 @@ public:
     unsigned int Height() const { return height_; }
     const std::string& DesktopName() const { return desktopName_; }
     unsigned char FillByte() const { return fillByte_; }
+    FramebufferPattern Pattern() const { return pattern_; }
     rfbPixelFormat PixelFormat() const { return format_; }
 
     void SetBindAddress(const std::string& bindAddress) { bindAddress_ = bindAddress; }
@@ -34,6 +36,7 @@ public:
     void SetSize(unsigned int width, unsigned int height);
     void SetDesktopName(const std::string& desktopName) { desktopName_ = desktopName; }
     void SetFillByte(unsigned char fillByte) { fillByte_ = fillByte; }
+    void SetPattern(FramebufferPattern pattern) { pattern_ = pattern; }
     void SetPixelFormat(const rfbPixelFormat& format) { format_ = format; }
 
     bool Validate(std::string *error = nullptr) const;
@@ -47,6 +50,7 @@ private:
     unsigned int height_;
     std::string desktopName_;
     unsigned char fillByte_;
+    FramebufferPattern pattern_;
     rfbPixelFormat format_;
 };
 

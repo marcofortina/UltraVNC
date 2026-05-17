@@ -36,6 +36,7 @@ ServerConfig::ServerConfig()
       height_(480),
       desktopName_("UltraVNC native Linux memory server"),
       fillByte_(0x22),
+      pattern_(FramebufferPattern::Solid),
       format_(DefaultPixelFormat())
 {
 }
