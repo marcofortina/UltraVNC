@@ -10,6 +10,7 @@
 
 #include "rfb.h"
 #include "rfbRect.h"
+#include "vsocket_portable.h"
 
 #include <cstdint>
 #include <cstdlib>
@@ -58,3 +59,25 @@ inline std::uint32_t winvnc_test_host32(CARD32 value)
 {
     return Swap32IfLE(value);
 }
+
+class winvnc_test_counting_socket : public VSocket {
+public:
+    void SendExactQueue(char *, int length) override
+    {
+        queued_bytes += length;
+        queued_sends += 1;
+    }
+
+    bool SendExact(const char *, int length) override
+    {
+        exact_bytes += length;
+        exact_sends += 1;
+        return exact_result;
+    }
+
+    int queued_sends = 0;
+    int queued_bytes = 0;
+    int exact_sends = 0;
+    int exact_bytes = 0;
+    bool exact_result = true;
+};
