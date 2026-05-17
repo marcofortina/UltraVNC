@@ -49,6 +49,10 @@ track:
 - **WinVNC portable core**: the native Linux portable WinVNC core builds and
   exercises protocol/update/encoder/runtime/framebuffer/RFB session seams through
   the dedicated closure helper.
+- **Memory server RFB**: the experimental native Linux memory server exercises
+  deterministic RFB handshake, client-message processing, raw framebuffer
+  updates, multi-update sessions and synthetic framebuffer patterns through the
+  dedicated closure helper.
 
 Use `docs/native-linux-milestone-closure.md` for the exact closure scope and
 validation commands.
