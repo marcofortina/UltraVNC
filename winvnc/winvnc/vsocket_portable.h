@@ -18,6 +18,8 @@ public:
     virtual ~VSocket() = default;
 
     virtual void SendExactQueue(char *, int) {}
+
+    void *m_pIntegratedPluginInterface = nullptr;
 };
 
 #endif // UVNC_WINVNC_VSOCKET_PORTABLE_H

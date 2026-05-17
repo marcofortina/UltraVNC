@@ -12,6 +12,13 @@
 #include "stdhdrs.h"
 #include "vncEncodeUltra.h"
 
+namespace {
+rfb::Rect ToRfbRect(const RECT &rect)
+{
+	return rfb::Rect(rect.left, rect.top, rect.right, rect.bottom);
+}
+}
+
 #define IN_LEN		(128*1024)
 #define OUT_LEN		(IN_LEN + IN_LEN / 64 + 16 + 3)
 #define HEAP_ALLOC(var,size) \
@@ -206,11 +213,11 @@ vncEncodeUltra::EncodeOneRect(BYTE *source, BYTE *dest, const RECT &rect,VSocket
 		}
 		m_buffer = new BYTE [rawDataSize+1000];
 		if (m_buffer == NULL)
-			return vncEncoder::EncodeRect(source, dest, rect);
+			return vncEncoder::EncodeRect(source, dest, ToRfbRect(rect));
 		m_bufflen = rawDataSize+999;
 	}
 	// Translate the data into our new buffer
-	Translate(source, m_buffer, rect);
+	Translate(source, m_buffer, ToRfbRect(rect));
 
 	// Perhaps we can queue the small updates and compress them combined
 	if (rawDataSize < VNC_ENCODE_ULTRA_MIN_COMP_SIZE)
@@ -222,7 +229,7 @@ vncEncodeUltra::EncodeOneRect(BYTE *source, BYTE *dest, const RECT &rect,VSocket
 				AddToQueu(dest,sz_rfbFramebufferUpdateRectHeader +rawDataSize,outConn,0);
 				return 0;
 			}
-		else return vncEncoder::EncodeRect(source, dest, rect);
+		else return vncEncoder::EncodeRect(source, dest, ToRfbRect(rect));
 	}
 
 	
@@ -243,7 +250,7 @@ vncEncodeUltra::EncodeOneRect(BYTE *source, BYTE *dest, const RECT &rect,VSocket
 	lzo1x_1_compress(m_buffer,rawDataSize,dest+sz_rfbFramebufferUpdateRectHeader+sz_rfbZlibHeader,&out_len,wrkmem);
 	if (out_len > (lzo_uint)rawDataSize)
 				{
-					return vncEncoder::EncodeRect(source, dest, rect);
+					return vncEncoder::EncodeRect(source, dest, ToRfbRect(rect));
 				}
 	
 		// Format the ZlibHeader
