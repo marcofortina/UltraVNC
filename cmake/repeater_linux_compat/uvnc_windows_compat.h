@@ -80,7 +80,13 @@ typedef struct _SYSTEMTIME {
 } SYSTEMTIME;
 
 #define TEXT(value) value
-#define closesocket(socket) close(socket)
+static inline int uvnc_closesocket(SOCKET socket)
+{
+    if (socket != INVALID_SOCKET) shutdown(socket, SHUT_RDWR);
+    return close(socket);
+}
+
+#define closesocket(socket) uvnc_closesocket(socket)
 #define Sleep(milliseconds) usleep((milliseconds) * 1000)
 #define WSAGetLastError() errno
 #define timeGetTime() GetTickCount()
