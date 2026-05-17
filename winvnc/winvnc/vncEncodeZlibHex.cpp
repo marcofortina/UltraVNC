@@ -25,7 +25,12 @@
 #include <stdlib.h>
 #include <time.h>
 
-
+namespace {
+rfb::Rect ToRfbRect(const RECT &rect)
+{
+	return rfb::Rect(rect.left, rect.top, rect.right, rect.bottom);
+}
+}
 
 vncEncodeZlibHex::vncEncodeZlibHex()
 {
@@ -146,7 +151,7 @@ vncEncodeZlibHex::EncodeRect(BYTE *source, VSocket *outConn, BYTE *dest, const R
 		SendZlibHexrects(outConn);
 		return retval;
     }
-	return vncEncoder::EncodeRect(source, dest, rect);
+	return vncEncoder::EncodeRect(source, dest, ToRfbRect(rect));
 }
 
 UINT
@@ -216,7 +221,7 @@ vncEncodeZlibHex::EncodeHextiles##bpp(BYTE *source, BYTE *dest,				\
 			hexrect.top = y;												\
 			hexrect.right = x+w;											\
 			hexrect.bottom = y+h;											\
-			Translate(source, (BYTE *) clientPixelData, hexrect);			\
+			Translate(source, (BYTE *) clientPixelData, ToRfbRect(hexrect));			\
 																			\
 			rectoffset = destoffset;										\
 			dest[rectoffset] = 0;											\
@@ -270,7 +275,7 @@ vncEncodeZlibHex::EncodeHextiles##bpp(BYTE *source, BYTE *dest,				\
 					destoffset = rectoffset;								\
 					dest[destoffset++] = rfbHextileZlibRaw;				\
 																			\
-					Translate(source, (BYTE *) clientPixelData, hexrect);	\
+					Translate(source, (BYTE *) clientPixelData, ToRfbRect(hexrect));	\
 																			\
 					compressedSize = zlibCompress((BYTE *) clientPixelData,	\
 													dest + destoffset + 2,	\
@@ -291,7 +296,7 @@ vncEncodeZlibHex::EncodeHextiles##bpp(BYTE *source, BYTE *dest,				\
 					destoffset = rectoffset;								\
 					dest[destoffset++] = rfbHextileRaw;						\
 																			\
-					Translate(source, (dest + destoffset), hexrect);		\
+					Translate(source, (dest + destoffset), ToRfbRect(hexrect));		\
 																			\
 					destoffset += (w*h*(bpp/8));							\
 																			\
