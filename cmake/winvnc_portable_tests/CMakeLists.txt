@@ -70,3 +70,11 @@ add_executable(winvnc_encoder_offset_smoke
 target_link_libraries(winvnc_encoder_offset_smoke PRIVATE libwinvncportablecore)
 
 add_test(NAME winvnc_encoder_offset_smoke COMMAND winvnc_encoder_offset_smoke)
+
+add_executable(winvnc_encoder_format_smoke
+    "${CMAKE_SOURCE_DIR}/tests/winvnc_encoder_format_smoke.cpp"
+)
+
+target_link_libraries(winvnc_encoder_format_smoke PRIVATE libwinvncportablecore)
+
+add_test(NAME winvnc_encoder_format_smoke COMMAND winvnc_encoder_format_smoke)
