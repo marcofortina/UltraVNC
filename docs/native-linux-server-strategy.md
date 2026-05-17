@@ -53,3 +53,10 @@ Linux framebuffer/capture source wired behind the existing portable source seam.
 - Keep the memory-server smoke target as the closed deterministic RFB harness.
   Do not expand it into a fake desktop server; the next useful work is a real
   Linux framebuffer/capture source and then input integration.
+
+Native Linux X11 capture progress:
+
+- X11 capture backend selection is wired into the memory server.
+- The baseline X11 path uses XGetImage when a usable DISPLAY is available.
+- Optional XShm support is detected and used when built and available.
+- Headless CI keeps the X11 live smoke non-fatal when DISPLAY is absent.

@@ -73,3 +73,10 @@ Do not pretend that Win32 UI/service/capture code can simply compile on Linux.
 Move protocol, encoding and runtime-neutral code into tested portable slices first,
 keep Linux runtime/capture seams explicit, then add Linux-specific implementations
 for desktop capture, input, daemon/service integration and UI paths.
+
+Native Linux X11 capture progress:
+
+- X11 capture backend selection is wired into the memory server.
+- The baseline X11 path uses XGetImage when a usable DISPLAY is available.
+- Optional XShm support is detected and used when built and available.
+- Headless CI keeps the X11 live smoke non-fatal when DISPLAY is absent.
