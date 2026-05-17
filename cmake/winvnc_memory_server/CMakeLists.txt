@@ -35,6 +35,9 @@ if(BUILD_TESTING)
     add_test(NAME winvnc_memory_server_invalid_bind_address COMMAND uvnc_winvnc_memory_server --validate-config --bind-address localhost)
     set_tests_properties(winvnc_memory_server_invalid_bind_address PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5 WILL_FAIL TRUE)
 
+    add_test(NAME winvnc_memory_server_invalid_pattern COMMAND uvnc_winvnc_memory_server --validate-config --pattern unknown)
+    set_tests_properties(winvnc_memory_server_invalid_pattern PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5 WILL_FAIL TRUE)
+
     add_test(NAME winvnc_memory_server_smoke COMMAND uvnc_winvnc_memory_server --smoke-test --width 64 --height 32 --name memory-smoke)
     set_tests_properties(winvnc_memory_server_smoke PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
 
