@@ -105,6 +105,19 @@ obj-linux/repeater_headless/uvnc_repeater_headless --mode1 --no-mode2 --validate
 mkdir -p /tmp/uvnc-repeater-logs
 obj-linux/repeater_headless/uvnc_repeater_headless --bind-address 127.0.0.1 --log-dir /tmp/uvnc-repeater-logs --viewer-port 5901 --server-port 5500
 
+# Load headless options from a simple key=value config file. Command-line
+# options are parsed in order, so options after --config override file values.
+cat >/tmp/uvnc-repeater-headless.conf <<EOF
+mode1=true
+mode2=false
+viewer-port=5901
+server-port=5500
+bind-address=127.0.0.1
+log-dir=/tmp/uvnc-repeater-logs
+quiet=true
+EOF
+obj-linux/repeater_headless/uvnc_repeater_headless --config /tmp/uvnc-repeater-headless.conf --validate-config --quiet
+
 ######################
 
 # Windows with cmake, generate Visual Studio project files
