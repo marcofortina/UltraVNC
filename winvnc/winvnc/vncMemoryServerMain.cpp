@@ -11,6 +11,7 @@
 #include "vncPortableRfbMessages.h"
 #include "vncPortableTcp.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -227,6 +228,12 @@ bool RunSmokeUpdateTest(const ServerConfig& config)
                    Swap32IfLE(header.encoding) == rfbEncodingRaw;
         std::string pixels(config.Width() * config.Height() * (config.PixelFormat().bitsPerPixel / 8), '\0');
         clientOk = clientOk && client.ReadExact(&pixels[0], pixels.size());
+        clientOk = clientOk && std::all_of(pixels.begin(), pixels.end(), [&](char byte) {
+            return static_cast<unsigned char>(byte) == config.FillByte();
+        });
+        clientOk = clientOk && std::all_of(pixels.begin(), pixels.end(), [&](char byte) {
+            return static_cast<unsigned char>(byte) == config.FillByte();
+        });
     }
 
     worker.join();
