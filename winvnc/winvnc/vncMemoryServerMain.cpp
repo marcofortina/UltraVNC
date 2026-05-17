@@ -8,6 +8,7 @@
 
 #include "vncPortableMemoryServer.h"
 #include "vncPortableRfb.h"
+#include "vncPortableRfbMessages.h"
 #include "vncPortableTcp.h"
 
 #include <cstdlib>
@@ -17,6 +18,7 @@
 
 using uvnc::winvnc::portable::ServerConfig;
 using uvnc::winvnc::portable::MemoryServer;
+using uvnc::winvnc::portable::FramebufferUpdateRequest;
 using uvnc::winvnc::portable::TcpSocket;
 
 namespace {
@@ -36,6 +38,7 @@ void PrintUsage(const char *name)
               << "  --name <text>           Desktop name\n"
               << "  --validate-config       Validate options and exit\n"
               << "  --smoke-test            Start on loopback, complete one RFB handshake, and exit\n"
+              << "  --smoke-update-test     Start on loopback, request one raw framebuffer update, and exit\n"
               << "  --help                  Show this help\n";
 }
 
@@ -53,10 +56,11 @@ bool ParseUnsigned(const char *value, unsigned int min, unsigned int max, unsign
     return true;
 }
 
-bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly, bool& smokeTest)
+bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly, bool& smokeTest, bool& smokeUpdateTest)
 {
     validateOnly = false;
     smokeTest = false;
+    smokeUpdateTest = false;
     for (int i = 1; i < argc; ++i) {
         const std::string arg(argv[i]);
         if (arg == "--help") {
@@ -66,6 +70,10 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly, 
             validateOnly = true;
         } else if (arg == "--smoke-test") {
             smokeTest = true;
+            config.SetBindAddress("127.0.0.1");
+            config.SetPort(0);
+        } else if (arg == "--smoke-update-test") {
+            smokeUpdateTest = true;
             config.SetBindAddress("127.0.0.1");
             config.SetPort(0);
         } else if (arg == "--bind-address" && i + 1 < argc) {
@@ -101,6 +109,45 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly, 
     return true;
 }
 
+bool RunMemoryServerClientHandshake(TcpSocket& client, const ServerConfig& config)
+{
+    char version[sz_rfbProtocolVersionMsg] = {};
+    if (!client.ReadExact(version, sizeof(version))) {
+        return false;
+    }
+    const std::string clientVersion = uvnc::winvnc::portable::ProtocolVersion38();
+    if (!client.WriteAll(clientVersion.data(), clientVersion.size())) {
+        return false;
+    }
+    CARD8 security[2] = {};
+    if (!client.ReadExact(security, sizeof(security))) {
+        return false;
+    }
+    CARD8 selected = rfbNoAuth;
+    if (!client.WriteAll(&selected, sizeof(selected))) {
+        return false;
+    }
+    CARD32 auth = 1;
+    if (!client.ReadExact(&auth, sizeof(auth)) || auth != 0) {
+        return false;
+    }
+    rfbClientInitMsg init;
+    init.flags = clientInitShared;
+    if (!client.WriteAll(&init, sz_rfbClientInitMsg)) {
+        return false;
+    }
+    rfbServerInitMsg serverInit;
+    if (!client.ReadExact(&serverInit, sz_rfbServerInitMsg)) {
+        return false;
+    }
+    const CARD32 nameLength = Swap32IfLE(serverInit.nameLength);
+    std::string name(nameLength, '\0');
+    return client.ReadExact(&name[0], name.size()) &&
+           Swap16IfLE(serverInit.framebufferWidth) == config.Width() &&
+           Swap16IfLE(serverInit.framebufferHeight) == config.Height() &&
+           name == config.DesktopName();
+}
+
 bool RunSmokeTest(const ServerConfig& config)
 {
     MemoryServer server;
@@ -115,29 +162,50 @@ bool RunSmokeTest(const ServerConfig& config)
     });
 
     TcpSocket client;
-    bool clientOk = TcpSocket::Connect("127.0.0.1", server.Port(), client);
+    const bool clientOk = TcpSocket::Connect("127.0.0.1", server.Port(), client) &&
+                          RunMemoryServerClientHandshake(client, config);
+
+    worker.join();
+    server.Stop();
+    return clientOk && serverOk;
+}
+
+bool RunSmokeUpdateTest(const ServerConfig& config)
+{
+    MemoryServer server;
+    if (!server.Start(config)) {
+        std::cerr << "failed to start memory server update smoke test\n";
+        return false;
+    }
+
+    bool serverOk = false;
+    std::thread worker([&]() {
+        serverOk = server.ServeOneUpdate();
+    });
+
+    TcpSocket client;
+    bool clientOk = TcpSocket::Connect("127.0.0.1", server.Port(), client) &&
+                    RunMemoryServerClientHandshake(client, config);
     if (clientOk) {
-        char version[sz_rfbProtocolVersionMsg] = {};
-        clientOk = client.ReadExact(version, sizeof(version));
-        const std::string clientVersion = uvnc::winvnc::portable::ProtocolVersion38();
-        clientOk = clientOk && client.WriteAll(clientVersion.data(), clientVersion.size());
-        CARD8 security[2] = {};
-        clientOk = clientOk && client.ReadExact(security, sizeof(security));
-        CARD8 selected = rfbNoAuth;
-        clientOk = clientOk && client.WriteAll(&selected, sizeof(selected));
-        CARD32 auth = 1;
-        clientOk = clientOk && client.ReadExact(&auth, sizeof(auth));
-        rfbClientInitMsg init;
-        init.flags = clientInitShared;
-        clientOk = clientOk && client.WriteAll(&init, sz_rfbClientInitMsg);
-        rfbServerInitMsg serverInit;
-        clientOk = clientOk && client.ReadExact(&serverInit, sz_rfbServerInitMsg);
-        const CARD32 nameLength = Swap32IfLE(serverInit.nameLength);
-        std::string name(nameLength, '\0');
-        clientOk = clientOk && client.ReadExact(&name[0], name.size());
-        clientOk = clientOk && Swap16IfLE(serverInit.framebufferWidth) == config.Width() &&
-                   Swap16IfLE(serverInit.framebufferHeight) == config.Height() &&
-                   name == config.DesktopName();
+        FramebufferUpdateRequest request;
+        request.incremental = false;
+        request.x = 0;
+        request.y = 0;
+        request.width = config.Width();
+        request.height = config.Height();
+        const rfbFramebufferUpdateRequestMsg wire = EncodeFramebufferUpdateRequest(request);
+        clientOk = client.WriteAll(&wire, sz_rfbFramebufferUpdateRequestMsg);
+
+        rfbFramebufferUpdateMsg update;
+        clientOk = clientOk && client.ReadExact(&update, sz_rfbFramebufferUpdateMsg);
+        clientOk = clientOk && Swap16IfLE(update.nRects) == 1;
+        rfbFramebufferUpdateRectHeader header;
+        clientOk = clientOk && client.ReadExact(&header, sz_rfbFramebufferUpdateRectHeader);
+        clientOk = clientOk && Swap16IfLE(header.r.w) == config.Width() &&
+                   Swap16IfLE(header.r.h) == config.Height() &&
+                   Swap32IfLE(header.encoding) == rfbEncodingRaw;
+        std::string pixels(config.Width() * config.Height() * (config.PixelFormat().bitsPerPixel / 8), '\0');
+        clientOk = clientOk && client.ReadExact(&pixels[0], pixels.size());
     }
 
     worker.join();
@@ -152,7 +220,8 @@ int main(int argc, char **argv)
     ServerConfig config;
     bool validateOnly = false;
     bool smokeTest = false;
-    if (!ParseArgs(argc, argv, config, validateOnly, smokeTest)) {
+    bool smokeUpdateTest = false;
+    if (!ParseArgs(argc, argv, config, validateOnly, smokeTest, smokeUpdateTest)) {
         return 2;
     }
     std::string error;
@@ -165,6 +234,9 @@ int main(int argc, char **argv)
     }
     if (smokeTest) {
         return RunSmokeTest(config) ? 0 : 1;
+    }
+    if (smokeUpdateTest) {
+        return RunSmokeUpdateTest(config) ? 0 : 1;
     }
 
     MemoryServer server;
