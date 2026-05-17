@@ -62,6 +62,7 @@ void PrintUsage(const char *name)
               << "  --smoke-update-test     Start on loopback, request one raw framebuffer update, and exit\n"
               << "  --smoke-multi-update-test Start on loopback, request multiple raw framebuffer updates, and exit\n"
               << "  --smoke-raw-file-update-test Start on loopback using a raw framebuffer file, request one update, and exit\n"
+              << "  --smoke-x11-update-test Start on loopback using an X11 snapshot, request one update, and exit\n"
               << "  --max-updates <count>  Number of updates for multi-update smoke/serve mode, default 3\n"
               << "  --serve-updates        Serve one client through --max-updates framebuffer updates\n"
               << "  --help                  Show this help\n";
@@ -117,6 +118,10 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
             config.SetPort(0);
         } else if (arg == "--smoke-raw-file-update-test") {
             smokeRawFileUpdateTest = true;
+            config.SetBindAddress("127.0.0.1");
+            config.SetPort(0);
+        } else if (arg == "--smoke-x11-update-test") {
+            smokeX11UpdateTest = true;
             config.SetBindAddress("127.0.0.1");
             config.SetPort(0);
         } else if (arg == "--serve-updates") {
