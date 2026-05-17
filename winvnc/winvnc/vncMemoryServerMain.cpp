@@ -81,7 +81,7 @@ bool ParseUnsigned(const char *value, unsigned int min, unsigned int max, unsign
     return true;
 }
 
-bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& captureBackend, std::string& rawFramebufferFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& serveUpdates, unsigned int& maxUpdates)
+bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& captureBackend, std::string& rawFramebufferFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& smokeX11UpdateTest, bool& serveUpdates, unsigned int& maxUpdates)
 {
     validateOnly = false;
     printConfig = false;
@@ -89,6 +89,7 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
     smokeUpdateTest = false;
     smokeMultiUpdateTest = false;
     smokeRawFileUpdateTest = false;
+    smokeX11UpdateTest = false;
     serveUpdates = false;
     maxUpdates = 3;
     captureBackend = CaptureBackend::Auto;
@@ -411,6 +412,57 @@ bool RunSmokeRawFileUpdateTest(const ServerConfig& config)
     return clientOk && serverOk;
 }
 
+bool RunSmokeX11UpdateTest(const ServerConfig& config)
+{
+    X11DesktopSource source;
+    Framebuffer framebuffer;
+    rfb::Region2D changed;
+    if (!source.Snapshot(framebuffer, changed)) {
+        std::cerr << "X11 smoke update test skipped: " << X11DesktopSource::UnavailableReason() << "\n";
+        return false;
+    }
+
+    MemoryServer server;
+    if (!server.StartWithFramebuffer(config, framebuffer)) {
+        std::cerr << "failed to start X11 snapshot memory server\n";
+        return false;
+    }
+
+    bool serverOk = false;
+    std::thread worker([&]() {
+        serverOk = server.ServeOneUpdate();
+    });
+
+    TcpSocket client;
+    bool clientOk = TcpSocket::Connect("127.0.0.1", server.Port(), client) &&
+                    RunMemoryServerClientHandshake(client, config);
+    if (clientOk) {
+        FramebufferUpdateRequest request;
+        request.incremental = false;
+        request.x = 0;
+        request.y = 0;
+        request.width = framebuffer.Width();
+        request.height = framebuffer.Height();
+        const rfbFramebufferUpdateRequestMsg wire = EncodeFramebufferUpdateRequest(request);
+        clientOk = client.WriteAll(&wire, sz_rfbFramebufferUpdateRequestMsg);
+
+        rfbFramebufferUpdateMsg update;
+        clientOk = clientOk && client.ReadExact(&update, sz_rfbFramebufferUpdateMsg);
+        clientOk = clientOk && Swap16IfLE(update.nRects) == 1;
+        rfbFramebufferUpdateRectHeader header;
+        clientOk = clientOk && client.ReadExact(&header, sz_rfbFramebufferUpdateRectHeader);
+        const unsigned int width = Swap16IfLE(header.r.w);
+        const unsigned int height = Swap16IfLE(header.r.h);
+        clientOk = clientOk && width == framebuffer.Width() && height == framebuffer.Height();
+        std::string pixels(width * height * framebuffer.BytesPerPixel(), '\0');
+        clientOk = clientOk && client.ReadExact(&pixels[0], pixels.size());
+    }
+
+    worker.join();
+    server.Stop();
+    return clientOk && serverOk;
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -425,9 +477,10 @@ int main(int argc, char **argv)
     bool smokeUpdateTest = false;
     bool smokeMultiUpdateTest = false;
     bool smokeRawFileUpdateTest = false;
+    bool smokeX11UpdateTest = false;
     bool serveUpdates = false;
     unsigned int maxUpdates = 3;
-    if (!ParseArgs(argc, argv, config, captureBackend, rawFramebufferFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, serveUpdates, maxUpdates)) {
+    if (!ParseArgs(argc, argv, config, captureBackend, rawFramebufferFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, serveUpdates, maxUpdates)) {
         return 2;
     }
     std::string error;
@@ -457,6 +510,9 @@ int main(int argc, char **argv)
     }
     if (smokeRawFileUpdateTest) {
         return RunSmokeRawFileUpdateTest(config) ? 0 : 1;
+    }
+    if (smokeX11UpdateTest) {
+        return RunSmokeX11UpdateTest(config) ? 0 : 1;
     }
 
     MemoryServer server;
