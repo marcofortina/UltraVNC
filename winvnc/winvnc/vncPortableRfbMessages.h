@@ -23,9 +23,24 @@ struct FramebufferUpdateRequest {
     unsigned int height;
 };
 
+struct KeyEvent {
+    bool down;
+    CARD32 keysym;
+};
+
+struct PointerEvent {
+    CARD8 buttonMask;
+    unsigned int x;
+    unsigned int y;
+};
+
 bool DecodeFramebufferUpdateRequest(const rfbFramebufferUpdateRequestMsg& message,
                                     FramebufferUpdateRequest& out);
 rfbFramebufferUpdateRequestMsg EncodeFramebufferUpdateRequest(const FramebufferUpdateRequest& request);
+bool DecodeKeyEvent(const rfbKeyEventMsg& message, KeyEvent& out);
+rfbKeyEventMsg EncodeKeyEvent(const KeyEvent& event);
+bool DecodePointerEvent(const rfbPointerEventMsg& message, PointerEvent& out);
+rfbPointerEventMsg EncodePointerEvent(const PointerEvent& event);
 
 } // namespace portable
 } // namespace winvnc

@@ -38,6 +38,47 @@ rfbFramebufferUpdateRequestMsg EncodeFramebufferUpdateRequest(const FramebufferU
     return message;
 }
 
+bool DecodeKeyEvent(const rfbKeyEventMsg& message, KeyEvent& out)
+{
+    if (message.type != rfbKeyEvent) {
+        return false;
+    }
+    out.down = message.down != 0;
+    out.keysym = Swap32IfLE(message.key);
+    return true;
+}
+
+rfbKeyEventMsg EncodeKeyEvent(const KeyEvent& event)
+{
+    rfbKeyEventMsg message;
+    message.type = rfbKeyEvent;
+    message.down = event.down ? 1 : 0;
+    message.pad = 0;
+    message.key = Swap32IfLE(event.keysym);
+    return message;
+}
+
+bool DecodePointerEvent(const rfbPointerEventMsg& message, PointerEvent& out)
+{
+    if (message.type != rfbPointerEvent) {
+        return false;
+    }
+    out.buttonMask = message.buttonMask;
+    out.x = Swap16IfLE(message.x);
+    out.y = Swap16IfLE(message.y);
+    return true;
+}
+
+rfbPointerEventMsg EncodePointerEvent(const PointerEvent& event)
+{
+    rfbPointerEventMsg message;
+    message.type = rfbPointerEvent;
+    message.buttonMask = event.buttonMask;
+    message.x = Swap16IfLE(static_cast<CARD16>(event.x));
+    message.y = Swap16IfLE(static_cast<CARD16>(event.y));
+    return message;
+}
+
 } // namespace portable
 } // namespace winvnc
 } // namespace uvnc
