@@ -1,0 +1,60 @@
+// This file is part of UltraVNC
+// https://github.com/ultravnc/UltraVNC
+// https://uvnc.com/
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// SPDX-FileCopyrightText: Copyright (C) 2002-2025 UltraVNC Team Members. All Rights Reserved.
+
+#pragma once
+
+#include "rfb.h"
+#include "rfbRect.h"
+
+#include <cstdint>
+#include <cstdlib>
+#include <iostream>
+
+inline rfbPixelFormat winvnc_test_true_colour_32()
+{
+    rfbPixelFormat format = {};
+    format.bitsPerPixel = 32;
+    format.depth = 24;
+    format.bigEndian = 0;
+    format.trueColour = 1;
+    format.redMax = 255;
+    format.greenMax = 255;
+    format.blueMax = 255;
+    format.redShift = 16;
+    format.greenShift = 8;
+    format.blueShift = 0;
+    return format;
+}
+
+inline rfb::Rect winvnc_test_rect(int left, int top, int right, int bottom)
+{
+    rfb::Rect rect;
+    rect.tl.x = left;
+    rect.tl.y = top;
+    rect.br.x = right;
+    rect.br.y = bottom;
+    return rect;
+}
+
+inline void winvnc_test_expect(bool condition, const char *message)
+{
+    if (!condition) {
+        std::cerr << message << std::endl;
+        std::exit(1);
+    }
+}
+
+inline std::uint16_t winvnc_test_host16(CARD16 value)
+{
+    return Swap16IfLE(value);
+}
+
+inline std::uint32_t winvnc_test_host32(CARD32 value)
+{
+    return Swap32IfLE(value);
+}
