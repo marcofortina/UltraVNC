@@ -109,6 +109,7 @@ if(ULTRAVNC_BUILD_PORTABLE_LIBS)
         add_subdirectory(libvncauth)
         add_subdirectory(librepeaterwebgui)
         add_subdirectory(librepeatercore)
+        add_subdirectory(repeater_headless)
     endif()
 endif()
 

@@ -55,6 +55,7 @@
 #endif
 
 typedef int BOOL;
+typedef uint16_t WORD;
 typedef uint32_t DWORD;
 typedef void *LPVOID;
 typedef int SOCKET;
@@ -64,6 +65,11 @@ typedef char TCHAR;
 typedef char *LPTSTR;
 typedef const char *LPCSTR;
 typedef pthread_t *HANDLE;
+typedef struct _WSADATA {
+    WORD wVersion;
+    WORD wHighVersion;
+} WSADATA;
+
 typedef struct _SYSTEMTIME {
     int wYear;
     int wMonth;
@@ -78,6 +84,9 @@ typedef struct _SYSTEMTIME {
 #define Sleep(milliseconds) usleep((milliseconds) * 1000)
 #define WSAGetLastError() errno
 #define timeGetTime() GetTickCount()
+#define MAKEWORD(low, high) ((WORD)((((WORD)(high)) << 8) | ((WORD)(low))))
+#define WSAStartup(version, data) (0)
+#define WSACleanup() (0)
 #define _tcschr strchr
 #define _tcslen strlen
 #define _stscanf_s sscanf
