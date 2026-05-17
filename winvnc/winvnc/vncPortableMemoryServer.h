@@ -23,6 +23,7 @@ public:
     MemoryServer();
 
     bool Start(const ServerConfig& config);
+    bool StartWithFramebuffer(const ServerConfig& config, const Framebuffer& framebuffer);
     bool ServeOne();
     bool ServeOneUpdate();
     bool ServeOneUpdates(unsigned int updateCount);

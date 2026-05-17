@@ -32,6 +32,20 @@ bool MemoryServer::Start(const ServerConfig& config)
     return listener_.Listen(config_.BindAddress(), config_.Port());
 }
 
+bool MemoryServer::StartWithFramebuffer(const ServerConfig& config, const Framebuffer& framebuffer)
+{
+    std::string error;
+    if (!config.Validate(&error) || framebuffer.Empty() ||
+        framebuffer.Width() != config.Width() ||
+        framebuffer.Height() != config.Height() ||
+        framebuffer.BytesPerPixel() != (config.PixelFormat().bitsPerPixel / 8)) {
+        return false;
+    }
+    config_ = config;
+    framebuffer_ = framebuffer;
+    return listener_.Listen(config_.BindAddress(), config_.Port());
+}
+
 bool MemoryServer::ServeOne()
 {
     if (!listener_.Valid()) {
