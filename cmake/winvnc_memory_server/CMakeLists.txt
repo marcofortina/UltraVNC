@@ -26,6 +26,9 @@ if(BUILD_TESTING)
     add_test(NAME winvnc_memory_server_validate_pattern COMMAND uvnc_winvnc_memory_server --validate-config --pattern checker --width 320 --height 240 --name smoke)
     set_tests_properties(winvnc_memory_server_validate_pattern PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
 
+    add_test(NAME winvnc_memory_server_print_config COMMAND uvnc_winvnc_memory_server --print-config --pattern gradient-y --fill-byte 42 --width 64 --height 32 --name printed-config --max-updates 5)
+    set_tests_properties(winvnc_memory_server_print_config PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
+
     add_test(NAME winvnc_memory_server_invalid_width COMMAND uvnc_winvnc_memory_server --validate-config --width 0)
     set_tests_properties(winvnc_memory_server_invalid_width PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5 WILL_FAIL TRUE)
 
