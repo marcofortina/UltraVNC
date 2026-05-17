@@ -13,6 +13,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 BUILD_DIR="${1:-/tmp/uvnc-linux-build}"
+INSTALL_PREFIX="${2:-}"
 
 cmake -S "${REPO_ROOT}/cmake" -B "${BUILD_DIR}" -G Ninja \
     -DULTRAVNC_BUILD_PORTABLE_LIBS=ON \
@@ -20,3 +21,8 @@ cmake -S "${REPO_ROOT}/cmake" -B "${BUILD_DIR}" -G Ninja \
 cmake --build "${BUILD_DIR}" -j"$(nproc)"
 ctest --test-dir "${BUILD_DIR}" --output-on-failure
 "${BUILD_DIR}/repeater_headless/uvnc_repeater_headless" --smoke-test --quiet
+
+if [[ -n "${INSTALL_PREFIX}" ]]; then
+    cmake --install "${BUILD_DIR}" --prefix "${INSTALL_PREFIX}"
+    "${INSTALL_PREFIX}/bin/uvnc_repeater_headless" --help >/dev/null
+fi
