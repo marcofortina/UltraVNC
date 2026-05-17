@@ -89,6 +89,10 @@ ctest --test-dir obj-linux --output-on-failure
 # Smoke check the experimental headless repeater CLI.
 obj-linux/repeater_headless/uvnc_repeater_headless --help
 
+# Start the experimental headless repeater on local free ports,
+# verify that both listeners accept loopback connections, and shut it down.
+obj-linux/repeater_headless/uvnc_repeater_headless --smoke-test
+
 ######################
 
 # Windows with cmake, generate Visual Studio project files
