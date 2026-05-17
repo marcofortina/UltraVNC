@@ -22,6 +22,7 @@ int saved_portA = 5901;
 int saved_portB = 5500;
 int saved_portHTTP = 0;
 int saved_usecom = FALSE;
+int saved_quiet = FALSE;
 
 int saved_allow = FALSE;
 int saved_refuse = FALSE;
@@ -66,6 +67,7 @@ static void print_usage(const char *program)
     printf("  --no-mode2             Disable mode 2 server listener\n");
     printf("  --keepalive            Enable repeater keepalive messages\n");
     printf("  --smoke-test           Start listeners on free ports and verify they accept connections\n");
+    printf("  --quiet                Suppress normal repeater status output\n");
     printf("  --help                 Show this help text\n");
 }
 
@@ -106,6 +108,10 @@ static int parse_args(int argc, char **argv)
         }
         if (strcmp(argv[i], "--smoke-test") == 0) {
             saved_smoke_test = TRUE;
+            continue;
+        }
+        if (strcmp(argv[i], "--quiet") == 0) {
+            saved_quiet = TRUE;
             continue;
         }
         if (strcmp(argv[i], "--viewer-port") == 0) {
@@ -205,6 +211,7 @@ static int run_smoke_test(void)
     saved_mode2 = TRUE;
     saved_mode1 = FALSE;
     saved_keepalive = FALSE;
+    saved_quiet = TRUE;
     notstopped = TRUE;
     notwebstopped = TRUE;
 
@@ -236,6 +243,7 @@ char *lookup_comment(ULONG)
 
 void win_log(char *line)
 {
+    if (saved_quiet) return;
     if (line != NULL) fprintf(stderr, "%s\n", line);
 }
 
