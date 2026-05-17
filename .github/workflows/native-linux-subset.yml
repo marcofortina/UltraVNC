@@ -37,3 +37,9 @@ jobs:
           cmake/winvnc-portable-core-closure.sh \
             /tmp/uvnc-winvnc-portable-core-build \
             /tmp/uvnc-linux-closure-install
+
+      - name: Memory server RFB closure smoke
+        run: |
+          cmake/memory-server-rfb-closure.sh \
+            /tmp/uvnc-memory-server-rfb-build \
+            /tmp/uvnc-linux-closure-install
