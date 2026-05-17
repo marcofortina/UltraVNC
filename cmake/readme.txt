@@ -118,6 +118,11 @@ quiet=true
 EOF
 obj-linux/repeater_headless/uvnc_repeater_headless --config /tmp/uvnc-repeater-headless.conf --validate-config --quiet
 
+# The same native Linux subset also builds the first WinVNC portable core slice:
+# Region2D plus rfbUpdateTracker. This is not a Linux server yet; it is the
+# first server-side protocol/update core that now compiles and runs tests on Linux.
+ctest --test-dir obj-linux --output-on-failure -R winvnc_update_tracker_smoke
+
 ######################
 
 # Windows with cmake, generate Visual Studio project files
