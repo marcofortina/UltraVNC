@@ -7,6 +7,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2002-2025 UltraVNC Team Members. All Rights Reserved.
 
 #include "vncPortableMemoryServer.h"
+#include "vncPortableFramebufferPattern.h"
 
 namespace uvnc {
 namespace winvnc {
@@ -25,7 +26,9 @@ bool MemoryServer::Start(const ServerConfig& config)
     }
     config_ = config;
     framebuffer_.Reset(config_.Width(), config_.Height(), config_.PixelFormat());
-    framebuffer_.Fill(config_.FillByte());
+    if (!ApplyFramebufferPattern(framebuffer_, config_.Pattern(), config_.FillByte())) {
+        return false;
+    }
     return listener_.Listen(config_.BindAddress(), config_.Port());
 }
 
