@@ -79,6 +79,31 @@ rfbPointerEventMsg EncodePointerEvent(const PointerEvent& event)
     return message;
 }
 
+bool DecodeSetPixelFormat(const rfbSetPixelFormatMsg& message, rfbPixelFormat& out)
+{
+    if (message.type != rfbSetPixelFormat) {
+        return false;
+    }
+    out = message.format;
+    out.redMax = Swap16IfLE(out.redMax);
+    out.greenMax = Swap16IfLE(out.greenMax);
+    out.blueMax = Swap16IfLE(out.blueMax);
+    return true;
+}
+
+rfbSetPixelFormatMsg EncodeSetPixelFormat(const rfbPixelFormat& format)
+{
+    rfbSetPixelFormatMsg message;
+    message.type = rfbSetPixelFormat;
+    message.pad1 = 0;
+    message.pad2 = 0;
+    message.format = format;
+    message.format.redMax = Swap16IfLE(message.format.redMax);
+    message.format.greenMax = Swap16IfLE(message.format.greenMax);
+    message.format.blueMax = Swap16IfLE(message.format.blueMax);
+    return message;
+}
+
 } // namespace portable
 } // namespace winvnc
 } // namespace uvnc

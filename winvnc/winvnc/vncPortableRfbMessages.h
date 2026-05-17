@@ -41,6 +41,8 @@ bool DecodeKeyEvent(const rfbKeyEventMsg& message, KeyEvent& out);
 rfbKeyEventMsg EncodeKeyEvent(const KeyEvent& event);
 bool DecodePointerEvent(const rfbPointerEventMsg& message, PointerEvent& out);
 rfbPointerEventMsg EncodePointerEvent(const PointerEvent& event);
+bool DecodeSetPixelFormat(const rfbSetPixelFormatMsg& message, rfbPixelFormat& out);
+rfbSetPixelFormatMsg EncodeSetPixelFormat(const rfbPixelFormat& format);
 
 } // namespace portable
 } // namespace winvnc
