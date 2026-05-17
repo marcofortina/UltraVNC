@@ -10,6 +10,7 @@
 
 #include "repeater.h"
 
+#include <ctype.h>
 #include <errno.h>
 #include <limits.h>
 #include <signal.h>
@@ -68,6 +69,7 @@ static void print_usage(const char *program)
     printf("  --server-port <port>   Server listen port, default 5500\n");
     printf("  --bind-address <ipv4> Bind listeners to an IPv4 address, default 0.0.0.0\n");
     printf("  --log-dir <path>      Write repeater access logs under this directory\n");
+    printf("  --config <path>       Load headless options from a key=value config file\n");
     printf("  --mode1                Enable direct mode 1 connections\n");
     printf("  --no-mode2             Disable mode 2 server listener\n");
     printf("  --keepalive            Enable repeater keepalive messages\n");
@@ -110,6 +112,98 @@ static int parse_bind_address(const char *value)
     if (inet_pton(AF_INET, value, &parsed) != 1) return FALSE;
 
     saved_bind_address = parsed.s_addr;
+    return TRUE;
+}
+
+static char *trim_ascii(char *value)
+{
+    char *end;
+
+    if (value == NULL) return NULL;
+    while (*value != '\0' && isspace((unsigned char)*value)) value++;
+
+    end = value + strlen(value);
+    while (end > value && isspace((unsigned char)*(end - 1))) end--;
+    *end = '\0';
+
+    return value;
+}
+
+static int parse_bool_value(const char *value, int *target)
+{
+    if (value == NULL || target == NULL) return FALSE;
+    if (strcmp(value, "1") == 0 || strcmp(value, "true") == 0 || strcmp(value, "yes") == 0 || strcmp(value, "on") == 0) {
+        *target = TRUE;
+        return TRUE;
+    }
+    if (strcmp(value, "0") == 0 || strcmp(value, "false") == 0 || strcmp(value, "no") == 0 || strcmp(value, "off") == 0) {
+        *target = FALSE;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static int apply_config_option(const char *key, const char *value)
+{
+    if (strcmp(key, "viewer-port") == 0) return parse_port(value, &saved_portA);
+    if (strcmp(key, "server-port") == 0) return parse_port(value, &saved_portB);
+    if (strcmp(key, "bind-address") == 0) return parse_bind_address(value);
+    if (strcmp(key, "log-dir") == 0) return parse_log_dir(value);
+    if (strcmp(key, "mode1") == 0) return parse_bool_value(value, &saved_mode1);
+    if (strcmp(key, "mode2") == 0) return parse_bool_value(value, &saved_mode2);
+    if (strcmp(key, "keepalive") == 0) return parse_bool_value(value, &saved_keepalive);
+    if (strcmp(key, "quiet") == 0) return parse_bool_value(value, &saved_quiet);
+    return FALSE;
+}
+
+static int parse_config_file(const char *path)
+{
+    FILE *config;
+    char line[1024];
+    unsigned int line_number = 0;
+
+    if (path == NULL || *path == '\0') return FALSE;
+
+    config = fopen(path, "r");
+    if (config == NULL) {
+        fprintf(stderr, "Unable to open config file: %s\n", path);
+        return FALSE;
+    }
+
+    while (fgets(line, sizeof(line), config) != NULL) {
+        char *key;
+        char *value;
+        char *separator;
+
+        line_number++;
+        key = trim_ascii(line);
+        if (*key == '\0' || *key == '#') continue;
+
+        separator = strchr(key, '=');
+        if (separator == NULL) {
+            fprintf(stderr, "Invalid config line %u: missing '='\n", line_number);
+            fclose(config);
+            return FALSE;
+        }
+
+        *separator = '\0';
+        value = trim_ascii(separator + 1);
+        key = trim_ascii(key);
+
+        if (*key == '\0' || *value == '\0' || !apply_config_option(key, value)) {
+            fprintf(stderr, "Invalid config line %u: %s\n", line_number, key);
+            fclose(config);
+            return FALSE;
+        }
+    }
+
+    if (ferror(config)) {
+        fprintf(stderr, "Unable to read config file: %s\n", path);
+        fclose(config);
+        return FALSE;
+    }
+
+    fclose(config);
     return TRUE;
 }
 
@@ -168,6 +262,13 @@ static int parse_args(int argc, char **argv)
         if (strcmp(argv[i], "--log-dir") == 0) {
             if (i + 1 >= argc || !parse_log_dir(argv[++i])) {
                 fprintf(stderr, "Invalid --log-dir value\n");
+                return -1;
+            }
+            continue;
+        }
+        if (strcmp(argv[i], "--config") == 0) {
+            if (i + 1 >= argc || !parse_config_file(argv[++i])) {
+                fprintf(stderr, "Invalid --config value\n");
                 return -1;
             }
             continue;
