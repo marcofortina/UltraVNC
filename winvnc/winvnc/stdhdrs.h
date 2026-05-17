@@ -11,6 +11,10 @@
 //
 
 
+#if !defined(_WIN32) && !defined(WIN32)
+#include "stdhdrs_portable.h"
+#else
+
 //need to be added for VS 2005
 #define _Gii
 #ifdef _Gii
@@ -124,3 +128,4 @@ extern void WriteLog(char* sender, char *format, ...);
 #else
 #define GetTimeFunction GetTickCount
 #endif
+#endif // native portable stdhdrs
