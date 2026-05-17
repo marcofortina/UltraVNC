@@ -15,6 +15,8 @@ target_sources(${PROJECT_NAME}
     PRIVATE
         "${CMAKE_SOURCE_DIR}/../repeater/lists_functions.cpp"
         "${CMAKE_SOURCE_DIR}/../repeater/socket_functions.cpp"
+        "${CMAKE_SOURCE_DIR}/../repeater/mode12_listener.cpp"
+        "${CMAKE_SOURCE_DIR}/../repeater/mode2_listener_server.cpp"
 )
 target_include_directories(${PROJECT_NAME}
     PRIVATE

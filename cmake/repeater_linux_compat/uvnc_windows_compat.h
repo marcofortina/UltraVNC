@@ -13,7 +13,9 @@
 
 #include <arpa/inet.h>
 #include <errno.h>
+#include <netdb.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <stdarg.h>
@@ -124,6 +126,23 @@ static inline BOOL CloseHandle(HANDLE handle)
     if (handle != NULL) free(handle);
     return TRUE;
 }
+
+static inline int uvnc_accept(SOCKET socket, struct sockaddr *addr, int *addrlen)
+{
+    socklen_t len = (addrlen != NULL) ? (socklen_t)*addrlen : 0;
+    int rc = accept(socket, addr, addrlen != NULL ? &len : NULL);
+    if (addrlen != NULL) *addrlen = (int)len;
+    return rc;
+}
+
+#define accept(socket, addr, addrlen) uvnc_accept((socket), (addr), (addrlen))
+
+static inline char *uvnc_strtok_s(char *str, const char *delim, char **context)
+{
+    return strtok_r(str, delim, context);
+}
+
+#define strtok_s(str, delim, context) uvnc_strtok_s((str), (delim), (context))
 
 static inline BOOL GetModuleFileName(void *, char *buffer, size_t size)
 {
