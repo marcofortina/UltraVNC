@@ -104,6 +104,10 @@ option(ULTRAVNC_BUILD_WINDOWS_APPS "Build Windows-specific UltraVNC applications
 
 if(ULTRAVNC_BUILD_PORTABLE_LIBS)
     add_subdirectory(librdr)
+    add_subdirectory(libminilzo)
+    if(NOT WIN32)
+        add_subdirectory(libvncauth)
+    endif()
 endif()
 
 if(ULTRAVNC_BUILD_WINDOWS_APPS)
