@@ -113,7 +113,8 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
         if (!DecodeFramebufferUpdateRequest(wire, request)) {
             return false;
         }
-        const std::vector<CARD8> update = RawFramebufferUpdateBytes(framebuffer, request);
+        const std::vector<CARD8> update = request.incremental ?
+            EmptyFramebufferUpdateBytes() : RawFramebufferUpdateBytes(framebuffer, request);
         updateSent = socket.WriteAll(update.data(), update.size());
         if (updateSent && stats) {
             stats->framebufferUpdatesSent += 1;
