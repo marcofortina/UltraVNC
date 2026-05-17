@@ -30,3 +30,11 @@ add_executable(winvnc_translate_smoke
 target_link_libraries(winvnc_translate_smoke PRIVATE libwinvncportablecore)
 
 add_test(NAME winvnc_translate_smoke COMMAND winvnc_translate_smoke)
+
+add_executable(winvnc_region_smoke
+    "${CMAKE_SOURCE_DIR}/tests/winvnc_region_smoke.cpp"
+)
+
+target_link_libraries(winvnc_region_smoke PRIVATE libwinvncportablecore)
+
+add_test(NAME winvnc_region_smoke COMMAND winvnc_region_smoke)
