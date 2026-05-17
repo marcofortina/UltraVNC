@@ -52,3 +52,9 @@ cmake/native-linux-closure-smoke.sh \
   /tmp/uvnc-winvnc-portable-core-build \
   /tmp/uvnc-linux-closure-install
 ```
+
+## CI coverage
+
+The `.github/workflows/native-linux-subset.yml` workflow runs the closure helpers
+on `main`/`master` pushes and pull requests. Feature branches can still run the
+same helpers locally before opening a PR.
