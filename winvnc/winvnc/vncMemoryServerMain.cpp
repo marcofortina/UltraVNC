@@ -22,7 +22,9 @@ using uvnc::winvnc::portable::ServerConfig;
 using uvnc::winvnc::portable::MemoryServer;
 using uvnc::winvnc::portable::FramebufferUpdateRequest;
 using uvnc::winvnc::portable::TcpSocket;
+using uvnc::winvnc::portable::FramebufferPattern;
 using uvnc::winvnc::portable::FramebufferPatternName;
+using uvnc::winvnc::portable::ParseFramebufferPattern;
 
 namespace {
 
