@@ -49,7 +49,7 @@ ctest --test-dir "${BUILD_DIR}" --output-on-failure -R "${memory_rfb_regex}"
     --name memory-rfb-handshake-closure
 "${BUILD_DIR}/winvnc_memory_server/uvnc_winvnc_memory_server" \
     --smoke-update-test \
-    --pattern gradient-x \
+    --pattern solid \
     --fill-byte 42 \
     --width 64 \
     --height 32 \
