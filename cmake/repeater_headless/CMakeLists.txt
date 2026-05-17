@@ -28,3 +28,7 @@ target_link_libraries(${PROJECT_NAME}
         librepeatercore
         Threads::Threads
 )
+
+if(BUILD_TESTING)
+    add_test(NAME uvnc_repeater_headless_help COMMAND ${PROJECT_NAME} --help)
+endif()

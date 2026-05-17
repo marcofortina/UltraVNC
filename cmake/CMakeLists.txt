@@ -66,6 +66,7 @@ set(TOOL_VERSION ${TOOL_MAJOR_VERSION}.${TOOL_MINOR_VERSION}.${TOOL_PATCH_VERSIO
 message(STATUS "TOOL_VERSION: ${TOOL_VERSION}")
 
 project(UltraVNC VERSION ${TOOL_VERSION})
+include(CTest)
 enable_language(CXX)
 enable_language(C)
 if(WIN32)
