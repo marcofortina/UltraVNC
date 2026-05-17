@@ -32,6 +32,7 @@ add_library(${PROJECT_NAME} STATIC
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableDesktopSource.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableFramebufferDiff.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableCapturePipeline.cpp"
+    "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableUpdateEncoder.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/translate.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncencoder.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncencoderre.cpp"
