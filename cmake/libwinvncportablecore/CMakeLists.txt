@@ -42,6 +42,7 @@ add_library(${PROJECT_NAME} STATIC
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableRfbUpdate.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableRfbSession.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableMemoryServer.cpp"
+    "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncLinuxFramebufferSource.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/translate.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncencoder.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncencoderre.cpp"
