@@ -40,4 +40,8 @@ if [[ -n "${INSTALL_PREFIX}" ]]; then
     "${INSTALL_PREFIX}/bin/uvnc_repeater_headless" --mode1 --no-mode2 --validate-config --quiet
     "${INSTALL_PREFIX}/bin/uvnc_repeater_headless" --config "${CONFIG_FILE}" --validate-config --quiet
     "${INSTALL_PREFIX}/bin/uvnc_repeater_headless" --smoke-test --quiet
+
+    "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --help >/dev/null
+    "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --validate-config --width 64 --height 32 --name installed-memory-smoke
+    "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --smoke-test --width 64 --height 32 --name installed-memory-smoke
 fi
