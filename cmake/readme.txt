@@ -97,6 +97,9 @@ obj-linux/repeater_headless/uvnc_repeater_headless --smoke-test --quiet
 # is available on the default branch.
 UltraVNC/cmake/native-linux-subset-smoke.sh obj-linux
 
+# Validate runtime options without starting listeners.
+obj-linux/repeater_headless/uvnc_repeater_headless --mode1 --no-mode2 --validate-config --quiet
+
 # Use an explicit runtime log directory when the repeater binary is installed
 # under a read-only or shared location.
 mkdir -p /tmp/uvnc-repeater-logs
