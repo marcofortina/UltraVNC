@@ -334,7 +334,7 @@ bool RunSmokeMultiUpdateTest(const ServerConfig& config, unsigned int maxUpdates
     return clientOk && serverOk;
 }
 
-void PrintResolvedConfig(const ServerConfig& config, unsigned int maxUpdates)
+void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBackend, CaptureBackend resolvedBackend, unsigned int maxUpdates)
 {
     std::cout << "bind_address=" << config.BindAddress() << "\n"
               << "port=" << config.Port() << "\n"
@@ -343,6 +343,8 @@ void PrintResolvedConfig(const ServerConfig& config, unsigned int maxUpdates)
               << "name=" << config.DesktopName() << "\n"
               << "fill_byte=" << static_cast<unsigned int>(config.FillByte()) << "\n"
               << "pattern=" << FramebufferPatternName(config.Pattern()) << "\n"
+              << "capture_backend=" << CaptureBackendName(requestedBackend) << "\n"
+              << "resolved_capture_backend=" << CaptureBackendName(resolvedBackend) << "\n"
               << "max_updates=" << maxUpdates << "\n";
 }
 
@@ -431,11 +433,16 @@ int main(int argc, char **argv)
         std::cerr << "invalid config: " << error << "\n";
         return 2;
     }
+    if (!ResolveCaptureBackend(captureBackend, !rawFramebufferFile.empty(), resolvedCaptureBackend, &error)) {
+        std::cerr << "invalid capture backend: " << error << "
+";
+        return 2;
+    }
     if (validateOnly) {
         return 0;
     }
     if (printConfig) {
-        PrintResolvedConfig(config, maxUpdates);
+        PrintResolvedConfig(config, captureBackend, resolvedCaptureBackend, maxUpdates);
         return 0;
     }
     if (smokeTest) {
