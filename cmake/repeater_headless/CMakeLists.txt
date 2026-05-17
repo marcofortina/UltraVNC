@@ -71,4 +71,27 @@ if(BUILD_TESTING)
     set_tests_properties(uvnc_repeater_headless_rejects_bad_config_bool PROPERTIES WILL_FAIL TRUE)
     add_test(NAME uvnc_repeater_headless_loopback_log_dir_smoke COMMAND ${PROJECT_NAME} --bind-address 127.0.0.1 --log-dir ${CMAKE_CURRENT_BINARY_DIR} --smoke-test --quiet)
     set_tests_properties(uvnc_repeater_headless_loopback_log_dir_smoke PROPERTIES TIMEOUT 15)
+
+    set(UVNC_REPEATER_HEADLESS_TESTS
+        uvnc_repeater_headless_help
+        uvnc_repeater_headless_rejects_bad_viewer_port
+        uvnc_repeater_headless_rejects_missing_server_port
+        uvnc_repeater_headless_rejects_bad_bind_address
+        uvnc_repeater_headless_validates_mode1_only
+        uvnc_repeater_headless_rejects_disabled_modes
+        uvnc_repeater_headless_rejects_duplicate_mode2_ports
+        uvnc_repeater_headless_startup_smoke
+        uvnc_repeater_headless_loopback_bind_smoke
+        uvnc_repeater_headless_rejects_missing_log_dir
+        uvnc_repeater_headless_rejects_missing_log_dir_path
+        uvnc_repeater_headless_validates_config_file
+        uvnc_repeater_headless_rejects_missing_config_file
+        uvnc_repeater_headless_rejects_bad_config_key
+        uvnc_repeater_headless_rejects_bad_config_bool
+        uvnc_repeater_headless_loopback_log_dir_smoke
+    )
+    set_tests_properties(${UVNC_REPEATER_HEADLESS_TESTS}
+        PROPERTIES
+            LABELS "native-linux;repeater-headless"
+    )
 endif()
