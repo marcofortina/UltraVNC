@@ -16,7 +16,11 @@ The current CMake subset builds and tests the following components natively on L
   - portable region/update tracking;
   - translation tables;
   - compression helpers;
-  - raw/RRE/hextile/CoRRE/zlib/zlibhex/ultra/ultra2/XZ/tight/ZRLE encoder paths.
+  - raw/RRE/hextile/CoRRE/zlib/zlibhex/ultra/ultra2/XZ/tight/ZRLE encoder paths;
+  - portable runtime hooks for monotonic time, sleeping, process id, environment lookup
+    and shutdown signalling;
+  - portable framebuffer, dirty tracking, desktop-source, capture-pipeline and
+    update-encoder abstractions used as the first Linux server-side seam.
 
 Run the local validation helper from the repository root:
 
@@ -34,8 +38,8 @@ cmake/winvnc-portable-core-smoke.sh /tmp/uvnc-winvnc-portable-core-build
 
 The following areas are not native Linux implementations yet:
 
-- WinVNC desktop capture and input injection.
-- WinVNC Windows service/session handling.
+- Real Linux desktop capture and input injection backends.
+- Full Linux daemon/service/session integration around the portable runtime hooks.
 - Native viewer UI and Windows-specific message loop integration.
 - MFC/Win32 dialogs, resources, registry integration and tray UI.
 - Windows socket/window compatibility layers outside the isolated portable subset.
@@ -44,5 +48,5 @@ The following areas are not native Linux implementations yet:
 
 Do not pretend that Win32 UI/service/capture code can simply compile on Linux.
 Move protocol, encoding and runtime-neutral code into tested portable slices first,
-then add Linux-specific implementations for desktop capture, input, service/runtime
-and UI paths.
+keep Linux runtime/capture seams explicit, then add Linux-specific implementations
+for desktop capture, input, daemon/service integration and UI paths.
