@@ -25,6 +25,7 @@ add_library(${PROJECT_NAME} STATIC
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/rfbUpdateTracker.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/stdhdrs_portable.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/translate.cpp"
+    "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncencoder.cpp"
     "${CMAKE_SOURCE_DIR}/../common/UltraVncZ.cpp"
 )
 

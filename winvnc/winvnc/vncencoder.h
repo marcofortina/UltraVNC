@@ -24,10 +24,19 @@ class vncEncoder;
 #define RFBENCODER_DEFINED
 #pragma once
 
+#if !defined(_WIN32) && !defined(WIN32)
+#include "stdhdrs.h"
+#include "rfb.h"
+#include "rfbRect.h"
+#include "translate.h"
+class VSocket;
+class vncDesktop;
+#else
 #include "vncbuffer.h"
 #include "translate.h"
 #include "vsocket.h"
 #include "vncmemcpy.h"
+#endif
 
 #define NUM_SUBSAMPOPT 6
 enum subsamp_type

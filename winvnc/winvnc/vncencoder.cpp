@@ -16,7 +16,9 @@
 // vncEncoder - Object used to encode data for RFB
 #include "stdhdrs.h"
 #include "vncencoder.h"
+#if defined(_WIN32) || defined(WIN32)
 #include "vncbuffer.h"
+#endif
 #ifdef _VCPKG
 #include <zlib.h>
 #include <zstd.h>
