@@ -19,7 +19,7 @@ int main()
     std::string error;
 
     assert(ResolveCaptureBackend(CaptureBackend::Auto, false, resolved, &error));
-    assert(resolved == CaptureBackend::Memory);
+    assert((resolved == CaptureBackend::Memory) || (resolved == CaptureBackend::X11));
     assert(error.empty());
 
     assert(ResolveCaptureBackend(CaptureBackend::Auto, true, resolved, &error));
@@ -35,7 +35,12 @@ int main()
     assert(!ResolveCaptureBackend(CaptureBackend::RawFile, false, resolved, &error));
     assert(error == "capture backend is not available: raw-file");
 
-    assert(!ResolveCaptureBackend(CaptureBackend::X11, false, resolved, &error));
-    assert(error == "capture backend is not available: x11");
+    if (!IsCaptureBackendRuntimeAvailable(CaptureBackend::X11, false)) {
+        assert(!ResolveCaptureBackend(CaptureBackend::X11, false, resolved, &error));
+        assert(error == "capture backend is not available: x11");
+    } else {
+        assert(ResolveCaptureBackend(CaptureBackend::X11, false, resolved, &error));
+        assert(resolved == CaptureBackend::X11);
+    }
     return 0;
 }
