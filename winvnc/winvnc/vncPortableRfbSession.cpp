@@ -90,7 +90,7 @@ bool RfbServerSession::ServeFramebufferUpdateRequest(TcpSocket& socket, const Fr
     return socket.WriteAll(update.data(), update.size());
 }
 
-bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats) const
+bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats, RfbClientState *state) const
 {
     updateSent = false;
     CARD8 type = 0;
@@ -124,6 +124,12 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
         rfbSetPixelFormatMsg wire;
         wire.type = type;
         const bool ok = socket.ReadExact(reinterpret_cast<char *>(&wire) + 1, sz_rfbSetPixelFormatMsg - 1);
+        if (ok && state) {
+            rfbPixelFormat format;
+            if (DecodeSetPixelFormat(wire, format)) {
+                state->SetPixelFormat(format);
+            }
+        }
         if (ok && stats) {
             stats->setPixelFormatMessages += 1;
         }
@@ -141,6 +147,9 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
         }
         std::vector<CARD8> payload(count * sizeof(CARD32));
         const bool ok = payload.empty() || socket.ReadExact(payload.data(), payload.size());
+        if (ok && state) {
+            state->SetEncodings(DecodeSetEncodingsPayload(payload));
+        }
         if (ok && stats) {
             stats->setEncodingsMessages += 1;
         }
@@ -150,6 +159,12 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
         rfbKeyEventMsg wire;
         wire.type = type;
         const bool ok = socket.ReadExact(reinterpret_cast<char *>(&wire) + 1, sz_rfbKeyEventMsg - 1);
+        if (ok && state) {
+            KeyEvent event;
+            if (DecodeKeyEvent(wire, event)) {
+                state->RecordKeyEvent(event);
+            }
+        }
         if (ok && stats) {
             stats->keyEvents += 1;
         }
@@ -159,6 +174,12 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
         rfbPointerEventMsg wire;
         wire.type = type;
         const bool ok = socket.ReadExact(reinterpret_cast<char *>(&wire) + 1, sz_rfbPointerEventMsg - 1);
+        if (ok && state) {
+            PointerEvent event;
+            if (DecodePointerEvent(wire, event)) {
+                state->RecordPointerEvent(event);
+            }
+        }
         if (ok && stats) {
             stats->pointerEvents += 1;
         }
@@ -173,6 +194,9 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
         const CARD32 length = Swap32IfLE(wire.length);
         std::vector<CARD8> payload(length);
         const bool ok = payload.empty() || socket.ReadExact(payload.data(), payload.size());
+        if (ok && state) {
+            state->RecordClientCutText(length);
+        }
         if (ok && stats) {
             stats->clientCutTextMessages += 1;
         }
@@ -183,11 +207,11 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
     }
 }
 
-bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages, RfbSessionStats *stats) const
+bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state) const
 {
     for (unsigned int i = 0; i < maxMessages; ++i) {
         bool updateSent = false;
-        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats)) {
+        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state)) {
             return false;
         }
         if (updateSent) {
