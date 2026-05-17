@@ -73,7 +73,9 @@ public:
 	//  - Dest is the base address to encode the rect to. The rect will be encoded
 	//    into a contiguous region of the buffer.
 	virtual void Translate(BYTE *source, BYTE *dest, const rfb::Rect &rect);
+	virtual void Translate(BYTE *source, BYTE *dest, const RECT &rect);
 	virtual UINT EncodeRect(BYTE *source, BYTE *dest, const rfb::Rect &rect);
+	virtual UINT EncodeRect(BYTE *source, BYTE *dest, const RECT &rect);
 	virtual UINT EncodeRect(BYTE *source, VSocket *outConn, BYTE *dest, const rfb::Rect &rect, bool queue_enabled);
 	virtual UINT EncodeRect(BYTE *source,VSocket *outConn, BYTE *dest, const rfb::Rect &rect);
 	virtual UINT EncodeRect(BYTE *source, VSocket *outConn, BYTE *dest, const RECT &rect); // sf@2002 - For Tight...

@@ -133,7 +133,19 @@ vncEncoder::Translate(BYTE *source, BYTE *dest, const rfb::Rect &rect)
 					);
 }
 
+inline void
+vncEncoder::Translate(BYTE *source, BYTE *dest, const RECT &rect)
+{
+	Translate(source, dest, rfb::Rect(rect.left, rect.top, rect.right, rect.bottom));
+}
+
 // Encode a rectangle
+inline UINT
+vncEncoder::EncodeRect(BYTE *source, BYTE *dest, const RECT &rect)
+{
+	return EncodeRect(source, dest, rfb::Rect(rect.left, rect.top, rect.right, rect.bottom));
+}
+
 inline UINT
 vncEncoder::EncodeRect(BYTE *source, BYTE *dest, const rfb::Rect &rect)
 {

@@ -11,6 +11,7 @@
 project(libwinvncportablecore LANGUAGES CXX)
 
 find_package(ZLIB REQUIRED)
+find_package(JPEG REQUIRED)
 find_package(zstd CONFIG QUIET)
 if(TARGET zstd::libzstd)
     set(ULTRAVNC_WINVNC_ZSTD_TARGET zstd::libzstd)
@@ -31,6 +32,7 @@ add_library(${PROJECT_NAME} STATIC
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncEncodeZlibHex.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncEncodeUltra.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncEncodeXZ.cpp"
+    "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncEncodeTight.cpp"
     "${CMAKE_SOURCE_DIR}/../common/UltraVncZ.cpp"
 )
 
@@ -53,4 +55,5 @@ target_link_libraries(${PROJECT_NAME}
         ${ULTRAVNC_WINVNC_ZSTD_TARGET}
         libminilzo
         librdr
+        JPEG::JPEG
 )

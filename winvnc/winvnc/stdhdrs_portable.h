@@ -102,6 +102,14 @@ inline void CopyMemory(void *dest, const void *src, std::size_t size)
     std::memcpy(dest, src, size);
 }
 
+inline void SetRect(RECT *rect, LONG left, LONG top, LONG right, LONG bottom)
+{
+    rect->left = left;
+    rect->top = top;
+    rect->right = right;
+    rect->bottom = bottom;
+}
+
 class VNCLog {
 public:
     void Print(int, const char *, ...) {}
