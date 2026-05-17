@@ -8,6 +8,8 @@
 
 #include "vncPortableRfbMessages.h"
 
+#include <cstring>
+
 namespace uvnc {
 namespace winvnc {
 namespace portable {
@@ -102,6 +104,47 @@ rfbSetPixelFormatMsg EncodeSetPixelFormat(const rfbPixelFormat& format)
     message.format.greenMax = Swap16IfLE(message.format.greenMax);
     message.format.blueMax = Swap16IfLE(message.format.blueMax);
     return message;
+}
+
+bool DecodeSetEncodingsHeader(const rfbSetEncodingsMsg& message, unsigned int& count)
+{
+    if (message.type != rfbSetEncodings) {
+        return false;
+    }
+    count = Swap16IfLE(message.nEncodings);
+    return true;
+}
+
+std::vector<CARD8> EncodeSetEncodings(const std::vector<CARD32>& encodings)
+{
+    rfbSetEncodingsMsg header;
+    header.type = rfbSetEncodings;
+    header.pad = 0;
+    header.nEncodings = Swap16IfLE(static_cast<CARD16>(encodings.size()));
+
+    std::vector<CARD8> bytes(sz_rfbSetEncodingsMsg + encodings.size() * sizeof(CARD32));
+    std::memcpy(bytes.data(), &header, sz_rfbSetEncodingsMsg);
+    CARD8 *out = bytes.data() + sz_rfbSetEncodingsMsg;
+    for (std::size_t i = 0; i < encodings.size(); ++i) {
+        const CARD32 wire = Swap32IfLE(encodings[i]);
+        std::memcpy(out + i * sizeof(CARD32), &wire, sizeof(wire));
+    }
+    return bytes;
+}
+
+std::vector<CARD32> DecodeSetEncodingsPayload(const std::vector<CARD8>& payload)
+{
+    std::vector<CARD32> encodings;
+    if (payload.size() % sizeof(CARD32) != 0) {
+        return encodings;
+    }
+    encodings.resize(payload.size() / sizeof(CARD32));
+    for (std::size_t i = 0; i < encodings.size(); ++i) {
+        CARD32 wire = 0;
+        std::memcpy(&wire, payload.data() + i * sizeof(CARD32), sizeof(wire));
+        encodings[i] = Swap32IfLE(wire);
+    }
+    return encodings;
 }
 
 } // namespace portable
