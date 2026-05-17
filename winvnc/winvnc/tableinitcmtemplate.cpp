@@ -56,6 +56,10 @@ rfbInitColourMapSingleTableOUTVNC (char **table,
 		return;
 	}
 
+	PALETTEENTRY palette[256];
+#if !defined(WIN32) && !defined(_WIN32)
+	UINT entries = 0;
+#else
 	// Obtain the system palette
 	bool create_dc = false;
 	HDC hDC = GetDcMirror();
@@ -70,11 +74,11 @@ rfbInitColourMapSingleTableOUTVNC (char **table,
 		create_dc = true;
 	}
 
-	PALETTEENTRY palette[256];
-  UINT entries = ::GetSystemPaletteEntries(hDC,	0, 256, palette);
+	UINT entries = ::GetSystemPaletteEntries(hDC,	0, 256, palette);
 	vnclog.Print(LL_INTINFO, VNCLOG("got %u palette entries\n"), GetLastError());
 	if (create_dc) DeleteDC(hDC);
 	else ReleaseDC(NULL, hDC);
+#endif
 
   // - Set the rest of the palette to something nasty but usable
   unsigned int i;

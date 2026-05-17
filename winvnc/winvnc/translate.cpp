@@ -133,6 +133,9 @@ rfbTranslateNone(char *table, rfbPixelFormat *in, rfbPixelFormat *out,
 
 HDC GetDcMirror()
 {
+#if !defined(WIN32) && !defined(_WIN32)
+	return NULL;
+#else
 typedef BOOL (WINAPI* pEnumDisplayDevices)(PVOID,DWORD,PVOID,DWORD);
 		HDC m_hrootdc=NULL;
 		pEnumDisplayDevices pd=NULL;
@@ -174,4 +177,5 @@ typedef BOOL (WINAPI* pEnumDisplayDevices)(PVOID,DWORD,PVOID,DWORD);
 		if (hUser32) FreeLibrary(hUser32);
 
 		return m_hrootdc;
+#endif
 }
