@@ -189,6 +189,13 @@ static int validate_runtime_config(void)
         fprintf(stderr, "Invalid configuration: viewer and server ports must be different when mode 2 is enabled\n");
         return FALSE;
     }
+    if (saved_log_dir[0] != '\0') {
+        struct stat st;
+        if (stat(saved_log_dir, &st) != 0 || !S_ISDIR(st.st_mode)) {
+            fprintf(stderr, "Invalid configuration: --log-dir must point to an existing directory\n");
+            return FALSE;
+        }
+    }
     return TRUE;
 }
 
