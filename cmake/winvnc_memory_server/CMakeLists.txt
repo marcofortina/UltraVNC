@@ -40,6 +40,9 @@ if(BUILD_TESTING)
 
     add_test(NAME winvnc_memory_server_multi_update_smoke COMMAND uvnc_winvnc_memory_server --smoke-multi-update-test --max-updates 3 --fill-byte 119 --width 64 --height 32 --name memory-multi-update-smoke)
     set_tests_properties(winvnc_memory_server_multi_update_smoke PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
+
+    add_test(NAME winvnc_memory_server_invalid_max_updates COMMAND uvnc_winvnc_memory_server --validate-config --max-updates 0)
+    set_tests_properties(winvnc_memory_server_invalid_max_updates PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5 WILL_FAIL TRUE)
 endif()
 
 install(TARGETS uvnc_winvnc_memory_server RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
