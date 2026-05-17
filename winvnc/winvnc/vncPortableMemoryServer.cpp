@@ -52,7 +52,7 @@ bool MemoryServer::ServeOneUpdate()
     }
     RfbServerSession session;
     return session.RunHandshake(client, config_) &&
-           session.ServeFramebufferUpdateRequest(client, framebuffer_);
+           session.ServeUntilFramebufferUpdate(client, framebuffer_);
 }
 
 void MemoryServer::Stop()
