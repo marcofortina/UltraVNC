@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <thread>
@@ -52,6 +53,7 @@ void PrintUsage(const char *name)
               << "  --smoke-test            Start on loopback, complete one RFB handshake, and exit\n"
               << "  --smoke-update-test     Start on loopback, request one raw framebuffer update, and exit\n"
               << "  --smoke-multi-update-test Start on loopback, request multiple raw framebuffer updates, and exit\n"
+              << "  --smoke-raw-file-update-test Start on loopback using a raw framebuffer file, request one update, and exit\n"
               << "  --max-updates <count>  Number of updates for multi-update smoke/serve mode, default 3\n"
               << "  --serve-updates        Serve one client through --max-updates framebuffer updates\n"
               << "  --help                  Show this help\n";
@@ -71,13 +73,14 @@ bool ParseUnsigned(const char *value, unsigned int min, unsigned int max, unsign
     return true;
 }
 
-bool ParseArgs(int argc, char **argv, ServerConfig& config, std::string& rawFramebufferFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& serveUpdates, unsigned int& maxUpdates)
+bool ParseArgs(int argc, char **argv, ServerConfig& config, std::string& rawFramebufferFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& serveUpdates, unsigned int& maxUpdates)
 {
     validateOnly = false;
     printConfig = false;
     smokeTest = false;
     smokeUpdateTest = false;
     smokeMultiUpdateTest = false;
+    smokeRawFileUpdateTest = false;
     serveUpdates = false;
     maxUpdates = 3;
     rawFramebufferFile.clear();
@@ -100,6 +103,10 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, std::string& rawFram
             config.SetPort(0);
         } else if (arg == "--smoke-multi-update-test") {
             smokeMultiUpdateTest = true;
+            config.SetBindAddress("127.0.0.1");
+            config.SetPort(0);
+        } else if (arg == "--smoke-raw-file-update-test") {
+            smokeRawFileUpdateTest = true;
             config.SetBindAddress("127.0.0.1");
             config.SetPort(0);
         } else if (arg == "--serve-updates") {
@@ -327,6 +334,67 @@ void PrintResolvedConfig(const ServerConfig& config, unsigned int maxUpdates)
               << "max_updates=" << maxUpdates << "\n";
 }
 
+bool RunSmokeRawFileUpdateTest(const ServerConfig& config)
+{
+    const std::string rawPath = "/tmp/uvnc-winvnc-raw-file-update-smoke.bin";
+    const std::size_t size = config.Width() * config.Height() * (config.PixelFormat().bitsPerPixel / 8);
+    {
+        std::ofstream out(rawPath.c_str(), std::ios::binary);
+        std::string pixels(size, static_cast<char>(config.FillByte()));
+        out.write(pixels.data(), static_cast<std::streamsize>(pixels.size()));
+    }
+
+    Framebuffer framebuffer;
+    std::string error;
+    if (!LoadRawFramebufferFile(rawPath, config.Width(), config.Height(), config.PixelFormat(), framebuffer, &error)) {
+        std::cerr << "failed to load raw framebuffer smoke file: " << error << "\n";
+        return false;
+    }
+
+    MemoryServer server;
+    if (!server.StartWithFramebuffer(config, framebuffer)) {
+        std::cerr << "failed to start raw framebuffer file smoke server\n";
+        return false;
+    }
+
+    bool serverOk = false;
+    std::thread worker([&]() {
+        serverOk = server.ServeOneUpdate();
+    });
+
+    TcpSocket client;
+    bool clientOk = TcpSocket::Connect("127.0.0.1", server.Port(), client) &&
+                    RunMemoryServerClientHandshake(client, config);
+    if (clientOk) {
+        FramebufferUpdateRequest request;
+        request.incremental = false;
+        request.x = 0;
+        request.y = 0;
+        request.width = config.Width();
+        request.height = config.Height();
+        const rfbFramebufferUpdateRequestMsg wire = EncodeFramebufferUpdateRequest(request);
+        clientOk = client.WriteAll(&wire, sz_rfbFramebufferUpdateRequestMsg);
+
+        rfbFramebufferUpdateMsg update;
+        clientOk = clientOk && client.ReadExact(&update, sz_rfbFramebufferUpdateMsg);
+        clientOk = clientOk && Swap16IfLE(update.nRects) == 1;
+        rfbFramebufferUpdateRectHeader header;
+        clientOk = clientOk && client.ReadExact(&header, sz_rfbFramebufferUpdateRectHeader);
+        clientOk = clientOk && Swap16IfLE(header.r.w) == config.Width() &&
+                   Swap16IfLE(header.r.h) == config.Height() &&
+                   Swap32IfLE(header.encoding) == rfbEncodingRaw;
+        std::string pixels(size, '\0');
+        clientOk = clientOk && client.ReadExact(&pixels[0], pixels.size());
+        clientOk = clientOk && std::all_of(pixels.begin(), pixels.end(), [&](char byte) {
+            return static_cast<unsigned char>(byte) == config.FillByte();
+        });
+    }
+
+    worker.join();
+    server.Stop();
+    return clientOk && serverOk;
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -338,9 +406,10 @@ int main(int argc, char **argv)
     bool smokeTest = false;
     bool smokeUpdateTest = false;
     bool smokeMultiUpdateTest = false;
+    bool smokeRawFileUpdateTest = false;
     bool serveUpdates = false;
     unsigned int maxUpdates = 3;
-    if (!ParseArgs(argc, argv, config, rawFramebufferFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, serveUpdates, maxUpdates)) {
+    if (!ParseArgs(argc, argv, config, rawFramebufferFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, serveUpdates, maxUpdates)) {
         return 2;
     }
     std::string error;
@@ -363,6 +432,9 @@ int main(int argc, char **argv)
     }
     if (smokeMultiUpdateTest) {
         return RunSmokeMultiUpdateTest(config, maxUpdates) ? 0 : 1;
+    }
+    if (smokeRawFileUpdateTest) {
+        return RunSmokeRawFileUpdateTest(config) ? 0 : 1;
     }
 
     MemoryServer server;
