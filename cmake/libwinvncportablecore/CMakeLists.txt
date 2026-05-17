@@ -30,6 +30,7 @@ add_library(${PROJECT_NAME} STATIC
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncEncodeZlib.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncEncodeZlibHex.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncEncodeUltra.cpp"
+    "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncEncodeXZ.cpp"
     "${CMAKE_SOURCE_DIR}/../common/UltraVncZ.cpp"
 )
 
@@ -43,6 +44,7 @@ target_compile_definitions(${PROJECT_NAME}
     PUBLIC
         UVNC_USE_PORTABLE_REGIONS=1
         _VCPKG
+        _XZ
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -50,4 +52,5 @@ target_link_libraries(${PROJECT_NAME}
         ZLIB::ZLIB
         ${ULTRAVNC_WINVNC_ZSTD_TARGET}
         libminilzo
+        librdr
 )

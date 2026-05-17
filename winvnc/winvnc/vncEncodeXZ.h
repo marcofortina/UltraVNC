@@ -13,7 +13,8 @@
 #ifndef _WINVNC_ENCODEXZ
 #define _WINVNC_ENCODEXZ
 
-#include "vncEncoder.h"
+#include "vncencoder.h"
+#include <rdr/types.h>
 
 namespace rdr { class xzOutStream; class MemOutStream; }
 
@@ -38,7 +39,7 @@ public:
 private:
   rdr::xzOutStream* xzos;
   rdr::MemOutStream* mos;
-  void* beforeBuf;
+  rdr::U32* beforeBuf;
 };
 
 #endif

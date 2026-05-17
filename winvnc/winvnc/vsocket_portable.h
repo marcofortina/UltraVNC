@@ -18,6 +18,7 @@ public:
     virtual ~VSocket() = default;
 
     virtual void SendExactQueue(char *, int) {}
+    virtual bool SendExact(const char *, int) { return true; }
 
     void *m_pIntegratedPluginInterface = nullptr;
 };
