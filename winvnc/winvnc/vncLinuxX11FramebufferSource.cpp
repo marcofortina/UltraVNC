@@ -13,6 +13,9 @@
 #if defined(UVNC_HAVE_X11)
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#if defined(UVNC_HAVE_X11_XSHM)
+#include <X11/extensions/XShm.h>
+#endif
 #endif
 
 namespace uvnc {
@@ -174,6 +177,31 @@ bool X11DesktopSource::IsAvailable(const std::string& displayName)
     }
     XCloseDisplay(display);
     return true;
+#else
+    (void)displayName;
+    return false;
+#endif
+}
+
+bool X11DesktopSource::IsXShmBuildAvailable()
+{
+#if defined(UVNC_HAVE_X11_XSHM)
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool X11DesktopSource::IsXShmRuntimeAvailable(const std::string& displayName)
+{
+#if defined(UVNC_HAVE_X11_XSHM)
+    Display *display = OpenDisplay(displayName);
+    if (display == nullptr) {
+        return false;
+    }
+    const bool available = XShmQueryExtension(display) != 0;
+    XCloseDisplay(display);
+    return available;
 #else
     (void)displayName;
     return false;

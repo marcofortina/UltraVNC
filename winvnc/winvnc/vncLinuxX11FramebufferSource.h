@@ -29,6 +29,8 @@ public:
 
     static bool IsBuildAvailable();
     static bool IsAvailable(const std::string& displayName = std::string());
+    static bool IsXShmBuildAvailable();
+    static bool IsXShmRuntimeAvailable(const std::string& displayName = std::string());
     static const char *UnavailableReason();
 
 private:
