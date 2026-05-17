@@ -112,6 +112,10 @@ obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --smoke-test --width 64
 obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --smoke-update-test --width 64 --height 32 --name memory-update-smoke
 obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --smoke-multi-update-test --max-updates 3 --width 64 --height 32 --name memory-multi-update-smoke
 
+# Run the memory server manually for one client. --serve-updates keeps the client
+# session open until the configured number of framebuffer updates has been sent.
+obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --bind-address 127.0.0.1 --port 5901 --serve-updates --max-updates 3 --fill-byte 85 --width 64 --height 32 --name memory-manual-smoke
+
 # Load headless options from a simple key=value config file. Command-line
 # options are parsed in order, so options after --config override file values.
 cat >/tmp/uvnc-repeater-headless.conf <<EOF
