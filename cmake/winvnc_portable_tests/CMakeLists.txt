@@ -18,6 +18,11 @@ function(uvnc_add_winvnc_portable_test name source)
     target_link_libraries(${name} PRIVATE libwinvncportablecore)
 
     add_test(NAME ${name} COMMAND ${name})
+    set_tests_properties(${name}
+        PROPERTIES
+            LABELS "native-linux;winvnc-portable"
+            TIMEOUT 10
+    )
 endfunction()
 
 uvnc_add_winvnc_portable_test(winvnc_update_tracker_smoke winvnc_update_tracker_smoke.cpp)
