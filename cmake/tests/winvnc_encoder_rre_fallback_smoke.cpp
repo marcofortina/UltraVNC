@@ -19,10 +19,10 @@ int main()
     encoder.SetLocalFormat(format, 4, 4);
     winvnc_test_expect(encoder.SetRemoteFormat(format), "remote format should initialize RRE translation");
 
-    const std::uint32_t pixel = 0x11223344;
-    std::vector<BYTE> source(4 * 4 * sizeof(pixel));
-    for (std::size_t i = 0; i < source.size(); i += sizeof(pixel)) {
-        std::memcpy(source.data() + i, &pixel, sizeof(pixel));
+    std::vector<BYTE> source(4 * 4 * sizeof(std::uint32_t));
+    for (std::size_t i = 0; i < 16; ++i) {
+        const std::uint32_t pixel = 0x11000000u + static_cast<std::uint32_t>(i);
+        std::memcpy(source.data() + (i * sizeof(pixel)), &pixel, sizeof(pixel));
     }
     std::vector<BYTE> dest(encoder.RequiredBuffSize(4, 4));
 
