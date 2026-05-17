@@ -17,12 +17,24 @@ namespace uvnc {
 namespace winvnc {
 namespace portable {
 
+struct RfbSessionStats {
+    unsigned int messagesProcessed;
+    unsigned int framebufferUpdatesSent;
+    unsigned int setPixelFormatMessages;
+    unsigned int setEncodingsMessages;
+    unsigned int keyEvents;
+    unsigned int pointerEvents;
+    unsigned int clientCutTextMessages;
+
+    RfbSessionStats();
+};
+
 class RfbServerSession {
 public:
     bool RunHandshake(TcpSocket& socket, const ServerConfig& config) const;
     bool ServeFramebufferUpdateRequest(TcpSocket& socket, const Framebuffer& framebuffer) const;
-    bool ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent) const;
-    bool ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages = 32) const;
+    bool ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats = nullptr) const;
+    bool ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages = 32, RfbSessionStats *stats = nullptr) const;
 };
 
 } // namespace portable

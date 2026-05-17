@@ -19,6 +19,17 @@ namespace uvnc {
 namespace winvnc {
 namespace portable {
 
+RfbSessionStats::RfbSessionStats()
+    : messagesProcessed(0),
+      framebufferUpdatesSent(0),
+      setPixelFormatMessages(0),
+      setEncodingsMessages(0),
+      keyEvents(0),
+      pointerEvents(0),
+      clientCutTextMessages(0)
+{
+}
+
 bool RfbServerSession::RunHandshake(TcpSocket& socket, const ServerConfig& config) const
 {
     std::string error;
@@ -79,12 +90,16 @@ bool RfbServerSession::ServeFramebufferUpdateRequest(TcpSocket& socket, const Fr
     return socket.WriteAll(update.data(), update.size());
 }
 
-bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent) const
+bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats) const
 {
     updateSent = false;
     CARD8 type = 0;
     if (!socket.ReadExact(&type, sizeof(type))) {
         return false;
+    }
+
+    if (stats) {
+        stats->messagesProcessed += 1;
     }
 
     switch (type) {
@@ -100,12 +115,19 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
         }
         const std::vector<CARD8> update = RawFramebufferUpdateBytes(framebuffer, request);
         updateSent = socket.WriteAll(update.data(), update.size());
+        if (updateSent && stats) {
+            stats->framebufferUpdatesSent += 1;
+        }
         return updateSent;
     }
     case rfbSetPixelFormat: {
         rfbSetPixelFormatMsg wire;
         wire.type = type;
-        return socket.ReadExact(reinterpret_cast<char *>(&wire) + 1, sz_rfbSetPixelFormatMsg - 1);
+        const bool ok = socket.ReadExact(reinterpret_cast<char *>(&wire) + 1, sz_rfbSetPixelFormatMsg - 1);
+        if (ok && stats) {
+            stats->setPixelFormatMessages += 1;
+        }
+        return ok;
     }
     case rfbSetEncodings: {
         rfbSetEncodingsMsg wire;
@@ -118,17 +140,29 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
             return false;
         }
         std::vector<CARD8> payload(count * sizeof(CARD32));
-        return payload.empty() || socket.ReadExact(payload.data(), payload.size());
+        const bool ok = payload.empty() || socket.ReadExact(payload.data(), payload.size());
+        if (ok && stats) {
+            stats->setEncodingsMessages += 1;
+        }
+        return ok;
     }
     case rfbKeyEvent: {
         rfbKeyEventMsg wire;
         wire.type = type;
-        return socket.ReadExact(reinterpret_cast<char *>(&wire) + 1, sz_rfbKeyEventMsg - 1);
+        const bool ok = socket.ReadExact(reinterpret_cast<char *>(&wire) + 1, sz_rfbKeyEventMsg - 1);
+        if (ok && stats) {
+            stats->keyEvents += 1;
+        }
+        return ok;
     }
     case rfbPointerEvent: {
         rfbPointerEventMsg wire;
         wire.type = type;
-        return socket.ReadExact(reinterpret_cast<char *>(&wire) + 1, sz_rfbPointerEventMsg - 1);
+        const bool ok = socket.ReadExact(reinterpret_cast<char *>(&wire) + 1, sz_rfbPointerEventMsg - 1);
+        if (ok && stats) {
+            stats->pointerEvents += 1;
+        }
+        return ok;
     }
     case rfbClientCutText: {
         rfbClientCutTextMsg wire;
@@ -138,18 +172,22 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
         }
         const CARD32 length = Swap32IfLE(wire.length);
         std::vector<CARD8> payload(length);
-        return payload.empty() || socket.ReadExact(payload.data(), payload.size());
+        const bool ok = payload.empty() || socket.ReadExact(payload.data(), payload.size());
+        if (ok && stats) {
+            stats->clientCutTextMessages += 1;
+        }
+        return ok;
     }
     default:
         return false;
     }
 }
 
-bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages) const
+bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages, RfbSessionStats *stats) const
 {
     for (unsigned int i = 0; i < maxMessages; ++i) {
         bool updateSent = false;
-        if (!ServeNextClientMessage(socket, framebuffer, updateSent)) {
+        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats)) {
             return false;
         }
         if (updateSent) {
