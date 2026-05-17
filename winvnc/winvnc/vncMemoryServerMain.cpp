@@ -39,6 +39,8 @@ void PrintUsage(const char *name)
               << "  --validate-config       Validate options and exit\n"
               << "  --smoke-test            Start on loopback, complete one RFB handshake, and exit\n"
               << "  --smoke-update-test     Start on loopback, request one raw framebuffer update, and exit\n"
+              << "  --smoke-multi-update-test Start on loopback, request multiple raw framebuffer updates, and exit\n"
+              << "  --max-updates <count>  Number of updates for multi-update smoke, default 3\n"
               << "  --help                  Show this help\n";
 }
 
@@ -56,11 +58,13 @@ bool ParseUnsigned(const char *value, unsigned int min, unsigned int max, unsign
     return true;
 }
 
-bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly, bool& smokeTest, bool& smokeUpdateTest)
+bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, unsigned int& maxUpdates)
 {
     validateOnly = false;
     smokeTest = false;
     smokeUpdateTest = false;
+    smokeMultiUpdateTest = false;
+    maxUpdates = 3;
     for (int i = 1; i < argc; ++i) {
         const std::string arg(argv[i]);
         if (arg == "--help") {
@@ -76,6 +80,15 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, bool& validateOnly, 
             smokeUpdateTest = true;
             config.SetBindAddress("127.0.0.1");
             config.SetPort(0);
+        } else if (arg == "--smoke-multi-update-test") {
+            smokeMultiUpdateTest = true;
+            config.SetBindAddress("127.0.0.1");
+            config.SetPort(0);
+        } else if (arg == "--max-updates" && i + 1 < argc) {
+            if (!ParseUnsigned(argv[++i], 1, 1024, maxUpdates)) {
+                std::cerr << "invalid --max-updates\n";
+                return false;
+            }
         } else if (arg == "--bind-address" && i + 1 < argc) {
             config.SetBindAddress(argv[++i]);
         } else if (arg == "--name" && i + 1 < argc) {
@@ -213,6 +226,49 @@ bool RunSmokeUpdateTest(const ServerConfig& config)
     return clientOk && serverOk;
 }
 
+bool RunSmokeMultiUpdateTest(const ServerConfig& config, unsigned int maxUpdates)
+{
+    MemoryServer server;
+    if (!server.Start(config)) {
+        std::cerr << "failed to start memory server multi-update smoke test\n";
+        return false;
+    }
+
+    bool serverOk = false;
+    std::thread worker([&]() {
+        serverOk = server.ServeOneUpdates(maxUpdates);
+    });
+
+    TcpSocket client;
+    bool clientOk = TcpSocket::Connect("127.0.0.1", server.Port(), client) &&
+                    RunMemoryServerClientHandshake(client, config);
+    for (unsigned int i = 0; clientOk && i < maxUpdates; ++i) {
+        FramebufferUpdateRequest request;
+        request.incremental = i != 0;
+        request.x = 0;
+        request.y = 0;
+        request.width = config.Width();
+        request.height = config.Height();
+        const rfbFramebufferUpdateRequestMsg wire = EncodeFramebufferUpdateRequest(request);
+        clientOk = client.WriteAll(&wire, sz_rfbFramebufferUpdateRequestMsg);
+
+        rfbFramebufferUpdateMsg update;
+        clientOk = clientOk && client.ReadExact(&update, sz_rfbFramebufferUpdateMsg);
+        clientOk = clientOk && Swap16IfLE(update.nRects) == 1;
+        rfbFramebufferUpdateRectHeader header;
+        clientOk = clientOk && client.ReadExact(&header, sz_rfbFramebufferUpdateRectHeader);
+        clientOk = clientOk && Swap16IfLE(header.r.w) == config.Width() &&
+                   Swap16IfLE(header.r.h) == config.Height() &&
+                   Swap32IfLE(header.encoding) == rfbEncodingRaw;
+        std::string pixels(config.Width() * config.Height() * (config.PixelFormat().bitsPerPixel / 8), '\0');
+        clientOk = clientOk && client.ReadExact(&pixels[0], pixels.size());
+    }
+
+    worker.join();
+    server.Stop();
+    return clientOk && serverOk;
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -221,7 +277,9 @@ int main(int argc, char **argv)
     bool validateOnly = false;
     bool smokeTest = false;
     bool smokeUpdateTest = false;
-    if (!ParseArgs(argc, argv, config, validateOnly, smokeTest, smokeUpdateTest)) {
+    bool smokeMultiUpdateTest = false;
+    unsigned int maxUpdates = 3;
+    if (!ParseArgs(argc, argv, config, validateOnly, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, maxUpdates)) {
         return 2;
     }
     std::string error;
@@ -237,6 +295,9 @@ int main(int argc, char **argv)
     }
     if (smokeUpdateTest) {
         return RunSmokeUpdateTest(config) ? 0 : 1;
+    }
+    if (smokeMultiUpdateTest) {
+        return RunSmokeMultiUpdateTest(config, maxUpdates) ? 0 : 1;
     }
 
     MemoryServer server;
