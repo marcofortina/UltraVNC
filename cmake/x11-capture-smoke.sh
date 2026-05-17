@@ -36,6 +36,18 @@ if [[ -z "${DISPLAY:-}" ]]; then
   exit 0
 fi
 
+if [[ -n "${XDG_SESSION_TYPE:-}" && "${XDG_SESSION_TYPE}" != "x11" ]]; then
+  echo "Skipping live X11 capture smoke because XDG_SESSION_TYPE=${XDG_SESSION_TYPE} is not x11."
+  exit 0
+fi
+
+case "${DISPLAY}" in
+  localhost:*|127.0.0.1:*)
+    echo "Skipping live X11 capture smoke because DISPLAY=${DISPLAY} looks like SSH X forwarding, not a local desktop capture target."
+    exit 0
+    ;;
+esac
+
 if ! "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --validate-config --capture-backend x11; then
   echo "Skipping live X11 capture smoke because the X11 backend is not available for DISPLAY=${DISPLAY}."
   exit 0

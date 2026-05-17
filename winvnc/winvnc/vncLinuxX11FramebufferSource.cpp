@@ -67,6 +67,45 @@ Display *OpenDisplay(const std::string& displayName)
     return XOpenDisplay(displayName.empty() ? nullptr : displayName.c_str());
 }
 
+class ScopedXErrorTrap {
+public:
+    explicit ScopedXErrorTrap(Display *display)
+        : display_(display),
+          previous_(XSetErrorHandler(Trap))
+    {
+        lastErrorCode_ = 0;
+    }
+
+    ~ScopedXErrorTrap()
+    {
+        if (display_ != nullptr) {
+            XSync(display_, False);
+        }
+        XSetErrorHandler(previous_);
+    }
+
+    bool SyncAndOk()
+    {
+        if (display_ != nullptr) {
+            XSync(display_, False);
+        }
+        return lastErrorCode_ == 0;
+    }
+
+private:
+    static int Trap(Display *, XErrorEvent *event)
+    {
+        lastErrorCode_ = event != nullptr ? event->error_code : 1;
+        return 0;
+    }
+
+    Display *display_;
+    XErrorHandler previous_;
+    static int lastErrorCode_;
+};
+
+int ScopedXErrorTrap::lastErrorCode_ = 0;
+
 #endif // defined(UVNC_HAVE_X11)
 
 bool CopyImageToFramebuffer(const XImage *image, unsigned int width, unsigned int height, portable::Framebuffer& destination, rfb::Region2D& changed)
@@ -121,18 +160,29 @@ bool SnapshotViaXShm(Display *display, Drawable root, unsigned int width, unsign
     shminfo.readOnly = False;
     image->data = shminfo.shmaddr;
 
-    bool ok = XShmAttach(display, &shminfo) != 0;
+    bool attached = false;
+    {
+        ScopedXErrorTrap trap(display);
+        attached = XShmAttach(display, &shminfo) != 0 && trap.SyncAndOk();
+    }
+
+    bool ok = attached;
     if (ok) {
-        XSync(display, False);
-        ok = XShmGetImage(display, root, image, 0, 0, AllPlanes) != 0;
+        {
+            ScopedXErrorTrap trap(display);
+            ok = XShmGetImage(display, root, image, 0, 0, AllPlanes) != 0 && trap.SyncAndOk();
+        }
         if (ok) {
             ok = CopyImageToFramebuffer(image, width, height, destination, changed);
             if (ok) {
                 format = PixelFormatFromImage(image);
             }
         }
-        XShmDetach(display, &shminfo);
-        XSync(display, False);
+        {
+            ScopedXErrorTrap trap(display);
+            XShmDetach(display, &shminfo);
+            trap.SyncAndOk();
+        }
     }
 
     shmdt(shminfo.shmaddr);
@@ -207,14 +257,24 @@ bool X11DesktopSource::Snapshot(portable::Framebuffer& destination, rfb::Region2
     }
 #endif
 
-    XImage *image = XGetImage(display,
-                              static_cast<Drawable>(root_),
-                              0,
-                              0,
-                              width_,
-                              height_,
-                              AllPlanes,
-                              ZPixmap);
+    XImage *image = nullptr;
+    {
+        ScopedXErrorTrap trap(display);
+        image = XGetImage(display,
+                          static_cast<Drawable>(root_),
+                          0,
+                          0,
+                          width_,
+                          height_,
+                          AllPlanes,
+                          ZPixmap);
+        if (!trap.SyncAndOk()) {
+            if (image != nullptr) {
+                XDestroyImage(image);
+            }
+            image = nullptr;
+        }
+    }
     if (image == nullptr) {
         destination.Clear();
         changed.clear();
@@ -322,7 +382,17 @@ bool X11DesktopSource::Initialize(std::string *error)
     screen_ = screen;
     initialized_ = true;
 
-    XImage *probe = XGetImage(display, root, 0, 0, 1, 1, AllPlanes, ZPixmap);
+    XImage *probe = nullptr;
+    {
+        ScopedXErrorTrap trap(display);
+        probe = XGetImage(display, root, 0, 0, 1, 1, AllPlanes, ZPixmap);
+        if (!trap.SyncAndOk()) {
+            if (probe != nullptr) {
+                XDestroyImage(probe);
+            }
+            probe = nullptr;
+        }
+    }
     if (probe != nullptr) {
         format_ = PixelFormatFromImage(probe);
         XDestroyImage(probe);
