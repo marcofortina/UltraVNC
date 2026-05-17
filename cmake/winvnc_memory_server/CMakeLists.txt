@@ -8,6 +8,8 @@
 
 project(uvnc_winvnc_memory_server LANGUAGES CXX)
 
+include(GNUInstallDirs)
+
 add_executable(${PROJECT_NAME}
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncMemoryServerMain.cpp"
 )
@@ -27,3 +29,5 @@ if(BUILD_TESTING)
     add_test(NAME winvnc_memory_server_smoke COMMAND uvnc_winvnc_memory_server --smoke-test --width 64 --height 32 --name memory-smoke)
     set_tests_properties(winvnc_memory_server_smoke PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
 endif()
+
+install(TARGETS uvnc_winvnc_memory_server RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
