@@ -57,6 +57,7 @@ static void request_shutdown(int)
 }
 
 static int saved_smoke_test = FALSE;
+static int saved_validate_config = FALSE;
 
 static void print_usage(const char *program)
 {
@@ -71,6 +72,7 @@ static void print_usage(const char *program)
     printf("  --no-mode2             Disable mode 2 server listener\n");
     printf("  --keepalive            Enable repeater keepalive messages\n");
     printf("  --smoke-test           Start listeners on free ports and verify they accept connections\n");
+    printf("  --validate-config      Validate options and exit without starting listeners\n");
     printf("  --quiet                Suppress normal repeater status output\n");
     printf("  --help                 Show this help text\n");
 }
@@ -134,6 +136,10 @@ static int parse_args(int argc, char **argv)
             saved_smoke_test = TRUE;
             continue;
         }
+        if (strcmp(argv[i], "--validate-config") == 0) {
+            saved_validate_config = TRUE;
+            continue;
+        }
         if (strcmp(argv[i], "--quiet") == 0) {
             saved_quiet = TRUE;
             continue;
@@ -172,6 +178,19 @@ static int parse_args(int argc, char **argv)
     return 0;
 }
 
+
+static int validate_runtime_config(void)
+{
+    if (!saved_mode1 && !saved_mode2) {
+        fprintf(stderr, "Invalid configuration: at least one repeater mode must be enabled\n");
+        return FALSE;
+    }
+    if (saved_mode2 && saved_portA == saved_portB) {
+        fprintf(stderr, "Invalid configuration: viewer and server ports must be different when mode 2 is enabled\n");
+        return FALSE;
+    }
+    return TRUE;
+}
 
 static int find_free_loopback_port(void)
 {
@@ -308,6 +327,8 @@ int main(int argc, char **argv)
         return 1;
     }
     if (saved_smoke_test) return run_smoke_test();
+    if (!validate_runtime_config()) return 1;
+    if (saved_validate_config) return 0;
 
     signal(SIGINT, request_shutdown);
     signal(SIGTERM, request_shutdown);
