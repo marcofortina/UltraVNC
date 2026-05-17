@@ -11,19 +11,6 @@
 
 #include <vector>
 
-class CountingSocket : public VSocket {
-public:
-    bool SendExact(const char *, int length) override
-    {
-        bytes += length;
-        sends += 1;
-        return true;
-    }
-
-    int sends = 0;
-    int bytes = 0;
-};
-
 int main()
 {
     vncEncodeXZ encoder;
@@ -38,12 +25,12 @@ int main()
     std::vector<BYTE> dest(encoder.RequiredBuffSize(8, 8));
     rfb::RectVector rects;
     rects.push_back(winvnc_test_rect(0, 0, 8, 8));
-    CountingSocket socket;
+    winvnc_test_counting_socket socket;
 
     const UINT encoded = encoder.EncodeBulkRects(rects, source.data(), dest.data(), &socket);
     winvnc_test_expect(encoded == TRUE, "xz bulk encoding should report success");
-    winvnc_test_expect(socket.sends == 2, "xz encoder should send header and payload");
-    winvnc_test_expect(socket.bytes > sz_rfbFramebufferUpdateRectHeader, "xz socket output should include compressed payload");
+    winvnc_test_expect(socket.exact_sends == 2, "xz encoder should send header and payload");
+    winvnc_test_expect(socket.exact_bytes > sz_rfbFramebufferUpdateRectHeader, "xz socket output should include compressed payload");
 
     return 0;
 }

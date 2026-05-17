@@ -11,18 +11,6 @@
 
 #include <vector>
 
-class CountingSocket : public VSocket {
-public:
-    void SendExactQueue(char *, int length) override
-    {
-        bytes += length;
-        sends += 1;
-    }
-
-    int sends = 0;
-    int bytes = 0;
-};
-
 int main()
 {
     vncEncodeTight encoder;
@@ -36,7 +24,7 @@ int main()
 
     std::vector<BYTE> source(8 * 8 * 4, 0x22);
     std::vector<BYTE> dest(encoder.RequiredBuffSize(8, 8));
-    CountingSocket socket;
+    winvnc_test_counting_socket socket;
 
     RECT rect = {};
     rect.right = 8;
@@ -45,7 +33,7 @@ int main()
     const UINT encoded = encoder.EncodeRect(source.data(), &socket, dest.data(), rect);
     winvnc_test_expect(encoded > 0, "tight encoder should encode the rect");
 
-    winvnc_test_expect(socket.sends >= 0, "tight socket accounting should stay valid");
+    winvnc_test_expect(socket.queued_sends >= 0, "tight socket accounting should stay valid");
 
     return 0;
 }

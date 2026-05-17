@@ -11,18 +11,6 @@
 
 #include <vector>
 
-class CountingSocket : public VSocket {
-public:
-    void SendExactQueue(char *, int length) override
-    {
-        bytes += length;
-        sends += 1;
-    }
-
-    int sends = 0;
-    int bytes = 0;
-};
-
 int main()
 {
     vncEncodeZlibHex encoder;
@@ -34,7 +22,7 @@ int main()
 
     std::vector<BYTE> source(16 * 16 * 4, 0x42);
     std::vector<BYTE> dest(encoder.RequiredBuffSize(16, 16));
-    CountingSocket socket;
+    winvnc_test_counting_socket socket;
 
     RECT rect = {};
     rect.right = 16;
@@ -42,8 +30,8 @@ int main()
 
     const UINT encoded = encoder.EncodeRect(source.data(), &socket, dest.data(), rect);
     winvnc_test_expect(encoded > 0, "zlibhex should encode the tile");
-    winvnc_test_expect(socket.sends > 0, "zlibhex should queue encoded data to the socket");
-    winvnc_test_expect(socket.bytes > 0, "zlibhex socket output should not be empty");
+    winvnc_test_expect(socket.queued_sends > 0, "zlibhex should queue encoded data to the socket");
+    winvnc_test_expect(socket.queued_bytes > 0, "zlibhex socket output should not be empty");
 
     return 0;
 }
