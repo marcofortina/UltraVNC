@@ -9,6 +9,7 @@
 #ifndef UVNC_WINVNC_PORTABLE_RFB_SESSION_H
 #define UVNC_WINVNC_PORTABLE_RFB_SESSION_H
 
+#include "vncPortableFramebuffer.h"
 #include "vncPortableServerConfig.h"
 #include "vncPortableTcp.h"
 
@@ -19,6 +20,7 @@ namespace portable {
 class RfbServerSession {
 public:
     bool RunHandshake(TcpSocket& socket, const ServerConfig& config) const;
+    bool ServeFramebufferUpdateRequest(TcpSocket& socket, const Framebuffer& framebuffer) const;
 };
 
 } // namespace portable

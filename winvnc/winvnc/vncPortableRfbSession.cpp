@@ -9,6 +9,8 @@
 #include "vncPortableRfbSession.h"
 
 #include "vncPortableRfb.h"
+#include "vncPortableRfbMessages.h"
+#include "vncPortableRfbUpdate.h"
 
 #include <string>
 #include <vector>
@@ -59,6 +61,22 @@ bool RfbServerSession::RunHandshake(TcpSocket& socket, const ServerConfig& confi
 
     const std::vector<CARD8> init = ServerInitBytes(config.Width(), config.Height(), config.PixelFormat(), config.DesktopName());
     return socket.WriteAll(init.data(), init.size());
+}
+
+bool RfbServerSession::ServeFramebufferUpdateRequest(TcpSocket& socket, const Framebuffer& framebuffer) const
+{
+    rfbFramebufferUpdateRequestMsg wire;
+    if (!socket.ReadExact(&wire, sz_rfbFramebufferUpdateRequestMsg)) {
+        return false;
+    }
+
+    FramebufferUpdateRequest request;
+    if (!DecodeFramebufferUpdateRequest(wire, request)) {
+        return false;
+    }
+
+    const std::vector<CARD8> update = RawFramebufferUpdateBytes(framebuffer, request);
+    return socket.WriteAll(update.data(), update.size());
 }
 
 } // namespace portable
