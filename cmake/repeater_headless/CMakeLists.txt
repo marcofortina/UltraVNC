@@ -9,6 +9,7 @@
 # //
 
 project(uvnc_repeater_headless LANGUAGES CXX)
+include(GNUInstallDirs)
 
 add_executable(${PROJECT_NAME})
 target_sources(${PROJECT_NAME}
@@ -27,6 +28,10 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE
         librepeatercore
         Threads::Threads
+)
+
+install(TARGETS ${PROJECT_NAME}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
 if(BUILD_TESTING)
