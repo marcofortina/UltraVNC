@@ -268,3 +268,6 @@ set CL=/MP
 cd /d C:\source\UltraVNC
 msbuild %_P% winvnc\winvnc.sln
 msbuild %_P% vncviewer\vncviewer.sln
+
+# Dedicated Memory server RFB closure smoke.
+cmake/memory-server-rfb-closure.sh /tmp/uvnc-memory-server-rfb-build /tmp/uvnc-linux-closure-install
