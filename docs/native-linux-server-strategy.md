@@ -29,6 +29,16 @@ This is not a production Linux desktop server yet. It is now a real native
 Linux server-side skeleton, but it still lacks real desktop capture and input
 integration.
 
+
+## Closed foundation
+
+The WinVNC portable core milestone is closed for this incremental Linux-support
+track. It provides tested protocol/update/encoding/runtime/framebuffer seams that
+future Linux desktop capture and input backends must plug into.
+
+The next server milestone is not more portable-core work. It is the first real
+Linux framebuffer/capture source wired behind the existing portable source seam.
+
 ## Initial milestones
 
 - Continue increasing Linux coverage for portable WinVNC encoder/update code.
