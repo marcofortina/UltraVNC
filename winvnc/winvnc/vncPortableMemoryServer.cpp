@@ -24,6 +24,8 @@ bool MemoryServer::Start(const ServerConfig& config)
         return false;
     }
     config_ = config;
+    framebuffer_.Reset(config_.Width(), config_.Height(), config_.PixelFormat());
+    framebuffer_.Fill(0x22);
     return listener_.Listen(config_.BindAddress(), config_.Port());
 }
 
@@ -37,6 +39,20 @@ bool MemoryServer::ServeOne()
         return false;
     }
     return RfbServerSession().RunHandshake(client, config_);
+}
+
+bool MemoryServer::ServeOneUpdate()
+{
+    if (!listener_.Valid()) {
+        return false;
+    }
+    TcpSocket client;
+    if (!listener_.Accept(client)) {
+        return false;
+    }
+    RfbServerSession session;
+    return session.RunHandshake(client, config_) &&
+           session.ServeFramebufferUpdateRequest(client, framebuffer_);
 }
 
 void MemoryServer::Stop()

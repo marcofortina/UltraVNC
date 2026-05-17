@@ -9,6 +9,7 @@
 #ifndef UVNC_WINVNC_PORTABLE_MEMORY_SERVER_H
 #define UVNC_WINVNC_PORTABLE_MEMORY_SERVER_H
 
+#include "vncPortableFramebuffer.h"
 #include "vncPortableRfbSession.h"
 #include "vncPortableServerConfig.h"
 #include "vncPortableTcp.h"
@@ -23,6 +24,7 @@ public:
 
     bool Start(const ServerConfig& config);
     bool ServeOne();
+    bool ServeOneUpdate();
     void Stop();
     bool Running() const { return listener_.Valid(); }
     unsigned short Port() const { return listener_.Port(); }
@@ -30,6 +32,7 @@ public:
 private:
     ServerConfig config_;
     TcpListener listener_;
+    Framebuffer framebuffer_;
 };
 
 } // namespace portable
