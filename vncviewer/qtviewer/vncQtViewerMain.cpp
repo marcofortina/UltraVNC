@@ -165,6 +165,30 @@ int RunConnectSmoke(const ViewerCliOptions& options)
     return 0;
 }
 
+int RunPersistentInputSmoke(const ViewerCliOptions& options)
+{
+    PersistentViewerSession session;
+    ViewerSessionResult result;
+    std::string error;
+    if (!session.Connect(options.config, result, &error)) {
+        std::cerr << error << "\n";
+        return 1;
+    }
+    if (!session.SendKeyEvent(0xff0d, true, &error) ||
+        !session.SendKeyEvent(0xff0d, false, &error) ||
+        !session.SendPointerEvent(1, 3, 4, &error) ||
+        !session.RequestFramebufferUpdate(false, result, &error)) {
+        std::cerr << error << "\n";
+        return 1;
+    }
+
+    std::cout << "persistent-input " << result.width << "x" << result.height
+              << " name="" << result.desktopName << """
+              << " update=" << result.update.width << "x" << result.update.height
+              << " bytes=" << result.update.pixels.size() << "\n";
+    return 0;
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -187,6 +211,10 @@ int main(int argc, char **argv)
 
     if (options.connectDisplaySmoke) {
         return RunConnectDisplaySmoke(argc, argv, options);
+    }
+
+    if (options.persistentInputSmoke) {
+        return RunPersistentInputSmoke(options);
     }
 
     if (options.connectSmoke || options.connectUpdateSmoke) {
