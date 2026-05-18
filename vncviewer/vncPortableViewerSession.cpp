@@ -471,6 +471,305 @@ bool FillZrleRun(unsigned int& pixelIndex,
     return true;
 }
 
+bool ReadTightCompactLength(TcpSocket& socket, CARD32& length, std::string *error)
+{
+    CARD8 b = 0;
+    if (!socket.ReadExact(&b, sizeof(b))) {
+        SetError(error, "failed to read RFB Tight compact length");
+        return false;
+    }
+    length = b & 0x7f;
+    if (b & 0x80) {
+        if (!socket.ReadExact(&b, sizeof(b))) {
+            SetError(error, "failed to read RFB Tight compact length");
+            return false;
+        }
+        length |= static_cast<CARD32>(b & 0x7f) << 7;
+        if (b & 0x80) {
+            if (!socket.ReadExact(&b, sizeof(b))) {
+                SetError(error, "failed to read RFB Tight compact length");
+                return false;
+            }
+            length |= static_cast<CARD32>(b) << 14;
+        }
+    }
+    return true;
+}
+
+bool EnsureTightInflateStream(z_stream& stream, bool& initialized, std::string *error)
+{
+    if (initialized) {
+        return true;
+    }
+    std::memset(&stream, 0, sizeof(stream));
+    const int rc = inflateInit(&stream);
+    if (rc != Z_OK) {
+        SetError(error, "failed to initialize RFB Tight inflater");
+        return false;
+    }
+    initialized = true;
+    return true;
+}
+
+bool ReadTightData(TcpSocket& socket,
+                   z_stream& stream,
+                   bool& streamInitialized,
+                   unsigned int streamId,
+                   std::size_t expectedSize,
+                   bool uncompressed,
+                   std::vector<CARD8>& payload,
+                   std::string *error)
+{
+    payload.assign(expectedSize, 0);
+    if (expectedSize == 0) {
+        return true;
+    }
+    if (uncompressed || expectedSize < 12) {
+        if (!socket.ReadExact(payload.data(), payload.size())) {
+            SetError(error, "failed to read RFB Tight uncompressed payload");
+            return false;
+        }
+        return true;
+    }
+
+    CARD32 compressedSize = 0;
+    if (!ReadTightCompactLength(socket, compressedSize, error)) {
+        return false;
+    }
+    std::vector<CARD8> compressed(compressedSize);
+    if (compressedSize > 0 && !socket.ReadExact(compressed.data(), compressed.size())) {
+        SetError(error, "failed to read RFB Tight compressed payload");
+        return false;
+    }
+    if (streamId > 3) {
+        SetError(error, "invalid RFB Tight zlib stream id");
+        return false;
+    }
+    if (!EnsureTightInflateStream(stream, streamInitialized, error)) {
+        return false;
+    }
+    stream.next_in = compressed.empty() ? nullptr : compressed.data();
+    stream.avail_in = static_cast<uInt>(compressed.size());
+    stream.next_out = payload.data();
+    stream.avail_out = static_cast<uInt>(payload.size());
+    const int rc = inflate(&stream, Z_SYNC_FLUSH);
+    if ((rc != Z_OK && rc != Z_STREAM_END) || stream.avail_out != 0) {
+        SetError(error, "failed to decompress RFB Tight payload");
+        return false;
+    }
+    return true;
+}
+
+unsigned int TightBytesPerPixel(const rfbPixelFormat& format)
+{
+    return ZrleBytesPerPixel(format);
+}
+
+bool ReadTightPixel(TcpSocket& socket, const rfbPixelFormat& format, std::vector<CARD8>& pixel, std::string *error)
+{
+    const unsigned int compactBytes = TightBytesPerPixel(format);
+    std::vector<CARD8> compact(compactBytes, 0);
+    if (!socket.ReadExact(compact.data(), compact.size())) {
+        SetError(error, "failed to read RFB Tight pixel");
+        return false;
+    }
+    pixel = ExpandZrlePixel(format, compact);
+    return pixel.size() == BytesPerPixel(format);
+}
+
+bool DecodeTightCopyPayload(const rfbPixelFormat& format,
+                            const std::vector<CARD8>& payload,
+                            unsigned int width,
+                            unsigned int height,
+                            std::vector<CARD8>& pixels,
+                            std::string *error)
+{
+    const unsigned int bytesPerPixel = BytesPerPixel(format);
+    const unsigned int compactBytes = TightBytesPerPixel(format);
+    const std::size_t expected = static_cast<std::size_t>(width) * height * compactBytes;
+    if (payload.size() != expected) {
+        SetError(error, "invalid RFB Tight copy payload size");
+        return false;
+    }
+    pixels.assign(static_cast<std::size_t>(width) * height * bytesPerPixel, 0);
+    std::size_t offset = 0;
+    for (unsigned int y = 0; y < height; ++y) {
+        for (unsigned int x = 0; x < width; ++x) {
+            std::vector<CARD8> compact(compactBytes, 0);
+            std::copy(payload.begin() + offset, payload.begin() + offset + compactBytes, compact.begin());
+            offset += compactBytes;
+            const std::vector<CARD8> pixel = ExpandZrlePixel(format, compact);
+            if (pixel.size() != bytesPerPixel) {
+                SetError(error, "failed to expand RFB Tight pixel");
+                return false;
+            }
+            const std::size_t dst = (static_cast<std::size_t>(y) * width + x) * bytesPerPixel;
+            std::copy(pixel.begin(), pixel.end(), pixels.begin() + dst);
+        }
+    }
+    return true;
+}
+
+bool DecodeTightPalettePayload(const rfbPixelFormat& format,
+                               const std::vector<std::vector<CARD8> >& palette,
+                               const std::vector<CARD8>& payload,
+                               unsigned int width,
+                               unsigned int height,
+                               std::vector<CARD8>& pixels,
+                               std::string *error)
+{
+    const unsigned int bytesPerPixel = BytesPerPixel(format);
+    pixels.assign(static_cast<std::size_t>(width) * height * bytesPerPixel, 0);
+    if (palette.size() == 2) {
+        const unsigned int rowBytes = (width + 7) / 8;
+        if (payload.size() != static_cast<std::size_t>(rowBytes) * height) {
+            SetError(error, "invalid RFB Tight binary palette payload size");
+            return false;
+        }
+        std::size_t offset = 0;
+        for (unsigned int y = 0; y < height; ++y) {
+            for (unsigned int byteIndex = 0; byteIndex < rowBytes; ++byteIndex) {
+                const CARD8 packed = payload[offset++];
+                for (unsigned int bit = 0; bit < 8; ++bit) {
+                    const unsigned int x = byteIndex * 8 + bit;
+                    if (x >= width) {
+                        break;
+                    }
+                    const unsigned int index = (packed >> (7 - bit)) & 0x01;
+                    const std::size_t dst = (static_cast<std::size_t>(y) * width + x) * bytesPerPixel;
+                    std::copy(palette[index].begin(), palette[index].end(), pixels.begin() + dst);
+                }
+            }
+        }
+        return true;
+    }
+
+    if (payload.size() != static_cast<std::size_t>(width) * height) {
+        SetError(error, "invalid RFB Tight palette payload size");
+        return false;
+    }
+    for (unsigned int y = 0; y < height; ++y) {
+        for (unsigned int x = 0; x < width; ++x) {
+            const unsigned int index = payload[static_cast<std::size_t>(y) * width + x];
+            if (index >= palette.size()) {
+                SetError(error, "RFB Tight palette index is outside palette bounds");
+                return false;
+            }
+            const std::size_t dst = (static_cast<std::size_t>(y) * width + x) * bytesPerPixel;
+            std::copy(palette[index].begin(), palette[index].end(), pixels.begin() + dst);
+        }
+    }
+    return true;
+}
+
+bool ReadTightRectPayload(TcpSocket& socket,
+                          z_stream tightStreams[4],
+                          bool tightStreamsInitialized[4],
+                          ViewerSessionResult& result,
+                          std::vector<CARD8>& framebuffer,
+                          ViewerFramebufferRect& rectangle,
+                          std::string *error)
+{
+    const unsigned int bytesPerPixel = BytesPerPixel(result.format);
+    if (bytesPerPixel == 0 || rectangle.width == 0 || rectangle.height == 0) {
+        SetError(error, "invalid RFB Tight rectangle dimensions");
+        return false;
+    }
+    if (rectangle.x + rectangle.width > result.width || rectangle.y + rectangle.height > result.height) {
+        SetError(error, "RFB Tight rectangle is outside framebuffer bounds");
+        return false;
+    }
+
+    CARD8 control = 0;
+    if (!socket.ReadExact(&control, sizeof(control))) {
+        SetError(error, "failed to read RFB Tight control byte");
+        return false;
+    }
+    for (unsigned int i = 0; i < 4; ++i) {
+        if ((control & (1u << i)) && tightStreamsInitialized[i]) {
+            inflateEnd(&tightStreams[i]);
+            std::memset(&tightStreams[i], 0, sizeof(tightStreams[i]));
+            tightStreamsInitialized[i] = false;
+        }
+    }
+    const CARD8 subencoding = control >> 4;
+
+    if (subencoding == rfbTightFill) {
+        std::vector<CARD8> color;
+        if (!ReadTightPixel(socket, result.format, color, error)) {
+            return false;
+        }
+        rectangle.pixels = SolidPixelRect(color, rectangle.width, rectangle.height, bytesPerPixel);
+        if (!EnsureFramebufferStorage(result, framebuffer, error)) {
+            return false;
+        }
+        CopyRectToFramebuffer(result, framebuffer, rectangle.x, rectangle.y, rectangle.width, rectangle.height, rectangle.pixels);
+        return true;
+    }
+    if (subencoding == rfbTightJpeg) {
+        SetError(error, "unsupported RFB Tight JPEG rectangle");
+        return false;
+    }
+    if (subencoding > rfbTightNoZlib) {
+        SetError(error, "unsupported RFB Tight subencoding");
+        return false;
+    }
+
+    CARD8 filter = rfbTightFilterCopy;
+    if (subencoding & rfbTightExplicitFilter) {
+        if (!socket.ReadExact(&filter, sizeof(filter))) {
+            SetError(error, "failed to read RFB Tight filter id");
+            return false;
+        }
+    }
+    std::vector<std::vector<CARD8> > palette;
+    unsigned int bitsPerPixel = TightBytesPerPixel(result.format) * 8;
+    if (filter == rfbTightFilterPalette) {
+        CARD8 paletteSizeMinusOne = 0;
+        if (!socket.ReadExact(&paletteSizeMinusOne, sizeof(paletteSizeMinusOne))) {
+            SetError(error, "failed to read RFB Tight palette size");
+            return false;
+        }
+        const unsigned int paletteSize = paletteSizeMinusOne + 1;
+        if (paletteSize < 2) {
+            SetError(error, "invalid RFB Tight palette size");
+            return false;
+        }
+        for (unsigned int i = 0; i < paletteSize; ++i) {
+            std::vector<CARD8> color;
+            if (!ReadTightPixel(socket, result.format, color, error)) {
+                return false;
+            }
+            palette.push_back(color);
+        }
+        bitsPerPixel = paletteSize == 2 ? 1 : 8;
+    } else if (filter != rfbTightFilterCopy) {
+        SetError(error, "unsupported RFB Tight filter");
+        return false;
+    }
+
+    const unsigned int rowBytes = (rectangle.width * bitsPerPixel + 7) / 8;
+    const std::size_t expected = static_cast<std::size_t>(rowBytes) * rectangle.height;
+    std::vector<CARD8> payload;
+    const bool uncompressed = subencoding == rfbTightNoZlib;
+    const unsigned int streamId = subencoding & 0x03;
+    if (!ReadTightData(socket, tightStreams[streamId], tightStreamsInitialized[streamId], streamId, expected, uncompressed, payload, error)) {
+        return false;
+    }
+    if (filter == rfbTightFilterCopy) {
+        if (!DecodeTightCopyPayload(result.format, payload, rectangle.width, rectangle.height, rectangle.pixels, error)) {
+            return false;
+        }
+    } else if (!DecodeTightPalettePayload(result.format, palette, payload, rectangle.width, rectangle.height, rectangle.pixels, error)) {
+        return false;
+    }
+    if (!EnsureFramebufferStorage(result, framebuffer, error)) {
+        return false;
+    }
+    CopyRectToFramebuffer(result, framebuffer, rectangle.x, rectangle.y, rectangle.width, rectangle.height, rectangle.pixels);
+    return true;
+}
+
 bool ReadZrleRectPayload(TcpSocket& socket,
                          z_stream& stream,
                          bool& streamInitialized,

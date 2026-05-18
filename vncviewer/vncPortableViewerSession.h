@@ -93,6 +93,8 @@ private:
     std::vector<CARD8> framebuffer_;
     z_stream zrleStream_;
     bool zrleStreamInitialized_;
+    z_stream tightStreams_[4];
+    bool tightStreamsInitialized_[4];
 };
 
 } // namespace portable
