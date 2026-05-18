@@ -391,6 +391,14 @@ void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBac
               << "max_updates=" << maxUpdates << "\n";
 }
 
+ServerConfig ConfigForCapturedFramebuffer(const ServerConfig& base, const Framebuffer& framebuffer)
+{
+    ServerConfig config = base;
+    config.SetSize(framebuffer.Width(), framebuffer.Height());
+    config.SetPixelFormat(framebuffer.Format());
+    return config;
+}
+
 bool RunSmokeRawFileUpdateTest(const ServerConfig& config)
 {
     const std::string rawPath = "/tmp/uvnc-winvnc-raw-file-update-smoke.bin";
@@ -462,8 +470,10 @@ bool RunSmokeX11UpdateTest(const ServerConfig& config)
         return false;
     }
 
+    const ServerConfig capturedConfig = ConfigForCapturedFramebuffer(config, framebuffer);
+
     MemoryServer server;
-    if (!server.StartWithFramebuffer(config, framebuffer)) {
+    if (!server.StartWithFramebuffer(capturedConfig, framebuffer)) {
         std::cerr << "failed to start X11 snapshot memory server\n";
         return false;
     }
@@ -475,7 +485,7 @@ bool RunSmokeX11UpdateTest(const ServerConfig& config)
 
     TcpSocket client;
     bool clientOk = TcpSocket::Connect("127.0.0.1", server.Port(), client) &&
-                    RunMemoryServerClientHandshake(client, config);
+                    RunMemoryServerClientHandshake(client, capturedConfig);
     if (clientOk) {
         FramebufferUpdateRequest request;
         request.incremental = false;
@@ -628,7 +638,12 @@ int main(int argc, char **argv)
         X11DesktopSource source;
         Framebuffer framebuffer;
         rfb::Region2D changed;
-        if (!source.Snapshot(framebuffer, changed) || !server.StartWithFramebuffer(config, framebuffer)) {
+        if (!source.Snapshot(framebuffer, changed)) {
+            std::cerr << "failed to capture X11 framebuffer\n";
+            return 1;
+        }
+        const ServerConfig capturedConfig = ConfigForCapturedFramebuffer(config, framebuffer);
+        if (!server.StartWithFramebuffer(capturedConfig, framebuffer)) {
             std::cerr << "failed to start X11 framebuffer server\n";
             return 1;
         }
