@@ -88,3 +88,11 @@ Native Linux PipeWire/XDG portal capture progress:
 - Runtime detection checks Wayland and D-Bus session prerequisites.
 - Portal session and PipeWire stream scaffolding are present for the next implementation step.
 - Headless CI keeps PipeWire live capture non-fatal when the portal runtime is unavailable.
+
+Native Linux input backend progress:
+
+- Input backend registry and runtime selection are available.
+- X11/XTest build/runtime availability is detected when XTest development files are installed.
+- XTest keyboard and pointer injection paths are present behind explicit backend selection.
+- Automated smoke coverage remains non-invasive; live input injection requires explicit opt-in.
+- Wayland/PipeWire input injection remains a documented limitation, not an implemented backend.

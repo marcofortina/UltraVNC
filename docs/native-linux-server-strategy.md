@@ -66,3 +66,11 @@ Native Linux PipeWire/XDG portal capture progress:
 - PipeWire/XDG portal is represented as an optional capture backend.
 - The current milestone provides detection and scaffolding only.
 - Live PipeWire buffer import is intentionally left for the next server-capture block.
+
+Native Linux input backend progress:
+
+- Linux input backend selection is represented separately from capture backend selection.
+- The `none` backend keeps input injection disabled.
+- The optional X11/XTest backend injects keyboard and pointer events when XTest is built and available.
+- Live XTest injection smoke is explicitly opt-in because it moves/injects input into the active X11 session.
+- Wayland/PipeWire input injection is intentionally not treated as implemented; the current strategy is to document that limitation until a safe portal-compatible approach is selected.
