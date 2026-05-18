@@ -200,3 +200,16 @@ Matrix columns:
 ```text
 label|host|port|password-or-file|encodings|allow-input
 ```
+
+## Production gate smoke
+
+Run the compressed-encoding portable smoke and the configured real-server matrix in one step:
+
+```sh
+cmake/qt-viewer-production-gate-smoke.sh \
+  docs/examples/native-linux-qt-viewer-real-server-matrix.example \
+  /tmp/uvnc-production-gate-build \
+  /tmp/uvnc-production-gate-install
+```
+
+This is still only as strong as the real servers listed in the matrix file.

@@ -34,3 +34,16 @@ cmake/qt-viewer-real-server-matrix-smoke.sh 127.0.0.1 5901 /tmp/uvnc-real-server
 UVNC_VIEWER_REAL_SERVER_ENCODINGS=hextile,zlib,zrle,tight,raw,copyrect,newfbsize cmake/qt-viewer-real-server-matrix-smoke.sh 127.0.0.1 5901 /tmp/uvnc-real-server-compressed-build /tmp/uvnc-real-server-compressed-install <VNC_PASSWORD>
 cmake/qt-viewer-long-real-server-smoke.sh 127.0.0.1 5901 /tmp/uvnc-long-real-server-build /tmp/uvnc-long-real-server-install <VNC_PASSWORD> 20
 ```
+
+## Production gate smoke
+
+Run the compressed-encoding portable smoke and the configured real-server matrix in one step:
+
+```sh
+cmake/qt-viewer-production-gate-smoke.sh \
+  docs/examples/native-linux-qt-viewer-real-server-matrix.example \
+  /tmp/uvnc-production-gate-build \
+  /tmp/uvnc-production-gate-install
+```
+
+This is still only as strong as the real servers listed in the matrix file.
