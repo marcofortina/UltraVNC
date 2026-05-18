@@ -8,6 +8,8 @@
 
 #include "vncPortableViewerCli.h"
 
+#include "rfb.h"
+
 #include <cassert>
 #include <string>
 #include <vector>
@@ -48,6 +50,9 @@ int main()
     assert(options.config.RequestUpdate());
     assert(options.config.ViewOnly());
     assert(options.smokeTest);
+    assert(options.config.Encodings().size() == 3);
+    assert(options.config.Encodings()[0] == rfbEncodingRaw);
+    assert(options.config.Encodings()[1] == rfbEncodingCopyRect);
     assert(options.config.Password() == "secret");
     assert(options.config.ContinuousUpdates());
     assert(options.config.UpdateIntervalMs() == 250);
@@ -77,6 +82,12 @@ int main()
     args.push_back("--unknown");
     assert(!ParseViewerCli(args, options, error));
     assert(error == "unknown or incomplete option: --unknown");
+
+    args.clear();
+    args.push_back("--encodings");
+    args.push_back("raw,bad");
+    assert(!ParseViewerCli(args, options, error));
+    assert(error == "invalid --encodings");
 
     const std::string usage = ViewerCliUsage("uvnc_qt_viewer");
     assert(usage.find("--view-only") != std::string::npos);
