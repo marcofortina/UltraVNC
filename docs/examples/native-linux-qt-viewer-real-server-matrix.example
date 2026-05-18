@@ -4,3 +4,5 @@
 local-tigervnc|127.0.0.1|5901|/tmp/vnc-password|hextile,zlib,zrle,tight,raw,copyrect,newfbsize|0
 # x11vnc|127.0.0.1|5902|/tmp/x11vnc-password|zlib,zrle,tight,hextile,raw,copyrect,newfbsize|0
 # libvncserver|127.0.0.1|5903||raw,copyrect,newfbsize|0
+# realvnc|127.0.0.1|5904|/tmp/realvnc-password|tight,zrle,hextile,zlib,raw,copyrect,newfbsize|0
+# ultravnc|127.0.0.1|5905|/tmp/ultravnc-password|tight,zrle,hextile,zlib,raw,copyrect,newfbsize|0

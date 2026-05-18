@@ -47,3 +47,19 @@ cmake/qt-viewer-production-gate-smoke.sh \
 ```
 
 This is still only as strong as the real servers listed in the matrix file.
+
+### Required vendor matrix labels
+
+Set `UVNC_VIEWER_REQUIRED_MATRIX_LABELS` to make the production gate fail when
+expected real-server matrix entries are missing. Example:
+
+```sh
+UVNC_VIEWER_REQUIRED_MATRIX_LABELS=local-tigervnc,x11vnc,libvncserver,realvnc,ultravnc \
+cmake/qt-viewer-production-gate-smoke.sh \
+  docs/examples/native-linux-qt-viewer-real-server-matrix.example \
+  /tmp/uvnc-production-gate-build \
+  /tmp/uvnc-production-gate-install
+```
+
+Only enable labels for servers that are actually available in the lab; the gate
+checks the matrix inputs and then executes the real-server smoke entries.
