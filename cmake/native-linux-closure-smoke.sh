@@ -22,3 +22,4 @@ INSTALL_PREFIX="${3:-/tmp/uvnc-linux-closure-install}"
 
 "${SCRIPT_DIR}/linux-input-smoke.sh" "${WINVNC_BUILD_DIR}" "${INSTALL_PREFIX}"
 "${SCRIPT_DIR}/linux-server-integration-smoke.sh" "${WINVNC_BUILD_DIR}" "${INSTALL_PREFIX}"
+"${SCRIPT_DIR}/qt-viewer-smoke.sh" /tmp/uvnc-qt-viewer-build "${INSTALL_PREFIX}"
