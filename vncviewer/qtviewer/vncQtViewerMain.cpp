@@ -141,8 +141,7 @@ int RunConnectDisplaySmoke(int argc, char **argv, const ViewerCliOptions& option
 
     std::cout << "displayed " << result.update.width << "x" << result.update.height
               << " name=\"" << result.desktopName << "\""
-              << " bytes=" << result.update.pixels.size()
-              << " clipboard=sent" << "\n";
+              << " bytes=" << result.update.pixels.size() << "\n";
     return app.exec();
 }
 
@@ -179,7 +178,7 @@ int RunPersistentInputSmoke(const ViewerCliOptions& options)
     if (!session.SendKeyEvent(0xff0d, true, &error) ||
         !session.SendKeyEvent(0xff0d, false, &error) ||
         !session.SendPointerEvent(1, 3, 4, &error) ||
-        !session.SendClientCutText("qt-viewer-clipboard", &error) ||
+        !session.SendClientCutText(options.clipboardText, &error) ||
         !session.RequestFramebufferUpdate(false, result, &error)) {
         std::cerr << error << "\n";
         return 1;
@@ -188,8 +187,7 @@ int RunPersistentInputSmoke(const ViewerCliOptions& options)
     std::cout << "persistent-input " << result.width << "x" << result.height
               << " name=\"" << result.desktopName << "\""
               << " update=" << result.update.width << "x" << result.update.height
-              << " bytes=" << result.update.pixels.size()
-              << " clipboard=sent" << "\n";
+              << " bytes=" << result.update.pixels.size() << "\n";
     return 0;
 }
 

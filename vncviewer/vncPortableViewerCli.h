@@ -29,6 +29,7 @@ struct ViewerCliOptions {
     bool connectUpdateSmoke;
     bool connectDisplaySmoke;
     bool persistentInputSmoke;
+    std::string clipboardText;
 };
 
 bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& options, std::string& error);

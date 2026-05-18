@@ -37,6 +37,8 @@ int main()
     args.push_back("--password");
     args.push_back("secret");
     args.push_back("--continuous-updates");
+    args.push_back("--clipboard-text");
+    args.push_back("hello clipboard");
     args.push_back("--update-interval-ms");
     args.push_back("250");
     args.push_back("--smoke-test");
@@ -55,6 +57,7 @@ int main()
     assert(options.config.Encodings()[1] == rfbEncodingCopyRect);
     assert(options.config.Password() == "secret");
     assert(options.config.ContinuousUpdates());
+    assert(options.clipboardText == "hello clipboard");
     assert(options.config.UpdateIntervalMs() == 250);
     assert(options.connectSmoke);
     assert(options.connectUpdateSmoke);

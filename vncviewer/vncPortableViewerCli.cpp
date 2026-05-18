@@ -25,7 +25,8 @@ ViewerCliOptions::ViewerCliOptions()
       connectSmoke(false),
       connectUpdateSmoke(false),
       connectDisplaySmoke(false),
-      persistentInputSmoke(false)
+      persistentInputSmoke(false),
+      clipboardText("qt-viewer-clipboard")
 {
 }
 
@@ -117,6 +118,8 @@ bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& opti
             options.config.SetViewOnly(true);
         } else if (arg == "--password" && i + 1 < args.size()) {
             options.config.SetPassword(args[++i]);
+        } else if (arg == "--clipboard-text" && i + 1 < args.size()) {
+            options.clipboardText = args[++i];
         } else if (arg == "--continuous-updates") {
             options.config.SetContinuousUpdates(true);
         } else if (arg == "--encodings" && i + 1 < args.size()) {
@@ -162,6 +165,7 @@ std::string ViewerCliUsage(const char *programName)
         << "  --request-update       Request an initial framebuffer update in future session smoke\n"
         << "  --view-only            Disable local input forwarding in the viewer shell\n"
         << "  --password <password>  Password for VNCAuth-capable sessions\n"
+        << "  --clipboard-text <text> Clipboard text sent by persistent input smoke\n"
         << "  --encodings <list>     Comma-separated encodings: raw,copyrect,newfbsize\n"
         << "  --continuous-updates   Repeatedly request updates in the interactive Qt shell\n"
         << "  --update-interval-ms <ms> Continuous-update interval, default 1000\n";
