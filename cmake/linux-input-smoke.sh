@@ -14,6 +14,7 @@ ctest --test-dir "${BUILD_DIR}" --output-on-failure -R 'winvnc_linux_input|winvn
 cmake --install "${BUILD_DIR}" --prefix "${INSTALL_PREFIX}"
 
 "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --smoke-xtest-availability-test
+"${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --smoke-xtest-input-test
 "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --validate-config --input-backend none
 "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --print-config --input-backend none >/dev/null
 
@@ -39,4 +40,4 @@ case "${DISPLAY}" in
     ;;
 esac
 
-"${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --validate-config --input-backend xtest
+"${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --smoke-xtest-input-test --allow-input-injection
