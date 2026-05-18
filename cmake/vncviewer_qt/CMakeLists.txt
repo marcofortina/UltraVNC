@@ -85,3 +85,6 @@ set_tests_properties(vncviewer_qt_smoke PROPERTIES
 )
 
 install(TARGETS uvnc_qt_viewer RUNTIME DESTINATION bin)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/uvnc_qt_viewer.desktop" DESTINATION share/applications)
+install(FILES "${CMAKE_SOURCE_DIR}/../vncviewer/res/logo.svg" DESTINATION share/icons/hicolor/scalable/apps RENAME uvnc_qt_viewer.svg)
+install(FILES "${CMAKE_SOURCE_DIR}/../docs/native-linux-qt-viewer.md" DESTINATION share/doc/ultravnc)

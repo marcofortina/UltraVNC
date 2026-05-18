@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=UltraVNC Qt Viewer
+Comment=Experimental native Linux UltraVNC viewer
+Exec=uvnc_qt_viewer
+Icon=uvnc_qt_viewer
+Terminal=false
+Categories=Network;RemoteAccess;
+Keywords=VNC;Remote Desktop;UltraVNC;
