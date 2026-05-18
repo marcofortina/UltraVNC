@@ -20,18 +20,21 @@ int main()
     assert(ParseCaptureBackendName("memory", backend) && backend == CaptureBackend::Memory);
     assert(ParseCaptureBackendName("raw-file", backend) && backend == CaptureBackend::RawFile);
     assert(ParseCaptureBackendName("x11", backend) && backend == CaptureBackend::X11);
-    assert(!ParseCaptureBackendName("pipewire", backend));
+    assert(ParseCaptureBackendName("pipewire", backend) && backend == CaptureBackend::PipeWire);
 
     assert(std::string(CaptureBackendName(CaptureBackend::Auto)) == "auto");
     assert(std::string(CaptureBackendName(CaptureBackend::Memory)) == "memory");
     assert(std::string(CaptureBackendName(CaptureBackend::RawFile)) == "raw-file");
     assert(std::string(CaptureBackendName(CaptureBackend::X11)) == "x11");
+    assert(std::string(CaptureBackendName(CaptureBackend::PipeWire)) == "pipewire");
     assert(CaptureBackendDescription(CaptureBackend::Memory)[0] != '\0');
 
     assert(IsCaptureBackendRuntimeAvailable(CaptureBackend::Memory, false));
     assert(!IsCaptureBackendRuntimeAvailable(CaptureBackend::RawFile, false));
     assert(IsCaptureBackendRuntimeAvailable(CaptureBackend::RawFile, true));
     const bool x11Available = IsCaptureBackendRuntimeAvailable(CaptureBackend::X11, true);
+    const bool pipewireAvailable = IsCaptureBackendRuntimeAvailable(CaptureBackend::PipeWire, true);
     (void)x11Available;
+    (void)pipewireAvailable;
     return 0;
 }
