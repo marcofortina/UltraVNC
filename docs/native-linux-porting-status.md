@@ -96,3 +96,10 @@ Native Linux input backend progress:
 - XTest keyboard and pointer injection paths are present behind explicit backend selection.
 - Automated smoke coverage remains non-invasive; live input injection requires explicit opt-in.
 - Wayland/PipeWire input injection remains a documented limitation, not an implemented backend.
+
+Native Linux server backend integration progress:
+
+- Example user-session service and environment templates are generated and installed.
+- Capture and input backend configuration is documented for the current Linux server path.
+- Manual validation steps are documented for X11 capture, PipeWire/XDG portal scaffolding and XTest input.
+- The integration smoke verifies installed templates, installed docs and backend CLI wiring.
