@@ -74,3 +74,9 @@ Native Linux input backend progress:
 - The optional X11/XTest backend injects keyboard and pointer events when XTest is built and available.
 - Live XTest injection smoke is explicitly opt-in because it moves/injects input into the active X11 session.
 - Wayland/PipeWire input injection is intentionally not treated as implemented; the current strategy is to document that limitation until a safe portal-compatible approach is selected.
+
+Native Linux backend integration and validation progress:
+
+- User-session service/environment templates are available for the experimental server path.
+- Backend configuration and manual validation are documented in `docs/native-linux-server-backend-integration.md`.
+- The integration smoke ties together installed templates, installed docs, capture backend selection and input backend selection.
