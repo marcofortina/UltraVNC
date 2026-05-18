@@ -296,3 +296,17 @@ cmake/pipewire-capture-smoke.sh /tmp/uvnc-pipewire-capture-build /tmp/uvnc-pipew
 obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --validate-config --capture-backend memory
 obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --smoke-pipewire-availability-test
 ```
+
+Native Linux server backend integration smoke:
+
+```sh
+cmake/linux-server-integration-smoke.sh \
+  /tmp/uvnc-linux-server-integration-build \
+  /tmp/uvnc-linux-server-integration-install
+```
+
+Installed integration examples are placed under:
+
+```sh
+/tmp/uvnc-linux-server-integration-install/share/ultravnc/linux/
+```
