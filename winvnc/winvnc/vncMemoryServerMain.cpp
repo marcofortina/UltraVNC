@@ -54,7 +54,7 @@ void PrintUsage(const char *name)
               << "  --name <text>           Desktop name\n"
               << "  --fill-byte <0-255>    Fill byte for the in-memory framebuffer, default 34\n"
               << "  --pattern <name>       Framebuffer pattern: solid, checker, gradient-x, gradient-y\n"
-              << "  --capture-backend <name> Capture backend: auto, memory, raw-file, x11\n"
+              << "  --capture-backend <name> Capture backend: auto, memory, raw-file, x11, pipewire\n"
               << "  --raw-framebuffer-file <path> Serve exact-size raw framebuffer file instead of synthetic pattern\n"
               << "  --validate-config       Validate options and exit\n"
               << "  --print-config          Print resolved configuration and exit\n"
