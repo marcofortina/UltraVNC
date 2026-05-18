@@ -17,12 +17,16 @@
 #ifndef RFB_H__
 #define RFB_H__
 
-// Define the CARD* types as used in X11/Xmd.h
+#include <stdint.h>
 
-typedef unsigned long CARD32;
-typedef unsigned short CARD16;
-typedef short INT16;
-typedef unsigned char  CARD8;
+// Define the CARD* types as used in X11/Xmd.h. Keep these fixed-width on
+// LP64 platforms too, otherwise portable RFB wire reads can block waiting for
+// 8-byte CARD32 fields on Linux.
+
+typedef uint32_t CARD32;
+typedef uint16_t CARD16;
+typedef int16_t INT16;
+typedef uint8_t  CARD8;
 
 // Define the port number offsets
 #define FLASH_PORT_OFFSET 5400
