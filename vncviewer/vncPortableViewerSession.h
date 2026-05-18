@@ -35,6 +35,20 @@ struct ViewerFramebufferUpdate {
     std::vector<CARD8> pixels;
 };
 
+struct ViewerFramebufferRect {
+    ViewerFramebufferRect();
+
+    unsigned int x;
+    unsigned int y;
+    unsigned int width;
+    unsigned int height;
+    unsigned int sourceX;
+    unsigned int sourceY;
+    CARD32 encoding;
+    std::vector<CARD8> pixels;
+};
+
+
 struct ViewerSessionResult {
     ViewerSessionResult();
 
@@ -43,6 +57,7 @@ struct ViewerSessionResult {
     rfbPixelFormat format;
     std::string desktopName;
     ViewerFramebufferUpdate update;
+    std::vector<ViewerFramebufferRect> rectangles;
 };
 
 class ViewerSession {
@@ -71,6 +86,7 @@ private:
     uvnc::winvnc::portable::TcpSocket socket_;
     ViewerSessionResult state_;
     ViewerConfig config_;
+    std::vector<CARD8> framebuffer_;
 };
 
 } // namespace portable
