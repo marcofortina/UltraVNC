@@ -28,3 +28,10 @@ if(BUILD_TESTING)
                 "${CMAKE_CURRENT_SOURCE_DIR}/uvnc-winvnc-memory-server.env.example")
     set_tests_properties(linux_server_integration_templates_smoke PROPERTIES LABELS "native-linux;linux-server-integration" TIMEOUT 5)
 endif()
+
+install(FILES
+    "${CMAKE_SOURCE_DIR}/../docs/native-linux-server-backend-integration.md"
+    "${CMAKE_SOURCE_DIR}/../docs/native-linux-input-backend.md"
+    "${CMAKE_SOURCE_DIR}/../docs/native-linux-pipewire-capture.md"
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/ultravnc/linux"
+)
