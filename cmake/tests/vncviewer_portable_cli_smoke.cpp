@@ -33,6 +33,8 @@ int main()
     args.push_back("--request-update");
     args.push_back("--view-only");
     args.push_back("--smoke-test");
+    args.push_back("--connect-smoke");
+    args.push_back("--connect-update-smoke");
     assert(ParseViewerCli(args, options, error));
     assert(options.config.Host() == "example.test");
     assert(options.config.Port() == 5901);
@@ -40,6 +42,8 @@ int main()
     assert(options.config.RequestUpdate());
     assert(options.config.ViewOnly());
     assert(options.smokeTest);
+    assert(options.connectSmoke);
+    assert(options.connectUpdateSmoke);
 
     args.clear();
     args.push_back("--port");
@@ -54,5 +58,6 @@ int main()
 
     const std::string usage = ViewerCliUsage("uvnc_qt_viewer");
     assert(usage.find("--view-only") != std::string::npos);
+    assert(usage.find("--connect-update-smoke") != std::string::npos);
     return 0;
 }
