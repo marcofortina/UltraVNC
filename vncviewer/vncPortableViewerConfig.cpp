@@ -17,7 +17,10 @@ ViewerConfig::ViewerConfig()
       port_(5900),
       shared_(true),
       requestUpdate_(false),
-      viewOnly_(false)
+      viewOnly_(false),
+      password_(),
+      continuousUpdates_(false),
+      updateIntervalMs_(1000)
 {
 }
 
@@ -29,6 +32,10 @@ bool ViewerConfig::Validate(std::string *error) const
     }
     if (port_ == 0) {
         if (error) *error = "viewer port must not be zero";
+        return false;
+    }
+    if (updateIntervalMs_ == 0) {
+        if (error) *error = "viewer update interval must not be zero";
         return false;
     }
     if (error) error->clear();

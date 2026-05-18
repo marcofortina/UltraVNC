@@ -24,12 +24,18 @@ public:
     bool Shared() const { return shared_; }
     bool RequestUpdate() const { return requestUpdate_; }
     bool ViewOnly() const { return viewOnly_; }
+    const std::string& Password() const { return password_; }
+    bool ContinuousUpdates() const { return continuousUpdates_; }
+    unsigned int UpdateIntervalMs() const { return updateIntervalMs_; }
 
     void SetHost(const std::string& host) { host_ = host; }
     void SetPort(unsigned short port) { port_ = port; }
     void SetShared(bool shared) { shared_ = shared; }
     void SetRequestUpdate(bool requestUpdate) { requestUpdate_ = requestUpdate; }
     void SetViewOnly(bool viewOnly) { viewOnly_ = viewOnly; }
+    void SetPassword(const std::string& password) { password_ = password; }
+    void SetContinuousUpdates(bool continuousUpdates) { continuousUpdates_ = continuousUpdates; }
+    void SetUpdateIntervalMs(unsigned int updateIntervalMs) { updateIntervalMs_ = updateIntervalMs; }
 
     bool Validate(std::string *error = nullptr) const;
 
@@ -39,6 +45,9 @@ private:
     bool shared_;
     bool requestUpdate_;
     bool viewOnly_;
+    std::string password_;
+    bool continuousUpdates_;
+    unsigned int updateIntervalMs_;
 };
 
 } // namespace portable
