@@ -14,6 +14,7 @@
 #include "vncPortableRfbMessages.h"
 #include "vncPortableTcp.h"
 
+#include <algorithm>
 #include <cstring>
 
 namespace uvnc {
@@ -167,7 +168,128 @@ bool RunHandshakeOnSocket(TcpSocket& socket, const ViewerConfig& config, ViewerS
     return true;
 }
 
-bool ReadOneRawUpdate(TcpSocket& socket, ViewerSessionResult& result, std::string *error)
+unsigned int BytesPerPixel(const rfbPixelFormat& format)
+{
+    return format.bitsPerPixel / 8;
+}
+
+bool EnsureFramebufferStorage(ViewerSessionResult& result, std::vector<CARD8>& framebuffer, std::string *error)
+{
+    const unsigned int bytesPerPixel = BytesPerPixel(result.format);
+    if (bytesPerPixel == 0 || result.width == 0 || result.height == 0) {
+        SetError(error, "invalid RFB framebuffer dimensions");
+        return false;
+    }
+    const std::size_t expected = static_cast<std::size_t>(result.width) * result.height * bytesPerPixel;
+    if (framebuffer.size() != expected) {
+        framebuffer.assign(expected, 0);
+    }
+    return true;
+}
+
+bool ReadRawRectPayload(TcpSocket& socket,
+                        ViewerSessionResult& result,
+                        std::vector<CARD8>& framebuffer,
+                        ViewerFramebufferRect& rectangle,
+                        std::string *error)
+{
+    const unsigned int bytesPerPixel = BytesPerPixel(result.format);
+    if (bytesPerPixel == 0 || rectangle.width == 0 || rectangle.height == 0) {
+        SetError(error, "invalid RFB raw rectangle dimensions");
+        return false;
+    }
+    if (rectangle.x + rectangle.width > result.width || rectangle.y + rectangle.height > result.height) {
+        SetError(error, "RFB raw rectangle is outside framebuffer bounds");
+        return false;
+    }
+    rectangle.pixels.resize(static_cast<std::size_t>(rectangle.width) * rectangle.height * bytesPerPixel);
+    if (!socket.ReadExact(rectangle.pixels.data(), rectangle.pixels.size())) {
+        SetError(error, "failed to read RFB raw framebuffer update pixels");
+        return false;
+    }
+    if (!EnsureFramebufferStorage(result, framebuffer, error)) {
+        return false;
+    }
+    for (unsigned int row = 0; row < rectangle.height; ++row) {
+        const std::size_t src = static_cast<std::size_t>(row) * rectangle.width * bytesPerPixel;
+        const std::size_t dst = (static_cast<std::size_t>(rectangle.y + row) * result.width + rectangle.x) * bytesPerPixel;
+        std::copy(rectangle.pixels.begin() + src,
+                  rectangle.pixels.begin() + src + static_cast<std::size_t>(rectangle.width) * bytesPerPixel,
+                  framebuffer.begin() + dst);
+    }
+    return true;
+}
+
+bool ApplyCopyRectPayload(TcpSocket& socket,
+                          ViewerSessionResult& result,
+                          std::vector<CARD8>& framebuffer,
+                          ViewerFramebufferRect& rectangle,
+                          std::string *error)
+{
+    rfbCopyRect copyRect;
+    if (!socket.ReadExact(&copyRect, sz_rfbCopyRect)) {
+        SetError(error, "failed to read RFB CopyRect payload");
+        return false;
+    }
+    rectangle.sourceX = Swap16IfLE(copyRect.srcX);
+    rectangle.sourceY = Swap16IfLE(copyRect.srcY);
+    const unsigned int bytesPerPixel = BytesPerPixel(result.format);
+    if (bytesPerPixel == 0 || rectangle.width == 0 || rectangle.height == 0) {
+        SetError(error, "invalid RFB CopyRect dimensions");
+        return false;
+    }
+    if (rectangle.x + rectangle.width > result.width || rectangle.y + rectangle.height > result.height ||
+        rectangle.sourceX + rectangle.width > result.width || rectangle.sourceY + rectangle.height > result.height) {
+        SetError(error, "RFB CopyRect rectangle is outside framebuffer bounds");
+        return false;
+    }
+    if (!EnsureFramebufferStorage(result, framebuffer, error)) {
+        return false;
+    }
+
+    std::vector<CARD8> copy(static_cast<std::size_t>(rectangle.width) * rectangle.height * bytesPerPixel);
+    for (unsigned int row = 0; row < rectangle.height; ++row) {
+        const std::size_t src = (static_cast<std::size_t>(rectangle.sourceY + row) * result.width + rectangle.sourceX) * bytesPerPixel;
+        const std::size_t dst = static_cast<std::size_t>(row) * rectangle.width * bytesPerPixel;
+        std::copy(framebuffer.begin() + src,
+                  framebuffer.begin() + src + static_cast<std::size_t>(rectangle.width) * bytesPerPixel,
+                  copy.begin() + dst);
+    }
+    for (unsigned int row = 0; row < rectangle.height; ++row) {
+        const std::size_t src = static_cast<std::size_t>(row) * rectangle.width * bytesPerPixel;
+        const std::size_t dst = (static_cast<std::size_t>(rectangle.y + row) * result.width + rectangle.x) * bytesPerPixel;
+        std::copy(copy.begin() + src,
+                  copy.begin() + src + static_cast<std::size_t>(rectangle.width) * bytesPerPixel,
+                  framebuffer.begin() + dst);
+    }
+    return true;
+}
+
+bool PublishCompositedFramebuffer(ViewerSessionResult& result,
+                                  const std::vector<CARD8>& framebuffer,
+                                  std::string *error)
+{
+    const unsigned int bytesPerPixel = BytesPerPixel(result.format);
+    const std::size_t expected = static_cast<std::size_t>(result.width) * result.height * bytesPerPixel;
+    if (bytesPerPixel == 0 || framebuffer.size() != expected) {
+        SetError(error, "invalid composed RFB framebuffer size");
+        return false;
+    }
+    result.update = ViewerFramebufferUpdate();
+    result.update.received = true;
+    result.update.x = 0;
+    result.update.y = 0;
+    result.update.width = result.width;
+    result.update.height = result.height;
+    result.update.encoding = rfbEncodingRaw;
+    result.update.pixels = framebuffer;
+    return true;
+}
+
+bool ReadFramebufferUpdate(TcpSocket& socket,
+                           ViewerSessionResult& result,
+                           std::vector<CARD8>& framebuffer,
+                           std::string *error)
 {
     rfbFramebufferUpdateMsg update;
     if (!socket.ReadExact(&update, sz_rfbFramebufferUpdateMsg)) {
@@ -178,68 +300,70 @@ bool ReadOneRawUpdate(TcpSocket& socket, ViewerSessionResult& result, std::strin
         SetError(error, "unexpected RFB framebuffer update header");
         return false;
     }
+
+    result.rectangles.clear();
     const CARD16 rects = Swap16IfLE(update.nRects);
     if (rects == 0) {
         result.update = ViewerFramebufferUpdate();
         result.update.received = true;
         return true;
     }
-    if (rects != 1) {
-        SetError(error, "unsupported RFB framebuffer update rectangle count");
-        return false;
-    }
 
-    rfbFramebufferUpdateRectHeader rect;
-    if (!socket.ReadExact(&rect, sz_rfbFramebufferUpdateRectHeader)) {
-        SetError(error, "failed to read RFB framebuffer update rectangle");
-        return false;
-    }
-
-    result.update.x = Swap16IfLE(rect.r.x);
-    result.update.y = Swap16IfLE(rect.r.y);
-    result.update.width = Swap16IfLE(rect.r.w);
-    result.update.height = Swap16IfLE(rect.r.h);
-    result.update.encoding = Swap32IfLE(rect.encoding);
-
-    if (result.update.encoding == rfbEncodingRaw) {
-        const unsigned int bytesPerPixel = result.format.bitsPerPixel / 8;
-        if (bytesPerPixel == 0 || result.update.width == 0 || result.update.height == 0) {
-            SetError(error, "invalid RFB framebuffer update dimensions");
+    for (CARD16 i = 0; i < rects; ++i) {
+        rfbFramebufferUpdateRectHeader rect;
+        if (!socket.ReadExact(&rect, sz_rfbFramebufferUpdateRectHeader)) {
+            SetError(error, "failed to read RFB framebuffer update rectangle");
             return false;
         }
-        result.update.pixels.resize(result.update.width * result.update.height * bytesPerPixel);
-        if (!socket.ReadExact(result.update.pixels.data(), result.update.pixels.size())) {
-            SetError(error, "failed to read RFB raw framebuffer update pixels");
+
+        ViewerFramebufferRect rectangle;
+        rectangle.x = Swap16IfLE(rect.r.x);
+        rectangle.y = Swap16IfLE(rect.r.y);
+        rectangle.width = Swap16IfLE(rect.r.w);
+        rectangle.height = Swap16IfLE(rect.r.h);
+        rectangle.encoding = Swap32IfLE(rect.encoding);
+
+        if (rectangle.encoding == rfbEncodingRaw) {
+            if (!ReadRawRectPayload(socket, result, framebuffer, rectangle, error)) {
+                return false;
+            }
+        } else if (rectangle.encoding == rfbEncodingCopyRect) {
+            if (!ApplyCopyRectPayload(socket, result, framebuffer, rectangle, error)) {
+                return false;
+            }
+        } else if (rectangle.encoding == rfbEncodingNewFBSize) {
+            result.width = rectangle.width;
+            result.height = rectangle.height;
+            framebuffer.clear();
+        } else {
+            SetError(error, "unsupported RFB framebuffer update encoding");
             return false;
         }
-        result.update.received = true;
-        return true;
+        result.rectangles.push_back(rectangle);
     }
 
-    if (result.update.encoding == rfbEncodingCopyRect) {
-        rfbCopyRect copyRect;
-        if (!socket.ReadExact(&copyRect, sz_rfbCopyRect)) {
-            SetError(error, "failed to read RFB CopyRect payload");
-            return false;
-        }
-        result.update.sourceX = Swap16IfLE(copyRect.srcX);
-        result.update.sourceY = Swap16IfLE(copyRect.srcY);
-        result.update.received = true;
-        return true;
+    if (!framebuffer.empty()) {
+        return PublishCompositedFramebuffer(result, framebuffer, error);
     }
-
-    if (result.update.encoding == rfbEncodingNewFBSize) {
-        result.width = result.update.width;
-        result.height = result.update.height;
-        result.update.received = true;
-        return true;
-    }
-
-    SetError(error, "unsupported RFB framebuffer update encoding");
-    return false;
+    result.update = ViewerFramebufferUpdate();
+    result.update.received = true;
+    return true;
 }
 
+
 } // namespace
+
+ViewerFramebufferRect::ViewerFramebufferRect()
+    : x(0),
+      y(0),
+      width(0),
+      height(0),
+      sourceX(0),
+      sourceY(0),
+      encoding(0),
+      pixels()
+{
+}
 
 ViewerFramebufferUpdate::ViewerFramebufferUpdate()
     : received(false),
@@ -259,7 +383,8 @@ ViewerSessionResult::ViewerSessionResult()
       height(0),
       format(),
       desktopName(),
-      update()
+      update(),
+      rectangles()
 {
     std::memset(&format, 0, sizeof(format));
 }
@@ -333,6 +458,7 @@ void PersistentViewerSession::Disconnect()
 {
     socket_.Close();
     state_ = ViewerSessionResult();
+    framebuffer_.clear();
 }
 
 bool PersistentViewerSession::RequestFramebufferUpdate(bool incremental, ViewerSessionResult& result, std::string *error)
@@ -355,7 +481,7 @@ bool PersistentViewerSession::RequestFramebufferUpdate(bool incremental, ViewerS
         return false;
     }
     state_.update = ViewerFramebufferUpdate();
-    if (!ReadOneRawUpdate(socket_, state_, error)) {
+    if (!ReadFramebufferUpdate(socket_, state_, framebuffer_, error)) {
         Disconnect();
         return false;
     }
