@@ -11,6 +11,7 @@
 #include "rfb.h"
 
 #include <cstdlib>
+#include <fstream>
 #include <sstream>
 #include <vector>
 
@@ -31,6 +32,21 @@ ViewerCliOptions::ViewerCliOptions()
 }
 
 namespace {
+
+bool ReadTextFile(const std::string& path, std::string& text)
+{
+    std::ifstream input(path.c_str(), std::ios::in | std::ios::binary);
+    if (!input) {
+        return false;
+    }
+    std::ostringstream buffer;
+    buffer << input.rdbuf();
+    text = buffer.str();
+    while (!text.empty() && (text.back() == '\n' || text.back() == '\r')) {
+        text.pop_back();
+    }
+    return true;
+}
 
 bool ParseUnsigned(const std::string& text, unsigned int& value)
 {
@@ -126,6 +142,20 @@ bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& opti
             options.config.SetViewOnly(true);
         } else if (arg == "--password" && i + 1 < args.size()) {
             options.config.SetPassword(args[++i]);
+        } else if (arg == "--password-file" && i + 1 < args.size()) {
+            std::string password;
+            if (!ReadTextFile(args[++i], password)) {
+                error = "failed to read --password-file";
+                return false;
+            }
+            options.config.SetPassword(password);
+        } else if (arg == "--password-env" && i + 1 < args.size()) {
+            const char *value = std::getenv(args[++i].c_str());
+            if (!value) {
+                error = "failed to read --password-env";
+                return false;
+            }
+            options.config.SetPassword(value);
         } else if (arg == "--clipboard-text" && i + 1 < args.size()) {
             options.clipboardText = args[++i];
         } else if (arg == "--continuous-updates") {
@@ -180,6 +210,8 @@ std::string ViewerCliUsage(const char *programName)
         << "  --request-update       Request an initial framebuffer update in future session smoke\n"
         << "  --view-only            Disable local input forwarding in the viewer shell\n"
         << "  --password <password>  Password for VNCAuth-capable sessions\n"
+        << "  --password-file <path> Read VNCAuth password from a file\n"
+        << "  --password-env <name>  Read VNCAuth password from an environment variable\n"
         << "  --clipboard-text <text> Clipboard text sent by persistent input smoke\n"
         << "  --encodings <list>     Comma-separated encodings: raw,copyrect,hextile,zlib,rre,corre,newfbsize\n"
         << "  --continuous-updates   Repeatedly request updates in the interactive Qt shell\n"
