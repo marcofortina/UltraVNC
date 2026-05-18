@@ -8,6 +8,7 @@
 
 #include "vncPortableViewerCli.h"
 #include "vncPortableViewerSession.h"
+#include "vncQtViewerConnectionPanel.h"
 #include "vncQtViewerSurface.h"
 
 #include <QApplication>
@@ -25,6 +26,7 @@ using uvnc::vncviewer::portable::ViewerCliOptions;
 using uvnc::vncviewer::portable::ViewerCliUsage;
 using uvnc::vncviewer::portable::ViewerSession;
 using uvnc::vncviewer::portable::ViewerSessionResult;
+using uvnc::vncviewer::qtviewer::QtViewerConnectionPanel;
 using uvnc::vncviewer::qtviewer::QtViewerSurface;
 
 namespace {
@@ -46,29 +48,13 @@ QWidget *CreateViewerWindow(const ViewerCliOptions& options)
     QVBoxLayout *layout = new QVBoxLayout(window);
     QLabel *title = new QLabel(QStringLiteral("UltraVNC Qt Viewer"));
     QLabel *status = new QLabel(QStringLiteral("Experimental native Linux Qt shell"));
-    QLabel *target = new QLabel(QString("Target: %1:%2")
-        .arg(QString::fromStdString(options.config.Host()))
-        .arg(options.config.Port()));
-    QLabel *mode = new QLabel(options.config.ViewOnly()
-        ? QStringLiteral("Mode: view-only")
-        : QStringLiteral("Mode: input-capable shell"));
-    QtViewerSurface *surface = new QtViewerSurface();
-    std::vector<unsigned int> pixels(160 * 90, 0xff1f2937u);
-    for (int y = 0; y < 90; ++y) {
-        for (int x = 0; x < 160; ++x) {
-            const unsigned int shade = static_cast<unsigned int>((x * 255) / 159);
-            pixels[static_cast<std::size_t>(y * 160 + x)] = 0xff000000u | (shade << 16) | (0x66u << 8) | 0xccu;
-        }
-    }
-    surface->SetArgbFramebuffer(160, 90, pixels);
+    QtViewerConnectionPanel *panel = new QtViewerConnectionPanel(options.config);
 
     layout->addWidget(title);
     layout->addWidget(status);
-    layout->addWidget(target);
-    layout->addWidget(mode);
-    layout->addWidget(surface, 1);
+    layout->addWidget(panel, 1);
     window->setLayout(layout);
-    window->resize(640, 360);
+    window->resize(760, 520);
     return window;
 }
 
