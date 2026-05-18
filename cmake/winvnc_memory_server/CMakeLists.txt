@@ -76,6 +76,9 @@ if(BUILD_TESTING)
 
     add_test(NAME winvnc_memory_server_print_input_backend COMMAND uvnc_winvnc_memory_server --print-config --input-backend none)
     set_tests_properties(winvnc_memory_server_print_input_backend PROPERTIES LABELS "native-linux;winvnc-memory-server;linux-input" TIMEOUT 5)
+
+    add_test(NAME winvnc_memory_server_xtest_input_guarded COMMAND uvnc_winvnc_memory_server --smoke-xtest-input-test)
+    set_tests_properties(winvnc_memory_server_xtest_input_guarded PROPERTIES LABELS "native-linux;winvnc-memory-server;linux-input" TIMEOUT 5)
 endif()
 
 install(TARGETS uvnc_winvnc_memory_server RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
