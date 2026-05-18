@@ -60,7 +60,43 @@ namespace {
 
 volatile std::sig_atomic_t g_stopRequested = 0;
 
-\nvoid HandleStopSignal(int)\n{\n    g_stopRequested = 1;\n}\n\nbool StopRequested()\n{\n    return g_stopRequested != 0;\n}\n\nvoid InstallStopSignalHandlers()\n{\n    std::signal(SIGINT, HandleStopSignal);\n    std::signal(SIGTERM, HandleStopSignal);\n}\n\nbool WriteTextFile(const std::string& path, const std::string& value)\n{\n    if (path.empty()) {\n        return true;\n    }\n    std::ofstream out(path.c_str(), std::ios::trunc);\n    if (!out) {\n        return false;\n    }\n    out << value;\n    return static_cast<bool>(out);\n}\n\nvoid RemoveFileIfSet(const std::string& path)\n{\n    if (!path.empty()) {\n        std::remove(path.c_str());\n    }\n}\n
+
+void HandleStopSignal(int)
+{
+    g_stopRequested = 1;
+}
+
+bool StopRequested()
+{
+    return g_stopRequested != 0;
+}
+
+void InstallStopSignalHandlers()
+{
+    std::signal(SIGINT, HandleStopSignal);
+    std::signal(SIGTERM, HandleStopSignal);
+}
+
+bool WriteTextFile(const std::string& path, const std::string& value)
+{
+    if (path.empty()) {
+        return true;
+    }
+    std::ofstream out(path.c_str(), std::ios::trunc);
+    if (!out) {
+        return false;
+    }
+    out << value;
+    return static_cast<bool>(out);
+}
+
+void RemoveFileIfSet(const std::string& path)
+{
+    if (!path.empty()) {
+        std::remove(path.c_str());
+    }
+}
+
 class XTestRfbInputSink : public RfbInputSink {
 public:
     bool InjectKey(const KeyEvent& event, std::string *error) override
@@ -103,6 +139,7 @@ void PrintUsage(const char *name)
               << "  --smoke-multi-update-test Start on loopback, request multiple raw framebuffer updates, and exit\n"
               << "  --smoke-raw-file-update-test Start on loopback using a raw framebuffer file, request one update, and exit\n"
               << "  --smoke-x11-update-test Start on loopback using an X11 snapshot, request one update, and exit\n"
+              << "  --smoke-x11-availability-test Print X11/XShm runtime availability and exit\n"
               << "  --smoke-pipewire-availability-test Print PipeWire/XDG portal runtime availability and exit\n"
               << "  --smoke-xtest-availability-test Print XTest input runtime availability and exit\n"
               << "  --smoke-xtest-input-test Inject a minimal XTest key/pointer sequence when explicitly allowed\n"
@@ -115,7 +152,148 @@ void PrintUsage(const char *name)
               << "  --log-file <path>      Append stdout/stderr logs to a file\n"
               << "  --help                  Show this help\n";
 }
-\nstd::string Trim(const std::string& value)\n{\n    const std::string whitespace = " \t\r\n";\n    const std::size_t begin = value.find_first_not_of(whitespace);\n    if (begin == std::string::npos) {\n        return std::string();\n    }\n    const std::size_t end = value.find_last_not_of(whitespace);\n    return value.substr(begin, end - begin + 1);\n}\n\nbool AddConfigOption(const std::string& key, const std::string& value, std::vector<std::string>& args, std::string *error)\n{\n    if (key == "bind_address") {\n        args.push_back("--bind-address");\n    } else if (key == "port") {\n        args.push_back("--port");\n    } else if (key == "width") {\n        args.push_back("--width");\n    } else if (key == "height") {\n        args.push_back("--height");\n    } else if (key == "name") {\n        args.push_back("--name");\n    } else if (key == "fill_byte") {\n        args.push_back("--fill-byte");\n    } else if (key == "pattern") {\n        args.push_back("--pattern");\n    } else if (key == "capture_backend") {\n        args.push_back("--capture-backend");\n    } else if (key == "input_backend") {\n        args.push_back("--input-backend");\n    } else if (key == "raw_framebuffer_file") {\n        args.push_back("--raw-framebuffer-file");\n    } else if (key == "max_updates") {\n        args.push_back("--max-updates");\n    } else if (key == "serve_updates") {\n        if (value == "true" || value == "1" || value == "yes") {\n            args.push_back("--serve-updates");\n            return true;\n        }\n        if (value == "false" || value == "0" || value == "no") {\n            return true;\n        }\n        if (error) *error = "invalid boolean value for serve_updates";\n        return false;\n    } else {\n        if (error) *error = "unknown config key: " + key;\n        return false;\n    }\n\n    if (value.empty()) {\n        if (error) *error = "empty value for config key: " + key;\n        return false;\n    }\n    args.push_back(value);\n    return true;\n}\n\nbool AppendConfigFileArgs(const std::string& path, std::vector<std::string>& args, std::string *error)\n{\n    std::ifstream input(path.c_str());\n    if (!input) {\n        if (error) *error = "cannot open config file: " + path;\n        return false;\n    }\n\n    std::string line;\n    unsigned int lineNumber = 0;\n    while (std::getline(input, line)) {\n        lineNumber += 1;\n        const std::size_t comment = line.find('#');\n        if (comment != std::string::npos) {\n            line = line.substr(0, comment);\n        }\n        line = Trim(line);\n        if (line.empty()) {\n            continue;\n        }\n        const std::size_t equals = line.find('=');\n        if (equals == std::string::npos) {\n            if (error) {\n                std::ostringstream out;\n                out << "invalid config line " << lineNumber << ": expected key=value";\n                *error = out.str();\n            }\n            return false;\n        }\n        const std::string key = Trim(line.substr(0, equals));\n        const std::string value = Trim(line.substr(equals + 1));\n        if (!AddConfigOption(key, value, args, error)) {\n            return false;\n        }\n    }\n    return true;\n}\n\nbool BuildMergedArgsWithConfig(int argc, char **argv, std::vector<std::string>& merged, std::string *error)\n{\n    merged.clear();\n    merged.push_back(argv[0]);\n\n    for (int i = 1; i < argc; ++i) {\n        const std::string arg(argv[i]);\n        if (arg == "--config") {\n            if (i + 1 >= argc) {\n                if (error) *error = "missing --config value";\n                return false;\n            }\n            if (!AppendConfigFileArgs(argv[++i], merged, error)) {\n                return false;\n            }\n        }\n    }\n\n    for (int i = 1; i < argc; ++i) {\n        const std::string arg(argv[i]);\n        if (arg == "--config") {\n            ++i;\n            continue;\n        }\n        merged.push_back(arg);\n    }\n    return true;\n}\n
+
+std::string Trim(const std::string& value)
+{
+    const std::string whitespace = " \t\r\n";
+    const std::size_t begin = value.find_first_not_of(whitespace);
+    if (begin == std::string::npos) {
+        return std::string();
+    }
+    const std::size_t end = value.find_last_not_of(whitespace);
+    return value.substr(begin, end - begin + 1);
+}
+
+bool AddConfigOption(const std::string& key, const std::string& value, std::vector<std::string>& args, std::string *error)
+{
+    if (key == "bind_address") {
+        args.push_back("--bind-address");
+    } else if (key == "port") {
+        args.push_back("--port");
+    } else if (key == "width") {
+        args.push_back("--width");
+    } else if (key == "height") {
+        args.push_back("--height");
+    } else if (key == "name") {
+        args.push_back("--name");
+    } else if (key == "fill_byte") {
+        args.push_back("--fill-byte");
+    } else if (key == "pattern") {
+        args.push_back("--pattern");
+    } else if (key == "capture_backend") {
+        args.push_back("--capture-backend");
+    } else if (key == "input_backend") {
+        args.push_back("--input-backend");
+    } else if (key == "raw_framebuffer_file") {
+        args.push_back("--raw-framebuffer-file");
+    } else if (key == "max_updates") {
+        args.push_back("--max-updates");
+    } else if (key == "pid_file") {
+        args.push_back("--pid-file");
+    } else if (key == "status_file") {
+        args.push_back("--status-file");
+    } else if (key == "log_file") {
+        args.push_back("--log-file");
+    } else if (key == "serve_updates") {
+        if (value == "true" || value == "1" || value == "yes") {
+            args.push_back("--serve-updates");
+            return true;
+        }
+        if (value == "false" || value == "0" || value == "no") {
+            return true;
+        }
+        if (error) *error = "invalid boolean value for serve_updates";
+        return false;
+    } else if (key == "serve_forever") {
+        if (value == "true" || value == "1" || value == "yes") {
+            args.push_back("--serve-forever");
+            return true;
+        }
+        if (value == "false" || value == "0" || value == "no") {
+            return true;
+        }
+        if (error) *error = "invalid boolean value for serve_forever";
+        return false;
+    } else {
+        if (error) *error = "unknown config key: " + key;
+        return false;
+    }
+
+    if (value.empty()) {
+        if (error) *error = "empty value for config key: " + key;
+        return false;
+    }
+    args.push_back(value);
+    return true;
+}
+
+bool AppendConfigFileArgs(const std::string& path, std::vector<std::string>& args, std::string *error)
+{
+    std::ifstream input(path.c_str());
+    if (!input) {
+        if (error) *error = "cannot open config file: " + path;
+        return false;
+    }
+
+    std::string line;
+    unsigned int lineNumber = 0;
+    while (std::getline(input, line)) {
+        lineNumber += 1;
+        const std::size_t comment = line.find('#');
+        if (comment != std::string::npos) {
+            line = line.substr(0, comment);
+        }
+        line = Trim(line);
+        if (line.empty()) {
+            continue;
+        }
+        const std::size_t equals = line.find('=');
+        if (equals == std::string::npos) {
+            if (error) {
+                std::ostringstream out;
+                out << "invalid config line " << lineNumber << ": expected key=value";
+                *error = out.str();
+            }
+            return false;
+        }
+        const std::string key = Trim(line.substr(0, equals));
+        const std::string value = Trim(line.substr(equals + 1));
+        if (!AddConfigOption(key, value, args, error)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool BuildMergedArgsWithConfig(int argc, char **argv, std::vector<std::string>& merged, std::string *error)
+{
+    merged.clear();
+    merged.push_back(argv[0]);
+
+    for (int i = 1; i < argc; ++i) {
+        const std::string arg(argv[i]);
+        if (arg == "--config") {
+            if (i + 1 >= argc) {
+                if (error) *error = "missing --config value";
+                return false;
+            }
+            if (!AppendConfigFileArgs(argv[++i], merged, error)) {
+                return false;
+            }
+        }
+    }
+
+    for (int i = 1; i < argc; ++i) {
+        const std::string arg(argv[i]);
+        if (arg == "--config") {
+            ++i;
+            continue;
+        }
+        merged.push_back(arg);
+    }
+    return true;
+}
+
 bool ParseUnsigned(const char *value, unsigned int min, unsigned int max, unsigned int& out)
 {
     if (!value || !*value) {
@@ -130,7 +308,7 @@ bool ParseUnsigned(const char *value, unsigned int min, unsigned int max, unsign
     return true;
 }
 
-bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& captureBackend, InputBackend& inputBackend, std::string& rawFramebufferFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& smokeX11UpdateTest, bool& smokePipeWireAvailabilityTest, bool& smokeXTestAvailabilityTest, bool& smokeXTestInputTest, bool& allowInputInjection, bool& serveUpdates, bool& serveForever, unsigned int& maxUpdates, std::string& pidFile, std::string& statusFile, std::string& logFile)
+bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& captureBackend, InputBackend& inputBackend, std::string& rawFramebufferFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& smokeX11UpdateTest, bool& smokeX11AvailabilityTest, bool& smokePipeWireAvailabilityTest, bool& smokeXTestAvailabilityTest, bool& smokeXTestInputTest, bool& allowInputInjection, bool& serveUpdates, bool& serveForever, unsigned int& maxUpdates, std::string& pidFile, std::string& statusFile, std::string& logFile)
 {
     validateOnly = false;
     printConfig = false;
@@ -139,6 +317,7 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
     smokeMultiUpdateTest = false;
     smokeRawFileUpdateTest = false;
     smokeX11UpdateTest = false;
+    smokeX11AvailabilityTest = false;
     smokePipeWireAvailabilityTest = false;
     smokeXTestAvailabilityTest = false;
     smokeXTestInputTest = false;
@@ -181,6 +360,8 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
             smokeX11UpdateTest = true;
             config.SetBindAddress("127.0.0.1");
             config.SetPort(0);
+        } else if (arg == "--smoke-x11-availability-test") {
+            smokeX11AvailabilityTest = true;
         } else if (arg == "--smoke-pipewire-availability-test") {
             smokePipeWireAvailabilityTest = true;
         } else if (arg == "--smoke-xtest-availability-test") {
@@ -304,11 +485,6 @@ bool RunMemoryServerClientHandshake(TcpSocket& client, const ServerConfig& confi
 
 bool RunSmokeTest(const ServerConfig& config)
 {
-    if (!WriteTextFile(statusFile, "starting\n")) {
-        std::cerr << "failed to write status file: " << statusFile << "\n";
-        return 1;
-    }
-
     MemoryServer server;
     if (!server.Start(config)) {
         std::cerr << "failed to start memory server smoke test\n";
@@ -568,6 +744,18 @@ bool RunSmokeX11UpdateTest(const ServerConfig& config)
     return clientOk && serverOk;
 }
 
+int RunSmokeX11AvailabilityTest()
+{
+    const bool buildAvailable = X11DesktopSource::IsBuildAvailable();
+    const bool runtimeAvailable = X11DesktopSource::IsAvailable();
+    std::cout << "x11-build-available=" << (buildAvailable ? "yes" : "no") << "\n";
+    std::cout << "x11-runtime-available=" << (runtimeAvailable ? "yes" : "no") << "\n";
+    std::cout << "x11-xshm-build-available=" << (X11DesktopSource::IsXShmBuildAvailable() ? "yes" : "no") << "\n";
+    std::cout << "x11-xshm-runtime-available=" << (X11DesktopSource::IsXShmRuntimeAvailable() ? "yes" : "no") << "\n";
+    std::cout << "x11-unavailable-reason=" << (runtimeAvailable ? "" : X11DesktopSource::UnavailableReason()) << "\n";
+    return 0;
+}
+
 int RunSmokePipeWireAvailabilityTest()
 {
     std::string reason;
@@ -632,6 +820,7 @@ int main(int argc, char **argv)
     bool smokeMultiUpdateTest = false;
     bool smokeRawFileUpdateTest = false;
     bool smokeX11UpdateTest = false;
+    bool smokeX11AvailabilityTest = false;
     bool smokePipeWireAvailabilityTest = false;
     bool smokeXTestAvailabilityTest = false;
     bool smokeXTestInputTest = false;
@@ -653,24 +842,17 @@ int main(int argc, char **argv)
         mergedArgv.push_back(&mergedArgs[i][0]);
     }
 
-    if (!ParseArgs(static_cast<int>(mergedArgv.size()), mergedArgv.data(), config, captureBackend, inputBackend, rawFramebufferFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, smokePipeWireAvailabilityTest, smokeXTestAvailabilityTest, smokeXTestInputTest, allowInputInjection, serveUpdates, serveForever, maxUpdates, pidFile, statusFile, logFile)) {
+    if (!ParseArgs(static_cast<int>(mergedArgv.size()), mergedArgv.data(), config, captureBackend, inputBackend, rawFramebufferFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, smokeX11AvailabilityTest, smokePipeWireAvailabilityTest, smokeXTestAvailabilityTest, smokeXTestInputTest, allowInputInjection, serveUpdates, serveForever, maxUpdates, pidFile, statusFile, logFile)) {
         return 2;
     }
 
-    std::ofstream logStream;
-    if (!logFile.empty()) {
-        logStream.open(logFile.c_str(), std::ios::app);
-        if (!logStream) {
-            std::cerr << "invalid config: cannot open log file: " << logFile << "\n";
-            return 2;
-        }
-        std::cout.rdbuf(logStream.rdbuf());
-        std::cerr.rdbuf(logStream.rdbuf());
-    }
     InstallStopSignalHandlers();
     if (!config.Validate(&error)) {
         std::cerr << "invalid config: " << error << "\n";
         return 2;
+    }
+    if (smokeX11AvailabilityTest) {
+        return RunSmokeX11AvailabilityTest();
     }
     if (smokePipeWireAvailabilityTest) {
         return RunSmokePipeWireAvailabilityTest();
@@ -715,6 +897,22 @@ int main(int argc, char **argv)
     XTestRfbInputSink xtestInputSink;
     RfbInputSink *inputSink = resolvedInputBackend == InputBackend::XTest ? &xtestInputSink : nullptr;
 
+    std::ofstream logStream;
+    if (!logFile.empty()) {
+        logStream.open(logFile.c_str(), std::ios::app);
+        if (!logStream) {
+            std::cerr << "invalid config: cannot open log file: " << logFile << "\n";
+            return 2;
+        }
+        std::cout.rdbuf(logStream.rdbuf());
+        std::cerr.rdbuf(logStream.rdbuf());
+    }
+
+    if (!WriteTextFile(statusFile, "starting\n")) {
+        std::cerr << "failed to write status file: " << statusFile << "\n";
+        return 1;
+    }
+
     MemoryServer server;
     X11DesktopSource x11Source;
     DesktopSource *liveSource = nullptr;
@@ -730,7 +928,7 @@ int main(int argc, char **argv)
         Framebuffer framebuffer;
         rfb::Region2D changed;
         if (!x11Source.Snapshot(framebuffer, changed)) {
-            std::cerr << "failed to capture X11 framebuffer: " << X11DesktopSource::UnavailableReason() << "\n";
+            std::cerr << "failed to capture X11 framebuffer: " << x11Source.LastError() << "\n";
             return 1;
         }
         const ServerConfig capturedConfig = ConfigForCapturedFramebuffer(config, framebuffer);

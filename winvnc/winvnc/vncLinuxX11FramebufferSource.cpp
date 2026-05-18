@@ -203,7 +203,8 @@ X11DesktopSource::X11DesktopSource(const std::string& displayName)
       display_(nullptr),
       root_(0),
       screen_(0),
-      initialized_(false)
+      initialized_(false),
+      lastError_()
 {
     std::memset(&format_, 0, sizeof(format_));
 }
@@ -216,7 +217,8 @@ X11DesktopSource::X11DesktopSource(unsigned int width, unsigned int height, cons
       display_(nullptr),
       root_(0),
       screen_(0),
-      initialized_(false)
+      initialized_(false),
+      lastError_()
 {
 }
 
@@ -243,7 +245,9 @@ rfbPixelFormat X11DesktopSource::Format() const
 bool X11DesktopSource::Snapshot(portable::Framebuffer& destination, rfb::Region2D& changed)
 {
 #if defined(UVNC_HAVE_X11)
-    if (!Initialize()) {
+    std::string initError;
+    if (!Initialize(&initError)) {
+        lastError_ = initError.empty() ? UnavailableReason() : initError;
         destination.Clear();
         changed.clear();
         return false;
@@ -276,6 +280,7 @@ bool X11DesktopSource::Snapshot(portable::Framebuffer& destination, rfb::Region2
         }
     }
     if (image == nullptr) {
+        lastError_ = "XGetImage failed for the X11 root window";
         destination.Clear();
         changed.clear();
         return false;
@@ -284,11 +289,15 @@ bool X11DesktopSource::Snapshot(portable::Framebuffer& destination, rfb::Region2
     bool ok = CopyImageToFramebuffer(image, width_, height_, destination, changed);
     if (ok) {
         format_ = PixelFormatFromImage(image);
+        lastError_.clear();
+    } else {
+        lastError_ = "failed to copy X11 image into the portable framebuffer";
     }
 
     XDestroyImage(image);
     return ok;
 #else
+    lastError_ = UnavailableReason();
     destination.Clear();
     changed.clear();
     return false;
@@ -397,6 +406,7 @@ bool X11DesktopSource::Initialize(std::string *error)
         format_ = PixelFormatFromImage(probe);
         XDestroyImage(probe);
     }
+    lastError_.clear();
     if (error) error->clear();
     return true;
 #else

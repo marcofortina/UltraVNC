@@ -26,6 +26,7 @@ public:
     rfb::Rect Size() const override;
     rfbPixelFormat Format() const override;
     bool Snapshot(portable::Framebuffer& destination, rfb::Region2D& changed) override;
+    const std::string& LastError() const { return lastError_; }
 
     static bool IsBuildAvailable();
     static bool IsAvailable(const std::string& displayName = std::string());
@@ -44,6 +45,7 @@ private:
     unsigned long root_;
     int screen_;
     bool initialized_;
+    std::string lastError_;
 };
 
 } // namespace linuxfb

@@ -71,6 +71,9 @@ if(BUILD_TESTING)
     add_test(NAME winvnc_memory_server_x11_capture_backend_cli_smoke COMMAND "${CMAKE_SOURCE_DIR}/tests/winvnc_x11_capture_backend_cli_smoke.sh" $<TARGET_FILE:uvnc_winvnc_memory_server>)
     set_tests_properties(winvnc_memory_server_x11_capture_backend_cli_smoke PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
 
+    add_test(NAME winvnc_memory_server_x11_availability COMMAND uvnc_winvnc_memory_server --smoke-x11-availability-test)
+    set_tests_properties(winvnc_memory_server_x11_availability PROPERTIES LABELS "native-linux;winvnc-memory-server;linux-server-real" TIMEOUT 5)
+
     add_test(NAME winvnc_memory_server_xtest_availability COMMAND uvnc_winvnc_memory_server --smoke-xtest-availability-test)
     set_tests_properties(winvnc_memory_server_xtest_availability PROPERTIES LABELS "native-linux;winvnc-memory-server;linux-input" TIMEOUT 5)
 
