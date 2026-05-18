@@ -48,10 +48,12 @@ Implemented in this milestone:
 - Portable viewer configuration parsing.
 - CLI validation and smoke mode.
 - Offscreen Qt event-loop smoke.
+- Qt framebuffer surface widget with deterministic synthetic pixels.
+- Local keyboard and pointer event handling inside the Qt surface.
 
 Not implemented in this milestone:
 
 - RFB network session ownership by the Qt viewer.
-- Framebuffer display widget.
-- Keyboard/pointer forwarding.
+- RFB-backed framebuffer updates from a remote server.
+- Keyboard/pointer forwarding to a remote server.
 - Clipboard and file transfer.
