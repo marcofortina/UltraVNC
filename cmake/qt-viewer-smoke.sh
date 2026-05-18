@@ -24,7 +24,7 @@ if ! cmake --build "$build_dir" --target help | grep -q '^uvnc_qt_viewer:'; then
   exit 0
 fi
 
-cmake --build "$build_dir" --target uvnc_qt_viewer -j"$(nproc)"
+cmake --build "$build_dir" --target uvnc_qt_viewer vncviewer_qt_surface_smoke -j"$(nproc)"
 ctest --test-dir "$build_dir" --output-on-failure -R '^vncviewer_qt_(smoke|surface_smoke)$'
 cmake --install "$build_dir" --prefix "$install_prefix"
 
