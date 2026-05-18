@@ -8,6 +8,7 @@
 
 #include "vncLinuxCaptureBackend.h"
 #include "vncLinuxFramebufferSource.h"
+#include "vncLinuxPipeWirePortalCapture.h"
 #include "vncLinuxX11FramebufferSource.h"
 #include "vncPortableFramebufferPattern.h"
 #include "vncPortableMemoryServer.h"
@@ -26,6 +27,8 @@ using uvnc::winvnc::portable::ServerConfig;
 using uvnc::winvnc::linuxfb::CaptureBackend;
 using uvnc::winvnc::linuxfb::CaptureBackendName;
 using uvnc::winvnc::linuxfb::LoadRawFramebufferFile;
+using uvnc::winvnc::linuxfb::PipeWirePortalCaptureBackend;
+using uvnc::winvnc::linuxfb::PipeWirePortalRuntimeState;
 using uvnc::winvnc::linuxfb::ParseCaptureBackendName;
 using uvnc::winvnc::linuxfb::ResolveCaptureBackend;
 using uvnc::winvnc::linuxfb::X11DesktopSource;
@@ -63,6 +66,7 @@ void PrintUsage(const char *name)
               << "  --smoke-multi-update-test Start on loopback, request multiple raw framebuffer updates, and exit\n"
               << "  --smoke-raw-file-update-test Start on loopback using a raw framebuffer file, request one update, and exit\n"
               << "  --smoke-x11-update-test Start on loopback using an X11 snapshot, request one update, and exit\n"
+              << "  --smoke-pipewire-availability-test Print PipeWire/XDG portal runtime availability and exit\n"
               << "  --max-updates <count>  Number of updates for multi-update smoke/serve mode, default 3\n"
               << "  --serve-updates        Serve one client through --max-updates framebuffer updates\n"
               << "  --help                  Show this help\n";
@@ -82,7 +86,7 @@ bool ParseUnsigned(const char *value, unsigned int min, unsigned int max, unsign
     return true;
 }
 
-bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& captureBackend, std::string& rawFramebufferFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& smokeX11UpdateTest, bool& serveUpdates, unsigned int& maxUpdates)
+bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& captureBackend, std::string& rawFramebufferFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& smokeX11UpdateTest, bool& smokePipeWireAvailabilityTest, bool& serveUpdates, unsigned int& maxUpdates)
 {
     validateOnly = false;
     printConfig = false;
@@ -91,6 +95,7 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
     smokeMultiUpdateTest = false;
     smokeRawFileUpdateTest = false;
     smokeX11UpdateTest = false;
+    smokePipeWireAvailabilityTest = false;
     serveUpdates = false;
     maxUpdates = 3;
     captureBackend = CaptureBackend::Auto;
@@ -124,6 +129,8 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
             smokeX11UpdateTest = true;
             config.SetBindAddress("127.0.0.1");
             config.SetPort(0);
+        } else if (arg == "--smoke-pipewire-availability-test") {
+            smokePipeWireAvailabilityTest = true;
         } else if (arg == "--serve-updates") {
             serveUpdates = true;
         } else if (arg == "--max-updates" && i + 1 < argc) {
@@ -468,6 +475,15 @@ bool RunSmokeX11UpdateTest(const ServerConfig& config)
     return clientOk && serverOk;
 }
 
+int RunSmokePipeWireAvailabilityTest()
+{
+    std::string reason;
+    const PipeWirePortalRuntimeState state = PipeWirePortalCaptureBackend::RuntimeState(&reason);
+    std::cout << "pipewire-portal-runtime=" << PipeWirePortalCaptureBackend::RuntimeStateName(state) << "\n";
+    std::cout << "pipewire-portal-reason=" << reason << "\n";
+    return 0;
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -483,15 +499,19 @@ int main(int argc, char **argv)
     bool smokeMultiUpdateTest = false;
     bool smokeRawFileUpdateTest = false;
     bool smokeX11UpdateTest = false;
+    bool smokePipeWireAvailabilityTest = false;
     bool serveUpdates = false;
     unsigned int maxUpdates = 3;
-    if (!ParseArgs(argc, argv, config, captureBackend, rawFramebufferFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, serveUpdates, maxUpdates)) {
+    if (!ParseArgs(argc, argv, config, captureBackend, rawFramebufferFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, smokePipeWireAvailabilityTest, serveUpdates, maxUpdates)) {
         return 2;
     }
     std::string error;
     if (!config.Validate(&error)) {
         std::cerr << "invalid config: " << error << "\n";
         return 2;
+    }
+    if (smokePipeWireAvailabilityTest) {
+        return RunSmokePipeWireAvailabilityTest();
     }
     if (!ResolveCaptureBackend(captureBackend, !rawFramebufferFile.empty(), resolvedCaptureBackend, &error)) {
         std::cerr << "invalid capture backend: " << error << "\n";
