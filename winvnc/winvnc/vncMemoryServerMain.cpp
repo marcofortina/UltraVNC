@@ -22,8 +22,10 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <thread>
+#include <vector>
 
 using uvnc::winvnc::portable::ServerConfig;
 using uvnc::winvnc::linuxfb::CaptureBackend;
@@ -87,6 +89,7 @@ void PrintUsage(const char *name)
               << "  --capture-backend <name> Capture backend: auto, memory, raw-file, x11, pipewire\n"
               << "  --input-backend <name> Input backend: auto, none, xtest\n"
               << "  --raw-framebuffer-file <path> Serve exact-size raw framebuffer file instead of synthetic pattern\n"
+              << "  --config <path>         Load key=value server runtime config before CLI overrides\n"
               << "  --validate-config       Validate options and exit\n"
               << "  --print-config          Print resolved configuration and exit\n"
               << "  --smoke-test            Start on loopback, complete one RFB handshake, and exit\n"
@@ -102,7 +105,7 @@ void PrintUsage(const char *name)
               << "  --serve-updates        Serve one client through --max-updates framebuffer updates\n"
               << "  --help                  Show this help\n";
 }
-
+\nstd::string Trim(const std::string& value)\n{\n    const std::string whitespace = " \t\r\n";\n    const std::size_t begin = value.find_first_not_of(whitespace);\n    if (begin == std::string::npos) {\n        return std::string();\n    }\n    const std::size_t end = value.find_last_not_of(whitespace);\n    return value.substr(begin, end - begin + 1);\n}\n\nbool AddConfigOption(const std::string& key, const std::string& value, std::vector<std::string>& args, std::string *error)\n{\n    if (key == "bind_address") {\n        args.push_back("--bind-address");\n    } else if (key == "port") {\n        args.push_back("--port");\n    } else if (key == "width") {\n        args.push_back("--width");\n    } else if (key == "height") {\n        args.push_back("--height");\n    } else if (key == "name") {\n        args.push_back("--name");\n    } else if (key == "fill_byte") {\n        args.push_back("--fill-byte");\n    } else if (key == "pattern") {\n        args.push_back("--pattern");\n    } else if (key == "capture_backend") {\n        args.push_back("--capture-backend");\n    } else if (key == "input_backend") {\n        args.push_back("--input-backend");\n    } else if (key == "raw_framebuffer_file") {\n        args.push_back("--raw-framebuffer-file");\n    } else if (key == "max_updates") {\n        args.push_back("--max-updates");\n    } else if (key == "serve_updates") {\n        if (value == "true" || value == "1" || value == "yes") {\n            args.push_back("--serve-updates");\n            return true;\n        }\n        if (value == "false" || value == "0" || value == "no") {\n            return true;\n        }\n        if (error) *error = "invalid boolean value for serve_updates";\n        return false;\n    } else {\n        if (error) *error = "unknown config key: " + key;\n        return false;\n    }\n\n    if (value.empty()) {\n        if (error) *error = "empty value for config key: " + key;\n        return false;\n    }\n    args.push_back(value);\n    return true;\n}\n\nbool AppendConfigFileArgs(const std::string& path, std::vector<std::string>& args, std::string *error)\n{\n    std::ifstream input(path.c_str());\n    if (!input) {\n        if (error) *error = "cannot open config file: " + path;\n        return false;\n    }\n\n    std::string line;\n    unsigned int lineNumber = 0;\n    while (std::getline(input, line)) {\n        lineNumber += 1;\n        const std::size_t comment = line.find('#');\n        if (comment != std::string::npos) {\n            line = line.substr(0, comment);\n        }\n        line = Trim(line);\n        if (line.empty()) {\n            continue;\n        }\n        const std::size_t equals = line.find('=');\n        if (equals == std::string::npos) {\n            if (error) {\n                std::ostringstream out;\n                out << "invalid config line " << lineNumber << ": expected key=value";\n                *error = out.str();\n            }\n            return false;\n        }\n        const std::string key = Trim(line.substr(0, equals));\n        const std::string value = Trim(line.substr(equals + 1));\n        if (!AddConfigOption(key, value, args, error)) {\n            return false;\n        }\n    }\n    return true;\n}\n\nbool BuildMergedArgsWithConfig(int argc, char **argv, std::vector<std::string>& merged, std::string *error)\n{\n    merged.clear();\n    merged.push_back(argv[0]);\n\n    for (int i = 1; i < argc; ++i) {\n        const std::string arg(argv[i]);\n        if (arg == "--config") {\n            if (i + 1 >= argc) {\n                if (error) *error = "missing --config value";\n                return false;\n            }\n            if (!AppendConfigFileArgs(argv[++i], merged, error)) {\n                return false;\n            }\n        }\n    }\n\n    for (int i = 1; i < argc; ++i) {\n        const std::string arg(argv[i]);\n        if (arg == "--config") {\n            ++i;\n            continue;\n        }\n        merged.push_back(arg);\n    }\n    return true;\n}\n
 bool ParseUnsigned(const char *value, unsigned int min, unsigned int max, unsigned int& out)
 {
     if (!value || !*value) {
@@ -603,10 +606,20 @@ int main(int argc, char **argv)
     bool allowInputInjection = false;
     bool serveUpdates = false;
     unsigned int maxUpdates = 3;
-    if (!ParseArgs(argc, argv, config, captureBackend, inputBackend, rawFramebufferFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, smokePipeWireAvailabilityTest, smokeXTestAvailabilityTest, smokeXTestInputTest, allowInputInjection, serveUpdates, maxUpdates)) {
+    std::string error;
+    std::vector<std::string> mergedArgs;
+    if (!BuildMergedArgsWithConfig(argc, argv, mergedArgs, &error)) {
+        std::cerr << "invalid config: " << error << "\n";
         return 2;
     }
-    std::string error;
+    std::vector<char *> mergedArgv;
+    for (std::size_t i = 0; i < mergedArgs.size(); ++i) {
+        mergedArgv.push_back(&mergedArgs[i][0]);
+    }
+
+    if (!ParseArgs(static_cast<int>(mergedArgv.size()), mergedArgv.data(), config, captureBackend, inputBackend, rawFramebufferFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, smokePipeWireAvailabilityTest, smokeXTestAvailabilityTest, smokeXTestInputTest, allowInputInjection, serveUpdates, maxUpdates)) {
+        return 2;
+    }
     if (!config.Validate(&error)) {
         std::cerr << "invalid config: " << error << "\n";
         return 2;
