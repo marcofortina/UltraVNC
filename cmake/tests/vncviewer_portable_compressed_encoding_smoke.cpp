@@ -45,6 +45,11 @@ std::vector<CARD8> Pixel(CARD8 value)
     return std::vector<CARD8>{value, static_cast<CARD8>(value + 1), static_cast<CARD8>(value + 2), 0xff};
 }
 
+std::vector<CARD8> CompactPixel(CARD8 value)
+{
+    return std::vector<CARD8>{value, static_cast<CARD8>(value + 1), static_cast<CARD8>(value + 2)};
+}
+
 std::vector<CARD8> Solid(CARD8 value, unsigned int width, unsigned int height)
 {
     const std::vector<CARD8> pixel = Pixel(value);
@@ -193,7 +198,7 @@ int main()
     assert(RunOneServer(rfbEncodingZRLE, [](TcpSocket& client) {
         std::vector<CARD8> zrle;
         zrle.push_back(1); // one solid tile
-        const std::vector<CARD8> color = Pixel(0x80);
+        const std::vector<CARD8> color = CompactPixel(0x80);
         zrle.insert(zrle.end(), color.begin(), color.end());
         const std::vector<CARD8> compressed = Compress(zrle);
         rfbZRLEHeader header;
