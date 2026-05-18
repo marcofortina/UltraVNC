@@ -137,6 +137,7 @@ allow_no_auth=true
 max_updates=1
 serve_forever=true
 EOF_CONFIG
+chmod 600 "${CONFIG_FILE}"
 
 "${BIN}" \
   --config "${CONFIG_FILE}" \
