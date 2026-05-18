@@ -30,7 +30,8 @@ jobs:
             libpipewire-0.3-dev \
             libdbus-1-dev \
             libxtst-dev \
-            libxi-dev
+            libxi-dev \
+            qt6-base-dev
 
       - name: Repeater Linux closure smoke
         run: |
@@ -72,4 +73,10 @@ jobs:
         run: |
           cmake/linux-server-integration-smoke.sh \
             /tmp/uvnc-linux-server-integration-build \
+            /tmp/uvnc-linux-closure-install
+
+      - name: Native Linux Qt viewer smoke
+        run: |
+          cmake/qt-viewer-smoke.sh \
+            /tmp/uvnc-qt-viewer-build \
             /tmp/uvnc-linux-closure-install
