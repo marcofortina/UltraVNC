@@ -16,6 +16,7 @@ endif()
 
 add_executable(uvnc_qt_viewer
     "${CMAKE_SOURCE_DIR}/../vncviewer/qtviewer/vncQtViewerMain.cpp"
+    "${CMAKE_SOURCE_DIR}/../vncviewer/qtviewer/vncQtViewerSurface.cpp"
     "${CMAKE_SOURCE_DIR}/../vncviewer/vncPortableViewerConfig.cpp"
     "${CMAKE_SOURCE_DIR}/../vncviewer/vncPortableViewerCli.cpp"
 )
