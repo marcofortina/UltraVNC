@@ -1210,15 +1210,38 @@ bool ReadHextileRectPayload(TcpSocket& socket,
                 SetError(error, "failed to read RFB Hextile subencoding");
                 return false;
             }
-            if (subencoding & (rfbHextileZlibRaw | rfbHextileZlibHex | rfbHextileZlibMono)) {
-                SetError(error, "unsupported RFB ZlibHex tile subencoding");
+            if (subencoding & (rfbHextileZlibHex | rfbHextileZlibMono)) {
+                SetError(error, "unsupported RFB ZlibHex encoded tile variant");
                 return false;
             }
-            if (subencoding & rfbHextileRaw) {
-                std::vector<CARD8> raw(static_cast<std::size_t>(tileWidth) * tileHeight * bytesPerPixel);
-                if (!socket.ReadExact(raw.data(), raw.size())) {
-                    SetError(error, "failed to read RFB Hextile raw tile");
-                    return false;
+            if (subencoding & (rfbHextileRaw | rfbHextileZlibRaw)) {
+                const std::size_t rawSize = static_cast<std::size_t>(tileWidth) * tileHeight * bytesPerPixel;
+                std::vector<CARD8> raw;
+                if (subencoding & rfbHextileZlibRaw) {
+                    CARD16 compressedLength = 0;
+                    if (!socket.ReadExact(&compressedLength, sizeof(compressedLength))) {
+                        SetError(error, "failed to read RFB ZlibHex raw tile length");
+                        return false;
+                    }
+                    compressedLength = Swap16IfLE(compressedLength);
+                    std::vector<CARD8> compressed(compressedLength);
+                    if (compressedLength > 0 && !socket.ReadExact(compressed.data(), compressed.size())) {
+                        SetError(error, "failed to read RFB ZlibHex raw tile payload");
+                        return false;
+                    }
+                    raw.assign(rawSize, 0);
+                    uLongf outputSize = static_cast<uLongf>(raw.size());
+                    const int rc = uncompress(raw.data(), &outputSize, compressed.data(), static_cast<uLong>(compressed.size()));
+                    if (rc != Z_OK || outputSize != raw.size()) {
+                        SetError(error, "failed to decompress RFB ZlibHex raw tile");
+                        return false;
+                    }
+                } else {
+                    raw.assign(rawSize, 0);
+                    if (!socket.ReadExact(raw.data(), raw.size())) {
+                        SetError(error, "failed to read RFB Hextile raw tile");
+                        return false;
+                    }
                 }
                 for (unsigned int row = 0; row < tileHeight; ++row) {
                     const std::size_t src = static_cast<std::size_t>(row) * tileWidth * bytesPerPixel;
