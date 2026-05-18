@@ -62,6 +62,7 @@ int main()
     assert(error.empty());
     assert(session.SendKeyEvent(0xff0d, false, &error));
     assert(session.SendPointerEvent(1, 3, 4, &error));
+    assert(session.SendClientCutText("qt-clipboard", &error));
 
     assert(session.RequestFramebufferUpdate(false, result, &error));
     assert(result.update.received);
@@ -79,11 +80,14 @@ int main()
     assert(serverOk);
     assert(stats.keyEvents == 2);
     assert(stats.pointerEvents == 1);
+    assert(stats.clientCutTextMessages == 1);
     assert(stats.framebufferUpdatesSent == 2);
     assert(state.KeyEventCount() == 2);
     assert(state.LastKeyEvent().keysym == 0xff0d);
     assert(!state.LastKeyEvent().down);
     assert(state.PointerEventCount() == 1);
+    assert(state.ClientCutTextMessages() == 1);
+    assert(state.ClientCutTextBytes() == 12);
     assert(state.LastPointerEvent().buttonMask == 1);
     assert(state.LastPointerEvent().x == 3);
     assert(state.LastPointerEvent().y == 4);
