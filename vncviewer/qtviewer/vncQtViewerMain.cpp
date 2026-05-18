@@ -22,6 +22,7 @@
 #include <vector>
 
 using uvnc::vncviewer::portable::ParseViewerCli;
+using uvnc::vncviewer::portable::PersistentViewerSession;
 using uvnc::vncviewer::portable::ViewerCliOptions;
 using uvnc::vncviewer::portable::ViewerCliUsage;
 using uvnc::vncviewer::portable::ViewerSession;
@@ -183,7 +184,7 @@ int RunPersistentInputSmoke(const ViewerCliOptions& options)
     }
 
     std::cout << "persistent-input " << result.width << "x" << result.height
-              << " name="" << result.desktopName << """
+              << " name=\"" << result.desktopName << "\""
               << " update=" << result.update.width << "x" << result.update.height
               << " bytes=" << result.update.pixels.size() << "\n";
     return 0;

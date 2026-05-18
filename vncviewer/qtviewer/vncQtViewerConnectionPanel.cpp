@@ -22,7 +22,6 @@
 #include <QVBoxLayout>
 
 #include <string>
-#include <rfb/rfbproto.h>
 #include <vector>
 
 namespace uvnc {
