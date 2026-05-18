@@ -19,7 +19,7 @@ int main()
     std::string error;
 
     assert(ResolveCaptureBackend(CaptureBackend::Auto, false, resolved, &error));
-    assert((resolved == CaptureBackend::Memory) || (resolved == CaptureBackend::X11));
+    assert((resolved == CaptureBackend::Memory) || (resolved == CaptureBackend::X11) || (resolved == CaptureBackend::PipeWire));
     assert(error.empty());
 
     assert(ResolveCaptureBackend(CaptureBackend::Auto, true, resolved, &error));
@@ -41,6 +41,14 @@ int main()
     } else {
         assert(ResolveCaptureBackend(CaptureBackend::X11, false, resolved, &error));
         assert(resolved == CaptureBackend::X11);
+    }
+
+    if (!IsCaptureBackendRuntimeAvailable(CaptureBackend::PipeWire, false)) {
+        assert(!ResolveCaptureBackend(CaptureBackend::PipeWire, false, resolved, &error));
+        assert(error == "capture backend is not available: pipewire");
+    } else {
+        assert(ResolveCaptureBackend(CaptureBackend::PipeWire, false, resolved, &error));
+        assert(resolved == CaptureBackend::PipeWire);
     }
     return 0;
 }
