@@ -168,7 +168,7 @@ int RunConnectSmoke(const ViewerCliOptions& options)
 
 int RunPersistentInputSmoke(const ViewerCliOptions& options)
 {
-    PersistentViewerSession session;
+    uvnc::vncviewer::portable::PersistentViewerSession session;
     ViewerSessionResult result;
     std::string error;
     if (!session.Connect(options.config, result, &error)) {
