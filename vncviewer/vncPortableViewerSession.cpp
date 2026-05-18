@@ -292,12 +292,46 @@ bool ReadFramebufferUpdate(TcpSocket& socket,
                            std::string *error)
 {
     rfbFramebufferUpdateMsg update;
-    if (!socket.ReadExact(&update, sz_rfbFramebufferUpdateMsg)) {
-        SetError(error, "failed to read RFB framebuffer update header");
-        return false;
+    for (unsigned int messages = 0; messages < 64; ++messages) {
+        CARD8 type = 0;
+        if (!socket.ReadExact(&type, sizeof(type))) {
+            SetError(error, "failed to read RFB server message type");
+            return false;
+        }
+        if (type == rfbBell) {
+            result.bellCount += 1;
+            continue;
+        }
+        if (type == rfbServerCutText) {
+            rfbServerCutTextMsg cutText;
+            std::memset(&cutText, 0, sizeof(cutText));
+            cutText.type = type;
+            if (!socket.ReadExact(reinterpret_cast<char *>(&cutText) + sizeof(type), sz_rfbServerCutTextMsg - sizeof(type))) {
+                SetError(error, "failed to read RFB ServerCutText header");
+                return false;
+            }
+            const CARD32 length = Swap32IfLE(cutText.length);
+            result.serverCutText.assign(length, '\0');
+            if (length > 0 && !socket.ReadExact(&result.serverCutText[0], length)) {
+                SetError(error, "failed to read RFB ServerCutText payload");
+                return false;
+            }
+            continue;
+        }
+        if (type != rfbFramebufferUpdate) {
+            SetError(error, "unexpected RFB server message type");
+            return false;
+        }
+        std::memset(&update, 0, sizeof(update));
+        update.type = type;
+        if (!socket.ReadExact(reinterpret_cast<char *>(&update) + sizeof(type), sz_rfbFramebufferUpdateMsg - sizeof(type))) {
+            SetError(error, "failed to read RFB framebuffer update header");
+            return false;
+        }
+        break;
     }
     if (update.type != rfbFramebufferUpdate) {
-        SetError(error, "unexpected RFB framebuffer update header");
+        SetError(error, "RFB framebuffer update was not received");
         return false;
     }
 
@@ -383,6 +417,8 @@ ViewerSessionResult::ViewerSessionResult()
       height(0),
       format(),
       desktopName(),
+      serverCutText(),
+      bellCount(0),
       update(),
       rectangles()
 {

@@ -56,6 +56,8 @@ struct ViewerSessionResult {
     unsigned int height;
     rfbPixelFormat format;
     std::string desktopName;
+    std::string serverCutText;
+    unsigned int bellCount;
     ViewerFramebufferUpdate update;
     std::vector<ViewerFramebufferRect> rectangles;
 };
