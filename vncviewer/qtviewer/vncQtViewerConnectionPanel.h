@@ -53,6 +53,7 @@ private:
     QCheckBox *viewOnlyCheck_;
     QCheckBox *continuousCheck_;
     QCheckBox *autoReconnectCheck_;
+    QCheckBox *rememberPasswordCheck_;
     QSpinBox *intervalSpin_;
     QPushButton *connectButton_;
     QPushButton *updateButton_;

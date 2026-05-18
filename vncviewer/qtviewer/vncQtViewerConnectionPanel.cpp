@@ -147,6 +147,7 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
       viewOnlyCheck_(new QCheckBox(QStringLiteral("View only"))),
       continuousCheck_(new QCheckBox(QStringLiteral("Continuous updates"))),
       autoReconnectCheck_(new QCheckBox(QStringLiteral("Auto reconnect"))),
+      rememberPasswordCheck_(new QCheckBox(QStringLiteral("Remember password"))),
       intervalSpin_(new QSpinBox()),
       connectButton_(new QPushButton(QStringLiteral("Connect"))),
       updateButton_(new QPushButton(QStringLiteral("Update once"))),
@@ -169,6 +170,7 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     viewOnlyCheck_->setObjectName(QStringLiteral("viewOnlyCheck"));
     continuousCheck_->setObjectName(QStringLiteral("continuousCheck"));
     autoReconnectCheck_->setObjectName(QStringLiteral("autoReconnectCheck"));
+    rememberPasswordCheck_->setObjectName(QStringLiteral("rememberPasswordCheck"));
     intervalSpin_->setObjectName(QStringLiteral("intervalSpin"));
     clipboardEdit_->setObjectName(QStringLiteral("clipboardEdit"));
     sendClipboardButton_->setObjectName(QStringLiteral("sendClipboardButton"));
@@ -199,6 +201,7 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     options->addWidget(viewOnlyCheck_);
     options->addWidget(continuousCheck_);
     options->addWidget(autoReconnectCheck_);
+    options->addWidget(rememberPasswordCheck_);
 
     QHBoxLayout *buttons = new QHBoxLayout();
     buttons->addWidget(connectButton_);
@@ -294,7 +297,10 @@ void QtViewerConnectionPanel::LoadProfile()
     QSettings settings(QStringLiteral("UltraVNC"), QStringLiteral("QtViewer"));
     hostEdit_->setText(settings.value(QStringLiteral("host"), hostEdit_->text()).toString());
     portSpin_->setValue(settings.value(QStringLiteral("port"), portSpin_->value()).toInt());
-    passwordEdit_->setText(settings.value(QStringLiteral("password"), passwordEdit_->text()).toString());
+    rememberPasswordCheck_->setChecked(settings.value(QStringLiteral("rememberPassword"), false).toBool());
+    if (rememberPasswordCheck_->isChecked()) {
+        passwordEdit_->setText(settings.value(QStringLiteral("password"), passwordEdit_->text()).toString());
+    }
     sharedCheck_->setChecked(settings.value(QStringLiteral("shared"), sharedCheck_->isChecked()).toBool());
     viewOnlyCheck_->setChecked(settings.value(QStringLiteral("viewOnly"), viewOnlyCheck_->isChecked()).toBool());
     continuousCheck_->setChecked(settings.value(QStringLiteral("continuousUpdates"), continuousCheck_->isChecked()).toBool());
@@ -308,7 +314,12 @@ void QtViewerConnectionPanel::SaveProfile()
     QSettings settings(QStringLiteral("UltraVNC"), QStringLiteral("QtViewer"));
     settings.setValue(QStringLiteral("host"), hostEdit_->text());
     settings.setValue(QStringLiteral("port"), portSpin_->value());
-    settings.setValue(QStringLiteral("password"), passwordEdit_->text());
+    settings.setValue(QStringLiteral("rememberPassword"), rememberPasswordCheck_->isChecked());
+    if (rememberPasswordCheck_->isChecked()) {
+        settings.setValue(QStringLiteral("password"), passwordEdit_->text());
+    } else {
+        settings.remove(QStringLiteral("password"));
+    }
     settings.setValue(QStringLiteral("shared"), sharedCheck_->isChecked());
     settings.setValue(QStringLiteral("viewOnly"), viewOnlyCheck_->isChecked());
     settings.setValue(QStringLiteral("continuousUpdates"), continuousCheck_->isChecked());
