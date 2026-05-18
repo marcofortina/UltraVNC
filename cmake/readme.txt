@@ -146,6 +146,12 @@ UltraVNC/cmake/repeater-linux-smoke.sh /tmp/uvnc-repeater-linux-build /tmp/uvnc-
 UltraVNC/cmake/winvnc-portable-core-closure.sh /tmp/uvnc-winvnc-portable-core-build /tmp/uvnc-linux-closure-install
 UltraVNC/cmake/native-linux-closure-smoke.sh /tmp/uvnc-repeater-linux-build /tmp/uvnc-winvnc-portable-core-build /tmp/uvnc-linux-closure-install
 
+# Native Linux input backend smoke. This validates registry/selection and XTest
+# availability without injecting input. Live XTest injection is opt-in because it
+# affects the active X11 session.
+UltraVNC/cmake/linux-input-smoke.sh /tmp/uvnc-linux-input-build /tmp/uvnc-linux-input-install
+UVNC_RUN_XTEST_LIVE=1 UltraVNC/cmake/linux-input-smoke.sh /tmp/uvnc-linux-input-build /tmp/uvnc-linux-input-install
+
 # Native Linux porting status and strategy notes:
 # - docs/native-linux-porting-status.md
 # - docs/native-linux-milestone-closure.md
