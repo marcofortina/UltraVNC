@@ -28,7 +28,9 @@ jobs:
             libx11-dev \
             libxext-dev \
             libpipewire-0.3-dev \
-            libdbus-1-dev
+            libdbus-1-dev \
+            libxtst-dev \
+            libxi-dev
 
       - name: Repeater Linux closure smoke
         run: |
@@ -58,4 +60,10 @@ jobs:
         run: |
           cmake/pipewire-capture-smoke.sh \
             /tmp/uvnc-pipewire-capture-build \
+            /tmp/uvnc-linux-closure-install
+
+      - name: Linux input backend smoke
+        run: |
+          cmake/linux-input-smoke.sh \
+            /tmp/uvnc-linux-input-build \
             /tmp/uvnc-linux-closure-install
