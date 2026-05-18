@@ -31,7 +31,7 @@ test -x "${BIN}"
 "${BIN}" --smoke-x11-availability-test
 "${BIN}" --smoke-xtest-availability-test
 "${BIN}" --allow-no-auth --validate-config --capture-backend memory --input-backend none
-"${BIN}" --print-config --capture-backend auto --input-backend auto >/dev/null
+"${BIN}" --allow-no-auth --print-config --capture-backend auto --input-backend auto >/dev/null
 
 RUNTIME_LOG_SHUTDOWN_DIR="$(mktemp -d /tmp/uvnc-linux-server-log-shutdown.XXXXXX)"
 RUNTIME_LOG_SHUTDOWN_PID="${RUNTIME_LOG_SHUTDOWN_DIR}/server.pid"
@@ -47,7 +47,10 @@ cleanup_log_shutdown() {
 }
 trap cleanup_log_shutdown EXIT
 
+# This local shutdown smoke is loopback-only and intentionally opts into
+# no-auth lab mode so the security hardening remains explicit.
 "${BIN}" \
+  --allow-no-auth \
   --capture-backend memory \
   --input-backend none \
   --bind-address 127.0.0.1 \
@@ -124,11 +127,13 @@ cleanup() {
 trap cleanup EXIT
 
 cat > "${CONFIG_FILE}" <<EOF_CONFIG
+# Loopback-only live smoke: no-auth is explicit lab mode here.
 bind_address=127.0.0.1
 port=0
 name=uvnc-linux-real-runtime-smoke
 capture_backend=x11
 input_backend=none
+allow_no_auth=true
 max_updates=1
 serve_forever=true
 EOF_CONFIG
