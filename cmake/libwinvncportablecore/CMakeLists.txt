@@ -11,11 +11,19 @@
 project(libwinvncportablecore LANGUAGES CXX)
 
 option(ULTRAVNC_BUILD_LINUX_CAPTURE_X11 "Build native Linux X11 capture backend when X11 development files are available" ON)
+option(ULTRAVNC_BUILD_LINUX_CAPTURE_PIPEWIRE "Build native Linux PipeWire/XDG portal capture backend when development files are available" ON)
 
 find_package(ZLIB REQUIRED)
 find_package(JPEG REQUIRED)
 if(ULTRAVNC_BUILD_LINUX_CAPTURE_X11)
     find_package(X11 QUIET)
+endif()
+if(ULTRAVNC_BUILD_LINUX_CAPTURE_PIPEWIRE)
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(WINVNC_PIPEWIRE QUIET libpipewire-0.3)
+        pkg_check_modules(WINVNC_DBUS QUIET dbus-1)
+    endif()
 endif()
 find_package(zstd CONFIG QUIET)
 if(TARGET zstd::libzstd)
@@ -86,6 +94,11 @@ target_link_libraries(${PROJECT_NAME}
         librdr
         JPEG::JPEG
 )
+
+if(ULTRAVNC_BUILD_LINUX_CAPTURE_PIPEWIRE AND WINVNC_PIPEWIRE_FOUND AND WINVNC_DBUS_FOUND)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE UVNC_HAVE_PIPEWIRE_PORTAL=1)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${WINVNC_PIPEWIRE_INCLUDE_DIRS} ${WINVNC_DBUS_INCLUDE_DIRS})
+endif()
 
 if(ULTRAVNC_BUILD_LINUX_CAPTURE_X11 AND X11_FOUND)
     target_compile_definitions(${PROJECT_NAME} PRIVATE UVNC_HAVE_X11=1)
