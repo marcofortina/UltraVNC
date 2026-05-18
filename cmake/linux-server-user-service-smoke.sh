@@ -85,6 +85,8 @@ port=0
 name=uvnc-linux-user-service-smoke
 capture_backend=memory
 input_backend=none
+auth=none
+allow_no_auth=true
 max_updates=1
 serve_forever=true
 EOF_CONFIG
