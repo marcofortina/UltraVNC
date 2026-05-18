@@ -46,6 +46,7 @@ int main(int argc, char **argv)
     QCheckBox *shared = panel.findChild<QCheckBox *>("sharedCheck");
     QCheckBox *viewOnly = panel.findChild<QCheckBox *>("viewOnlyCheck");
     QCheckBox *continuous = panel.findChild<QCheckBox *>("continuousCheck");
+    QCheckBox *rememberPassword = panel.findChild<QCheckBox *>("rememberPasswordCheck");
     QCheckBox *autoReconnect = panel.findChild<QCheckBox *>("autoReconnectCheck");
     QSpinBox *interval = panel.findChild<QSpinBox *>("intervalSpin");
     QLineEdit *clipboard = panel.findChild<QLineEdit *>("clipboardEdit");
@@ -59,6 +60,7 @@ int main(int argc, char **argv)
     assert(shared && !shared->isChecked());
     assert(viewOnly && viewOnly->isChecked());
     assert(continuous && continuous->isChecked());
+    assert(rememberPassword && !rememberPassword->isChecked());
     assert(autoReconnect && !autoReconnect->isChecked());
     assert(interval && interval->value() == 750);
     assert(clipboard && clipboard->text().isEmpty());
