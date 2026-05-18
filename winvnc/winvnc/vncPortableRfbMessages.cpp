@@ -147,6 +147,32 @@ std::vector<CARD32> DecodeSetEncodingsPayload(const std::vector<CARD8>& payload)
     return encodings;
 }
 
+
+std::vector<CARD8> EncodeClientCutText(const std::string& text)
+{
+    rfbClientCutTextMsg header;
+    header.type = rfbClientCutText;
+    header.pad1 = 0;
+    header.pad2 = 0;
+    header.length = Swap32IfLE(static_cast<CARD32>(text.size()));
+
+    std::vector<CARD8> bytes(sz_rfbClientCutTextMsg + text.size());
+    std::memcpy(bytes.data(), &header, sz_rfbClientCutTextMsg);
+    if (!text.empty()) {
+        std::memcpy(bytes.data() + sz_rfbClientCutTextMsg, text.data(), text.size());
+    }
+    return bytes;
+}
+
+bool DecodeClientCutTextHeader(const rfbClientCutTextMsg& message, unsigned int& length)
+{
+    if (message.type != rfbClientCutText) {
+        return false;
+    }
+    length = Swap32IfLE(message.length);
+    return true;
+}
+
 } // namespace portable
 } // namespace winvnc
 } // namespace uvnc

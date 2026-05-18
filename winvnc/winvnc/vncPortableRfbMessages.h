@@ -11,6 +11,7 @@
 
 #include "rfb.h"
 
+#include <string>
 #include <vector>
 
 namespace uvnc {
@@ -48,6 +49,8 @@ rfbSetPixelFormatMsg EncodeSetPixelFormat(const rfbPixelFormat& format);
 bool DecodeSetEncodingsHeader(const rfbSetEncodingsMsg& message, unsigned int& count);
 std::vector<CARD8> EncodeSetEncodings(const std::vector<CARD32>& encodings);
 std::vector<CARD32> DecodeSetEncodingsPayload(const std::vector<CARD8>& payload);
+std::vector<CARD8> EncodeClientCutText(const std::string& text);
+bool DecodeClientCutTextHeader(const rfbClientCutTextMsg& message, unsigned int& length);
 
 } // namespace portable
 } // namespace winvnc
