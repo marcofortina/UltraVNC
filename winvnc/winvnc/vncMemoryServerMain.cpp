@@ -76,6 +76,8 @@ void PrintUsage(const char *name)
               << "  --smoke-x11-update-test Start on loopback using an X11 snapshot, request one update, and exit\n"
               << "  --smoke-pipewire-availability-test Print PipeWire/XDG portal runtime availability and exit\n"
               << "  --smoke-xtest-availability-test Print XTest input runtime availability and exit\n"
+              << "  --smoke-xtest-input-test Inject a minimal XTest key/pointer sequence when explicitly allowed\n"
+              << "  --allow-input-injection Allow live input injection smoke tests\n"
               << "  --max-updates <count>  Number of updates for multi-update smoke/serve mode, default 3\n"
               << "  --serve-updates        Serve one client through --max-updates framebuffer updates\n"
               << "  --help                  Show this help\n";
@@ -95,7 +97,7 @@ bool ParseUnsigned(const char *value, unsigned int min, unsigned int max, unsign
     return true;
 }
 
-bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& captureBackend, InputBackend& inputBackend, std::string& rawFramebufferFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& smokeX11UpdateTest, bool& smokePipeWireAvailabilityTest, bool& smokeXTestAvailabilityTest, bool& serveUpdates, unsigned int& maxUpdates)
+bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& captureBackend, InputBackend& inputBackend, std::string& rawFramebufferFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& smokeX11UpdateTest, bool& smokePipeWireAvailabilityTest, bool& smokeXTestAvailabilityTest, bool& smokeXTestInputTest, bool& allowInputInjection, bool& serveUpdates, unsigned int& maxUpdates)
 {
     validateOnly = false;
     printConfig = false;
@@ -106,6 +108,8 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
     smokeX11UpdateTest = false;
     smokePipeWireAvailabilityTest = false;
     smokeXTestAvailabilityTest = false;
+    smokeXTestInputTest = false;
+    allowInputInjection = false;
     serveUpdates = false;
     maxUpdates = 3;
     captureBackend = CaptureBackend::Auto;
@@ -144,6 +148,10 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
             smokePipeWireAvailabilityTest = true;
         } else if (arg == "--smoke-xtest-availability-test") {
             smokeXTestAvailabilityTest = true;
+        } else if (arg == "--smoke-xtest-input-test") {
+            smokeXTestInputTest = true;
+        } else if (arg == "--allow-input-injection") {
+            allowInputInjection = true;
         } else if (arg == "--serve-updates") {
             serveUpdates = true;
         } else if (arg == "--max-updates" && i + 1 < argc) {
@@ -512,6 +520,30 @@ int RunSmokeXTestAvailabilityTest()
     return 0;
 }
 
+int RunSmokeXTestInputTest(bool allowInputInjection)
+{
+    if (!allowInputInjection) {
+        std::cout << "Skipping live XTest input smoke because --allow-input-injection was not provided.\n";
+        return 0;
+    }
+    if (!XTestInputBackend::IsAvailable()) {
+        std::cout << "Skipping live XTest input smoke: " << XTestInputBackend::UnavailableReason() << "\n";
+        return 0;
+    }
+
+    XTestInputBackend input;
+    std::string error;
+    if (!input.InjectKeySym(0xffe3, false, &error)) { // XK_Control_L release, intentionally low-impact.
+        std::cerr << "XTest key injection smoke failed: " << error << "\n";
+        return 1;
+    }
+    if (!input.InjectPointer(0, 0, 0, &error)) {
+        std::cerr << "XTest pointer injection smoke failed: " << error << "\n";
+        return 1;
+    }
+    return 0;
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -531,9 +563,11 @@ int main(int argc, char **argv)
     bool smokeX11UpdateTest = false;
     bool smokePipeWireAvailabilityTest = false;
     bool smokeXTestAvailabilityTest = false;
+    bool smokeXTestInputTest = false;
+    bool allowInputInjection = false;
     bool serveUpdates = false;
     unsigned int maxUpdates = 3;
-    if (!ParseArgs(argc, argv, config, captureBackend, inputBackend, rawFramebufferFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, smokePipeWireAvailabilityTest, smokeXTestAvailabilityTest, serveUpdates, maxUpdates)) {
+    if (!ParseArgs(argc, argv, config, captureBackend, inputBackend, rawFramebufferFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, smokePipeWireAvailabilityTest, smokeXTestAvailabilityTest, smokeXTestInputTest, allowInputInjection, serveUpdates, maxUpdates)) {
         return 2;
     }
     std::string error;
@@ -546,6 +580,9 @@ int main(int argc, char **argv)
     }
     if (smokeXTestAvailabilityTest) {
         return RunSmokeXTestAvailabilityTest();
+    }
+    if (smokeXTestInputTest) {
+        return RunSmokeXTestInputTest(allowInputInjection);
     }
     if (!ResolveCaptureBackend(captureBackend, !rawFramebufferFile.empty(), resolvedCaptureBackend, &error)) {
         std::cerr << "invalid capture backend: " << error << "\n";
