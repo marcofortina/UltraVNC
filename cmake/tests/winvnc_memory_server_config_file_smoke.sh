@@ -11,6 +11,7 @@ set -euo pipefail
 
 server="$1"
 config="${TMPDIR:-/tmp}/uvnc-winvnc-server-config-file-smoke.conf"
+trap 'rm -f "${config}" "${config}.err"' EXIT
 
 cat >"${config}" <<'EOF'
 # Conservative native Linux server config smoke.
@@ -30,6 +31,7 @@ pid_file=/tmp/uvnc-config-file-smoke.pid
 status_file=/tmp/uvnc-config-file-smoke.status
 log_file=/tmp/uvnc-config-file-smoke.log
 EOF
+chmod 0600 "${config}"
 
 output="$(${server} --config "${config}" --print-config --width 96)"
 
@@ -51,6 +53,7 @@ grep -q '^log_file=/tmp/uvnc-config-file-smoke.log$' <<<"${output}"
 cat >"${config}" <<'EOF'
 unknown_key=value
 EOF
+chmod 0600 "${config}"
 if "${server}" --config "${config}" --validate-config >/dev/null 2>&1; then
   echo "invalid config file unexpectedly passed" >&2
   exit 1
