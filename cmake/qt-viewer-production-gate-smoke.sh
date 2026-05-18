@@ -18,5 +18,6 @@ matrix_file="$1"
 build_dir="${2:-/tmp/uvnc-qt-viewer-production-gate-build}"
 install_prefix="${3:-/tmp/uvnc-qt-viewer-production-gate-install}"
 
+"$(dirname "$0")/qt-viewer-production-matrix-check.sh" "$matrix_file"
 "$(dirname "$0")/qt-viewer-compressed-encoding-smoke.sh" /tmp/uvnc-qt-viewer-production-compressed-build
 "$(dirname "$0")/qt-viewer-multi-server-matrix-smoke.sh" "$matrix_file" "$build_dir" "$install_prefix"
