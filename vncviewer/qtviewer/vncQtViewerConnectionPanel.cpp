@@ -150,6 +150,8 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
       updateButton_(new QPushButton(QStringLiteral("Update once"))),
       reconnectButton_(new QPushButton(QStringLiteral("Reconnect"))),
       disconnectButton_(new QPushButton(QStringLiteral("Disconnect"))),
+      clipboardEdit_(new QLineEdit()),
+      sendClipboardButton_(new QPushButton(QStringLiteral("Send clipboard"))),
       statusLabel_(new QLabel(QStringLiteral("Disconnected"))),
       surface_(new QtViewerSurface()),
       continuousTimer_(new QTimer(this))
@@ -161,6 +163,8 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     viewOnlyCheck_->setObjectName(QStringLiteral("viewOnlyCheck"));
     continuousCheck_->setObjectName(QStringLiteral("continuousCheck"));
     intervalSpin_->setObjectName(QStringLiteral("intervalSpin"));
+    clipboardEdit_->setObjectName(QStringLiteral("clipboardEdit"));
+    sendClipboardButton_->setObjectName(QStringLiteral("sendClipboardButton"));
     statusLabel_->setObjectName(QStringLiteral("statusLabel"));
 
     portSpin_->setRange(1, 65535);
@@ -190,10 +194,15 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     buttons->addWidget(reconnectButton_);
     buttons->addWidget(disconnectButton_);
 
+    QHBoxLayout *clipboard = new QHBoxLayout();
+    clipboard->addWidget(clipboardEdit_, 1);
+    clipboard->addWidget(sendClipboardButton_);
+
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->addLayout(form);
     layout->addLayout(options);
     layout->addLayout(buttons);
+    layout->addLayout(clipboard);
     layout->addWidget(statusLabel_);
     layout->addWidget(surface_, 1);
     setLayout(layout);
@@ -215,6 +224,9 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
         StopContinuousUpdates();
         session_.Disconnect();
         SetStatus(QStringLiteral("Disconnected"));
+    });
+    QObject::connect(sendClipboardButton_, &QPushButton::clicked, this, [this]() {
+        SendClipboardText(true);
     });
     QObject::connect(continuousTimer_, &QTimer::timeout, this, [this]() {
         RequestUpdate(false);
@@ -308,6 +320,24 @@ void QtViewerConnectionPanel::SendQtPointerEvent(Qt::MouseButtons buttons, const
         StopContinuousUpdates();
         SetStatus(QStringLiteral("Error: ") + QString::fromStdString(error));
     }
+}
+
+
+void QtViewerConnectionPanel::SendClipboardText(bool showDialogOnError)
+{
+    if (!session_.Connected()) {
+        RequestUpdate(showDialogOnError);
+        if (!session_.Connected()) {
+            return;
+        }
+    }
+    std::string error;
+    if (!session_.SendClientCutText(clipboardEdit_->text().toStdString(), &error)) {
+        StopContinuousUpdates();
+        ShowError(QString::fromStdString(error), showDialogOnError);
+        return;
+    }
+    SetStatus(QStringLiteral("Clipboard sent"));
 }
 
 void QtViewerConnectionPanel::StartContinuousUpdatesIfRequested()

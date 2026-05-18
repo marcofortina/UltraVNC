@@ -38,6 +38,7 @@ private:
     void RequestUpdate(bool showDialogOnError);
     void SendQtKeyEvent(int key, bool down);
     void SendQtPointerEvent(Qt::MouseButtons buttons, const QPoint& position);
+    void SendClipboardText(bool showDialogOnError);
     void StartContinuousUpdatesIfRequested();
     void StopContinuousUpdates();
     void SetStatus(const QString& status);
@@ -54,6 +55,8 @@ private:
     QPushButton *updateButton_;
     QPushButton *reconnectButton_;
     QPushButton *disconnectButton_;
+    QLineEdit *clipboardEdit_;
+    QPushButton *sendClipboardButton_;
     QLabel *statusLabel_;
     QtViewerSurface *surface_;
     QTimer *continuousTimer_;
