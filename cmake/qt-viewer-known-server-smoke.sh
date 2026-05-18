@@ -37,7 +37,7 @@ cmake --install "$build_dir" --prefix "$install_prefix"
 
 viewer_bin="$install_prefix/bin/uvnc_qt_viewer"
 
-args=(--host "$host" --port "$port" --view-only --encodings raw,copyrect,newfbsize)
+args=(--host "$host" --port "$port" --view-only --encodings "${UVNC_VIEWER_REAL_SERVER_ENCODINGS:-raw,copyrect,hextile,zlib,rre,corre,newfbsize}")
 if [[ -n "$password" ]]; then
   args+=(--password "$password")
 fi
