@@ -27,17 +27,27 @@ bool IsProtocolVersionMessage(const std::string& value)
            value[11] == '\n';
 }
 
-std::vector<CARD8> NoAuthSecurityTypes()
+std::vector<CARD8> SecurityTypesForAuthMode(ServerAuthMode mode)
 {
     std::vector<CARD8> types;
     types.push_back(1);
-    types.push_back(rfbNoAuth);
+    types.push_back(mode == ServerAuthMode::VncPassword ? rfbVncAuth : rfbNoAuth);
     return types;
+}
+
+std::vector<CARD8> NoAuthSecurityTypes()
+{
+    return SecurityTypesForAuthMode(ServerAuthMode::NoAuth);
 }
 
 CARD32 AuthOkValue()
 {
-    return Swap32IfLE(0);
+    return Swap32IfLE(rfbVncAuthOK);
+}
+
+CARD32 AuthFailedValue()
+{
+    return Swap32IfLE(rfbVncAuthFailed);
 }
 
 rfbPixelFormat NetworkPixelFormat(const rfbPixelFormat& format)

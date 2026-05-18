@@ -10,6 +10,7 @@
 #define UVNC_WINVNC_PORTABLE_RFB_H
 
 #include "rfb.h"
+#include "vncPortableServerConfig.h"
 
 #include <string>
 #include <vector>
@@ -20,8 +21,10 @@ namespace portable {
 
 std::string ProtocolVersion38();
 bool IsProtocolVersionMessage(const std::string& value);
+std::vector<CARD8> SecurityTypesForAuthMode(ServerAuthMode mode);
 std::vector<CARD8> NoAuthSecurityTypes();
 CARD32 AuthOkValue();
+CARD32 AuthFailedValue();
 rfbPixelFormat NetworkPixelFormat(const rfbPixelFormat& format);
 std::vector<CARD8> ServerInitBytes(unsigned int width,
                                    unsigned int height,

@@ -12,12 +12,66 @@
 #include "vncPortableRfbMessages.h"
 #include "vncPortableRfbUpdate.h"
 
+#include <cstring>
+#include <random>
 #include <string>
 #include <vector>
+
+extern "C" {
+#include "d3des.h"
+}
 
 namespace uvnc {
 namespace winvnc {
 namespace portable {
+
+namespace {
+
+void EncryptVncAuthChallenge(std::vector<CARD8>& challenge, const std::string& password)
+{
+    unsigned char key[8] = {};
+    for (std::size_t i = 0; i < sizeof(key) && i < password.size(); ++i) {
+        key[i] = static_cast<unsigned char>(password[i]);
+    }
+    deskey(key, EN0);
+    for (std::size_t i = 0; i + 8 <= challenge.size(); i += 8) {
+        des(challenge.data() + i, challenge.data() + i);
+    }
+}
+
+std::vector<CARD8> GenerateVncAuthChallenge()
+{
+    std::vector<CARD8> challenge(16);
+    std::random_device random;
+    for (std::size_t i = 0; i < challenge.size(); ++i) {
+        challenge[i] = static_cast<CARD8>(random());
+    }
+    return challenge;
+}
+
+bool RunVncPasswordAuthentication(TcpSocket& socket, const std::string& password)
+{
+    std::vector<CARD8> challenge = GenerateVncAuthChallenge();
+    if (!socket.WriteAll(challenge.data(), challenge.size())) {
+        return false;
+    }
+
+    std::vector<CARD8> response(challenge.size());
+    if (!socket.ReadExact(response.data(), response.size())) {
+        return false;
+    }
+
+    std::vector<CARD8> expected = challenge;
+    EncryptVncAuthChallenge(expected, password);
+    const CARD32 authResult = std::memcmp(response.data(), expected.data(), expected.size()) == 0 ?
+        AuthOkValue() : AuthFailedValue();
+    if (!socket.WriteAll(&authResult, sizeof(authResult))) {
+        return false;
+    }
+    return authResult == AuthOkValue();
+}
+
+} // namespace
 
 RfbSessionStats::RfbSessionStats()
     : messagesProcessed(0),
@@ -50,19 +104,26 @@ bool RfbServerSession::RunHandshake(TcpSocket& socket, const ServerConfig& confi
         return false;
     }
 
-    const std::vector<CARD8> security = NoAuthSecurityTypes();
+    const std::vector<CARD8> security = SecurityTypesForAuthMode(config.AuthMode());
     if (!socket.WriteAll(security.data(), security.size())) {
         return false;
     }
 
     CARD8 selectedSecurity = 0;
-    if (!socket.ReadExact(&selectedSecurity, sizeof(selectedSecurity)) || selectedSecurity != rfbNoAuth) {
+    const CARD8 expectedSecurity = config.AuthMode() == ServerAuthMode::VncPassword ? rfbVncAuth : rfbNoAuth;
+    if (!socket.ReadExact(&selectedSecurity, sizeof(selectedSecurity)) || selectedSecurity != expectedSecurity) {
         return false;
     }
 
-    const CARD32 authOk = AuthOkValue();
-    if (!socket.WriteAll(&authOk, sizeof(authOk))) {
-        return false;
+    if (config.AuthMode() == ServerAuthMode::VncPassword) {
+        if (!RunVncPasswordAuthentication(socket, config.VncPassword())) {
+            return false;
+        }
+    } else {
+        const CARD32 authOk = AuthOkValue();
+        if (!socket.WriteAll(&authOk, sizeof(authOk))) {
+            return false;
+        }
     }
 
     rfbClientInitMsg clientInit;

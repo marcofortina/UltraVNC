@@ -75,12 +75,14 @@ add_library(${PROJECT_NAME} STATIC
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncEncodeXZ.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncEncodeTight.cpp"
     "${CMAKE_SOURCE_DIR}/../common/UltraVncZ.cpp"
+    "${CMAKE_SOURCE_DIR}/../common/d3des.c"
 )
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC
         "${CMAKE_SOURCE_DIR}/.."
         "${CMAKE_SOURCE_DIR}/../winvnc/winvnc"
+        "${CMAKE_SOURCE_DIR}/../common"
 )
 
 target_compile_definitions(${PROJECT_NAME}
