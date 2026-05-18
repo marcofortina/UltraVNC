@@ -187,7 +187,8 @@ int RunPersistentInputSmoke(const ViewerCliOptions& options)
     std::cout << "persistent-input " << result.width << "x" << result.height
               << " name=\"" << result.desktopName << "\""
               << " update=" << result.update.width << "x" << result.update.height
-              << " bytes=" << result.update.pixels.size() << "\n";
+              << " bytes=" << result.update.pixels.size()
+              << " clipboard=sent" << "\n";
     return 0;
 }
 
