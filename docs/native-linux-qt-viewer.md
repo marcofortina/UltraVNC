@@ -135,3 +135,12 @@ Still follow-up work:
 - Full decoders for compressed encodings such as Hextile/Zlib/ZRLE/Tight.
 - ServerCutText/extended clipboard receive UI.
 - Real-server interoperability matrix across multiple VNC servers.
+
+Known-server smoke can also pass a VNCAuth password as the fifth argument:
+
+```sh
+cmake/qt-viewer-known-server-smoke.sh 127.0.0.1 5900 \
+  /tmp/uvnc-known-server-build \
+  /tmp/uvnc-known-server-install \
+  secret
+```
