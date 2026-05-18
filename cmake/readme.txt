@@ -366,3 +366,17 @@ cmake/qt-viewer-known-server-smoke.sh \
 ```
 
 The known-server helper expects an RFB 3.8 no-auth raw update test server.
+
+Native Linux Qt viewer real-server matrix smoke:
+
+```sh
+cmake/qt-viewer-real-server-matrix-smoke.sh \
+  127.0.0.1 \
+  5901 \
+  /tmp/uvnc-real-server-build \
+  /tmp/uvnc-real-server-install \
+  secret
+```
+
+Set `UVNC_VIEWER_REAL_SERVER_ALLOW_INPUT=1` only when it is acceptable for the
+smoke to send key, pointer and clipboard events to that real server.

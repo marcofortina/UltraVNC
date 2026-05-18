@@ -148,3 +148,35 @@ cmake/qt-viewer-known-server-smoke.sh 127.0.0.1 5900 \
 Real-server update compatibility note:
 
 The portable Qt viewer now accepts FramebufferUpdate messages with multiple rectangles and composes supported raw/CopyRect rectangles into the local framebuffer before handing pixels to the Qt surface. This is required for interoperability with real VNC servers, which commonly send more than one rectangle per update.
+
+## Real-server matrix smoke
+
+Use the matrix helper for a real VNC server validation pass. It runs the
+handshake/update smoke and the offscreen Qt display smoke with raw/CopyRect/NewFBSize
+encoding preferences and optional VNCAuth password.
+
+```sh
+cmake/qt-viewer-real-server-matrix-smoke.sh \
+  127.0.0.1 \
+  5901 \
+  /tmp/uvnc-real-server-build \
+  /tmp/uvnc-real-server-install \
+  secret
+```
+
+The input/clipboard phase sends key, pointer and ClientCutText messages, so it is
+opt-in for real desktops:
+
+```sh
+UVNC_VIEWER_REAL_SERVER_ALLOW_INPUT=1 \
+cmake/qt-viewer-real-server-matrix-smoke.sh \
+  127.0.0.1 \
+  5901 \
+  /tmp/uvnc-real-server-build \
+  /tmp/uvnc-real-server-install \
+  secret
+```
+
+Current validated real-server scope covers RFB 3.8 no-auth/VNCAuth, raw updates,
+CopyRect metadata, NewFBSize metadata, multi-rectangle framebuffer updates,
+ServerCutText/Bell tolerance before updates, and ClientCutText send.
