@@ -95,6 +95,7 @@ Implemented in this milestone:
 - Offscreen Qt event-loop smoke.
 - Qt framebuffer surface widget with deterministic synthetic pixels.
 - Local keyboard and pointer event handling inside the Qt surface.
+- Interactive connection panel for host, port, password, shared/view-only mode and continuous-update polling.
 - RFB handshake/update smoke path against `uvnc_winvnc_memory_server`.
 - One-shot RFB update rendering into the Qt framebuffer surface.
 - Manual known-server validation helper for no-auth raw RFB test servers.
