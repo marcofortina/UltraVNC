@@ -121,6 +121,39 @@ std::vector<CARD8> Compress(const std::vector<CARD8>& input)
     return compressed;
 }
 
+bool WriteTightCompactLength(TcpSocket& client, std::size_t length)
+{
+    CARD8 first = static_cast<CARD8>(length & 0x7f);
+    length >>= 7;
+    if (length > 0) {
+        first |= 0x80;
+    }
+    if (!client.WriteAll(&first, sizeof(first))) return false;
+    if (length > 0) {
+        CARD8 second = static_cast<CARD8>(length & 0x7f);
+        length >>= 7;
+        if (length > 0) {
+            second |= 0x80;
+        }
+        if (!client.WriteAll(&second, sizeof(second))) return false;
+    }
+    if (length > 0) {
+        CARD8 third = static_cast<CARD8>(length & 0xff);
+        if (!client.WriteAll(&third, sizeof(third))) return false;
+    }
+    return true;
+}
+
+std::vector<CARD8> TightCompactSolid(CARD8 value, unsigned int width, unsigned int height)
+{
+    const std::vector<CARD8> pixel = CompactPixel(value);
+    std::vector<CARD8> bytes(static_cast<std::size_t>(width) * height * pixel.size());
+    for (std::size_t offset = 0; offset < bytes.size(); offset += pixel.size()) {
+        std::copy(pixel.begin(), pixel.end(), bytes.begin() + offset);
+    }
+    return bytes;
+}
+
 template <typename PayloadWriter>
 bool RunOneServer(CARD32 encoding, PayloadWriter writer, unsigned short& port)
 {
@@ -278,5 +311,36 @@ int main()
                client.WriteAll(&xy, sizeof(xy)) &&
                client.WriteAll(&wh, sizeof(wh));
     }, port));
+
+    assert(RunOneServer(rfbEncodingTight, [](TcpSocket& client) {
+        CARD8 control = static_cast<CARD8>(rfbTightFill << 4);
+        const std::vector<CARD8> color = CompactPixel(0xa0);
+        return client.WriteAll(&control, sizeof(control)) && client.WriteAll(color.data(), color.size());
+    }, port));
+
+    assert(RunOneServer(rfbEncodingTight, [](TcpSocket& client) {
+        CARD8 control = 0; // stream 0, copy filter, compressed payload
+        const std::vector<CARD8> raw = TightCompactSolid(0xa4, 4, 4);
+        const std::vector<CARD8> compressed = Compress(raw);
+        return client.WriteAll(&control, sizeof(control)) &&
+               WriteTightCompactLength(client, compressed.size()) &&
+               client.WriteAll(compressed.data(), compressed.size());
+    }, port));
+
+    assert(RunOneServer(rfbEncodingTight, [](TcpSocket& client) {
+        CARD8 control = static_cast<CARD8>(rfbTightExplicitFilter << 4);
+        CARD8 filter = rfbTightFilterPalette;
+        CARD8 paletteSizeMinusOne = 1;
+        const std::vector<CARD8> first = CompactPixel(0xa8);
+        const std::vector<CARD8> second = CompactPixel(0xac);
+        CARD8 rows[4] = {0x50, 0x50, 0x50, 0x50};
+        return client.WriteAll(&control, sizeof(control)) &&
+               client.WriteAll(&filter, sizeof(filter)) &&
+               client.WriteAll(&paletteSizeMinusOne, sizeof(paletteSizeMinusOne)) &&
+               client.WriteAll(first.data(), first.size()) &&
+               client.WriteAll(second.data(), second.size()) &&
+               client.WriteAll(rows, sizeof(rows));
+    }, port));
+
     return 0;
 }
