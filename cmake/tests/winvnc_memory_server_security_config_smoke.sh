@@ -40,6 +40,7 @@ grep -q 'password file must not be accessible by group/other' "${tmpdir}/stderr"
 
 chmod 0600 "${password_file}"
 "${server}" --password-file "${password_file}" --validate-config
+"${server}" --password-file "${password_file}" --smoke-test --width 32 --height 16 --name vncauth-cli-smoke
 
 output="$(${server} --password-file "${password_file}" --print-config)"
 grep -q '^auth=vnc-password$' <<<"${output}"

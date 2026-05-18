@@ -31,6 +31,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+extern "C" {
+#include "d3des.h"
+}
+
 using uvnc::winvnc::portable::ServerConfig;
 using uvnc::winvnc::portable::ServerAuthMode;
 using uvnc::winvnc::portable::ServerAuthModeName;
@@ -622,6 +626,18 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
     return true;
 }
 
+void EncryptVncAuthChallengeForClient(std::vector<CARD8>& challenge, const std::string& password)
+{
+    unsigned char key[8] = {};
+    for (std::size_t i = 0; i < sizeof(key) && i < password.size(); ++i) {
+        key[i] = static_cast<unsigned char>(password[i]);
+    }
+    deskey(key, EN0);
+    for (std::size_t i = 0; i + 8 <= challenge.size(); i += 8) {
+        des(challenge.data() + i, challenge.data() + i);
+    }
+}
+
 bool RunMemoryServerClientHandshake(TcpSocket& client, const ServerConfig& config)
 {
     char version[sz_rfbProtocolVersionMsg] = {};
@@ -636,12 +652,25 @@ bool RunMemoryServerClientHandshake(TcpSocket& client, const ServerConfig& confi
     if (!client.ReadExact(security, sizeof(security))) {
         return false;
     }
-    CARD8 selected = rfbNoAuth;
+    const CARD8 selected = config.AuthMode() == ServerAuthMode::VncPassword ? rfbVncAuth : rfbNoAuth;
+    if (security[0] != 1 || security[1] != selected) {
+        return false;
+    }
     if (!client.WriteAll(&selected, sizeof(selected))) {
         return false;
     }
+    if (config.AuthMode() == ServerAuthMode::VncPassword) {
+        std::vector<CARD8> challenge(16);
+        if (!client.ReadExact(challenge.data(), challenge.size())) {
+            return false;
+        }
+        EncryptVncAuthChallengeForClient(challenge, config.VncPassword());
+        if (!client.WriteAll(challenge.data(), challenge.size())) {
+            return false;
+        }
+    }
     CARD32 auth = 1;
-    if (!client.ReadExact(&auth, sizeof(auth)) || auth != 0) {
+    if (!client.ReadExact(&auth, sizeof(auth)) || Swap32IfLE(auth) != rfbVncAuthOK) {
         return false;
     }
     rfbClientInitMsg init;
