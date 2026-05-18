@@ -32,6 +32,7 @@ public:
 
     bool ReadExact(void *buffer, std::size_t length);
     bool WriteAll(const void *buffer, std::size_t length);
+    bool SetTimeoutMs(unsigned int timeoutMs);
 
     static bool Connect(const std::string& address, unsigned short port, TcpSocket& socket);
 

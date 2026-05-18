@@ -13,6 +13,7 @@
 #include <cstring>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 namespace uvnc {
@@ -104,6 +105,21 @@ bool TcpSocket::ReadExact(void *buffer, std::size_t length)
         remaining -= static_cast<std::size_t>(got);
     }
     return true;
+}
+
+bool TcpSocket::SetTimeoutMs(unsigned int timeoutMs)
+{
+    if (!Valid()) {
+        return false;
+    }
+    if (timeoutMs == 0) {
+        return true;
+    }
+    timeval timeout;
+    timeout.tv_sec = static_cast<long>(timeoutMs / 1000);
+    timeout.tv_usec = static_cast<long>((timeoutMs % 1000) * 1000);
+    return setsockopt(fd_, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == 0 &&
+           setsockopt(fd_, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) == 0;
 }
 
 bool TcpSocket::WriteAll(const void *buffer, std::size_t length)
