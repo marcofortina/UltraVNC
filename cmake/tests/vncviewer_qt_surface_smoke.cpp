@@ -31,6 +31,21 @@ int main(int argc, char **argv)
     assert(surface.FramebufferSize() == QSize(4, 3));
     assert(!surface.SetArgbFramebuffer(4, 3, std::vector<unsigned int>()));
 
+    int forwardedKeyPresses = 0;
+    int forwardedKeyReleases = 0;
+    int forwardedPointerEvents = 0;
+    surface.SetKeyEventCallback([&](int key, bool down) {
+        assert(key == Qt::Key_Control);
+        if (down) {
+            forwardedKeyPresses += 1;
+        } else {
+            forwardedKeyReleases += 1;
+        }
+    });
+    surface.SetPointerEventCallback([&](Qt::MouseButtons, const QPoint&) {
+        forwardedPointerEvents += 1;
+    });
+
     QKeyEvent keyPress(QEvent::KeyPress, Qt::Key_Control, Qt::NoModifier);
     QApplication::sendEvent(&surface, &keyPress);
     QKeyEvent keyRelease(QEvent::KeyRelease, Qt::Key_Control, Qt::NoModifier);
@@ -50,5 +65,8 @@ int main(int argc, char **argv)
     assert(surface.InputState().mouseMoves == 1);
     assert(surface.InputState().mouseReleases == 1);
     assert(surface.InputState().lastPointer == QPoint(14, 15));
+    assert(forwardedKeyPresses == 1);
+    assert(forwardedKeyReleases == 1);
+    assert(forwardedPointerEvents == 3);
     return 0;
 }
