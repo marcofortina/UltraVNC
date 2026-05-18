@@ -67,3 +67,9 @@ jobs:
           cmake/linux-input-smoke.sh \
             /tmp/uvnc-linux-input-build \
             /tmp/uvnc-linux-closure-install
+
+      - name: Native Linux server integration smoke
+        run: |
+          cmake/linux-server-integration-smoke.sh \
+            /tmp/uvnc-linux-server-integration-build \
+            /tmp/uvnc-linux-closure-install
