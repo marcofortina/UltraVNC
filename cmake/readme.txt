@@ -280,6 +280,12 @@ obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --print-config --captur
 # Build and smoke the optional X11 capture backend. The live X11 capture step is
 # skipped when DISPLAY is not usable, so this helper is safe for headless CI.
 cmake/x11-capture-smoke.sh /tmp/uvnc-x11-capture-build /tmp/uvnc-x11-capture-install
+
+# Build and smoke the optional PipeWire/XDG portal capture skeleton. The helper
+# reports runtime availability and skips live capture when no Wayland/portal
+# session is available, so it is safe for headless CI.
+cmake/pipewire-capture-smoke.sh /tmp/uvnc-pipewire-capture-build /tmp/uvnc-pipewire-capture-install
+
 obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --validate-config --capture-backend memory
-obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --validate-config --capture-backend x11 # expected to fail until X11 backend is implemented
+obj-linux/winvnc_memory_server/uvnc_winvnc_memory_server --smoke-pipewire-availability-test
 ```

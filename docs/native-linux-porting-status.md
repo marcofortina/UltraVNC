@@ -80,3 +80,11 @@ Native Linux X11 capture progress:
 - The baseline X11 path uses XGetImage when a usable DISPLAY is available.
 - Optional XShm support is detected and used when built and available.
 - Headless CI keeps the X11 live smoke non-fatal when DISPLAY is absent.
+
+Native Linux PipeWire/XDG portal capture progress:
+
+- PipeWire capture backend selection is wired into the registry and CLI.
+- Build-time detection is optional and does not make the Linux subset depend on PipeWire.
+- Runtime detection checks Wayland and D-Bus session prerequisites.
+- Portal session and PipeWire stream scaffolding are present for the next implementation step.
+- Headless CI keeps PipeWire live capture non-fatal when the portal runtime is unavailable.
