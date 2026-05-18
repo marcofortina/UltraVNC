@@ -33,6 +33,55 @@ test -x "${BIN}"
 "${BIN}" --validate-config --capture-backend memory --input-backend none
 "${BIN}" --print-config --capture-backend auto --input-backend auto >/dev/null
 
+RUNTIME_LOG_SHUTDOWN_DIR="$(mktemp -d /tmp/uvnc-linux-server-log-shutdown.XXXXXX)"
+RUNTIME_LOG_SHUTDOWN_PID="${RUNTIME_LOG_SHUTDOWN_DIR}/server.pid"
+RUNTIME_LOG_SHUTDOWN_STATUS="${RUNTIME_LOG_SHUTDOWN_DIR}/server.status"
+RUNTIME_LOG_SHUTDOWN_LOG="${RUNTIME_LOG_SHUTDOWN_DIR}/server.log"
+RUNTIME_LOG_SHUTDOWN_SERVER_PID=""
+cleanup_log_shutdown() {
+  if [[ -n "${RUNTIME_LOG_SHUTDOWN_SERVER_PID}" ]] && kill -0 "${RUNTIME_LOG_SHUTDOWN_SERVER_PID}" 2>/dev/null; then
+    kill -TERM "${RUNTIME_LOG_SHUTDOWN_SERVER_PID}" 2>/dev/null || true
+    wait "${RUNTIME_LOG_SHUTDOWN_SERVER_PID}" 2>/dev/null || true
+  fi
+  rm -rf "${RUNTIME_LOG_SHUTDOWN_DIR}"
+}
+trap cleanup_log_shutdown EXIT
+
+"${BIN}" \
+  --capture-backend memory \
+  --input-backend none \
+  --bind-address 127.0.0.1 \
+  --port 0 \
+  --serve-forever \
+  --pid-file "${RUNTIME_LOG_SHUTDOWN_PID}" \
+  --status-file "${RUNTIME_LOG_SHUTDOWN_STATUS}" \
+  --log-file "${RUNTIME_LOG_SHUTDOWN_LOG}" &
+RUNTIME_LOG_SHUTDOWN_SERVER_PID="$!"
+
+for _ in $(seq 1 100); do
+  if [[ -s "${RUNTIME_LOG_SHUTDOWN_STATUS}" ]] && grep -q '^listening ' "${RUNTIME_LOG_SHUTDOWN_STATUS}"; then
+    break
+  fi
+  if ! kill -0 "${RUNTIME_LOG_SHUTDOWN_SERVER_PID}" 2>/dev/null; then
+    echo "server exited before listening during log shutdown smoke" >&2
+    cat "${RUNTIME_LOG_SHUTDOWN_LOG}" >&2 2>/dev/null || true
+    exit 1
+  fi
+  sleep 0.1
+done
+
+test -s "${RUNTIME_LOG_SHUTDOWN_PID}"
+grep -q "^${RUNTIME_LOG_SHUTDOWN_SERVER_PID}$" "${RUNTIME_LOG_SHUTDOWN_PID}"
+grep -q '^listening 127\.0\.0\.1:' "${RUNTIME_LOG_SHUTDOWN_STATUS}"
+kill -TERM "${RUNTIME_LOG_SHUTDOWN_SERVER_PID}"
+wait "${RUNTIME_LOG_SHUTDOWN_SERVER_PID}"
+RUNTIME_LOG_SHUTDOWN_SERVER_PID=""
+grep -q '^stopped$' "${RUNTIME_LOG_SHUTDOWN_STATUS}"
+test ! -e "${RUNTIME_LOG_SHUTDOWN_PID}"
+grep -q 'listening on 127\.0\.0\.1:' "${RUNTIME_LOG_SHUTDOWN_LOG}"
+cleanup_log_shutdown
+trap - EXIT
+
 if [[ "${UVNC_RUN_REAL_X11_SERVER:-0}" != "1" ]]; then
   echo "Skipping real X11 server runtime smoke because UVNC_RUN_REAL_X11_SERVER=1 is not set."
   echo "Set it only from a real local X11 graphical session, not from SSH X forwarding."

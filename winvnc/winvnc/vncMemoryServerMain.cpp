@@ -97,6 +97,48 @@ void RemoveFileIfSet(const std::string& path)
     }
 }
 
+
+class ScopedStreamBufferRedirect {
+public:
+    ScopedStreamBufferRedirect()
+        : stream_(nullptr), original_(nullptr)
+    {
+    }
+
+    ScopedStreamBufferRedirect(std::ostream& stream, std::streambuf *replacement)
+        : stream_(&stream), original_(stream.rdbuf(replacement))
+    {
+    }
+
+    ScopedStreamBufferRedirect(const ScopedStreamBufferRedirect&) = delete;
+    ScopedStreamBufferRedirect& operator=(const ScopedStreamBufferRedirect&) = delete;
+
+    ~ScopedStreamBufferRedirect()
+    {
+        Restore();
+    }
+
+    void Redirect(std::ostream& stream, std::streambuf *replacement)
+    {
+        Restore();
+        stream_ = &stream;
+        original_ = stream.rdbuf(replacement);
+    }
+
+    void Restore()
+    {
+        if (stream_ != nullptr) {
+            stream_->rdbuf(original_);
+            stream_ = nullptr;
+            original_ = nullptr;
+        }
+    }
+
+private:
+    std::ostream *stream_;
+    std::streambuf *original_;
+};
+
 class XTestRfbInputSink : public RfbInputSink {
 public:
     bool InjectKey(const KeyEvent& event, std::string *error) override
@@ -898,14 +940,16 @@ int main(int argc, char **argv)
     RfbInputSink *inputSink = resolvedInputBackend == InputBackend::XTest ? &xtestInputSink : nullptr;
 
     std::ofstream logStream;
+    ScopedStreamBufferRedirect coutRedirect;
+    ScopedStreamBufferRedirect cerrRedirect;
     if (!logFile.empty()) {
         logStream.open(logFile.c_str(), std::ios::app);
         if (!logStream) {
             std::cerr << "invalid config: cannot open log file: " << logFile << "\n";
             return 2;
         }
-        std::cout.rdbuf(logStream.rdbuf());
-        std::cerr.rdbuf(logStream.rdbuf());
+        coutRedirect.Redirect(std::cout, logStream.rdbuf());
+        cerrRedirect.Redirect(std::cerr, logStream.rdbuf());
     }
 
     if (!WriteTextFile(statusFile, "starting\n")) {
