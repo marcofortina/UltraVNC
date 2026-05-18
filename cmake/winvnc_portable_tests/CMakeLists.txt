@@ -25,6 +25,24 @@ function(uvnc_add_winvnc_portable_test name source)
     )
 endfunction()
 
+function(uvnc_add_viewer_portable_test name source)
+    add_executable(${name}
+        "${CMAKE_SOURCE_DIR}/tests/${source}"
+        "${CMAKE_SOURCE_DIR}/../vncviewer/vncPortableViewerConfig.cpp"
+    )
+
+    target_include_directories(${name} PRIVATE
+        "${CMAKE_SOURCE_DIR}/../vncviewer"
+    )
+
+    add_test(NAME ${name} COMMAND ${name})
+    set_tests_properties(${name}
+        PROPERTIES
+            LABELS "native-linux;vncviewer-portable"
+            TIMEOUT 10
+    )
+endfunction()
+
 uvnc_add_winvnc_portable_test(winvnc_update_tracker_smoke winvnc_update_tracker_smoke.cpp)
 uvnc_add_winvnc_portable_test(winvnc_translate_smoke winvnc_translate_smoke.cpp)
 uvnc_add_winvnc_portable_test(winvnc_region_smoke winvnc_region_smoke.cpp)
@@ -128,3 +146,5 @@ uvnc_add_winvnc_portable_test(winvnc_linux_input_backend_registry_smoke winvnc_l
 uvnc_add_winvnc_portable_test(winvnc_linux_input_backend_resolve_smoke winvnc_linux_input_backend_resolve_smoke.cpp)
 uvnc_add_winvnc_portable_test(winvnc_linux_xtest_button_transitions_smoke winvnc_linux_xtest_button_transitions_smoke.cpp)
 uvnc_add_winvnc_portable_test(winvnc_linux_xtest_availability_smoke winvnc_linux_xtest_availability_smoke.cpp)
+
+uvnc_add_viewer_portable_test(vncviewer_portable_config_smoke vncviewer_portable_config_smoke.cpp)
