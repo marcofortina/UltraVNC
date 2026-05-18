@@ -10,7 +10,7 @@
 set -euo pipefail
 
 if [[ "$#" -lt 2 ]]; then
-  echo "usage: $0 <host> <port> [build-dir] [install-prefix]" >&2
+  echo "usage: $0 <host> <port> [build-dir] [install-prefix] [password]" >&2
   exit 2
 fi
 
@@ -18,6 +18,7 @@ host="$1"
 port="$2"
 build_dir="${3:-/tmp/uvnc-qt-viewer-known-server-build}"
 install_prefix="${4:-/tmp/uvnc-qt-viewer-known-server-install}"
+password="${5:-}"
 
 cmake -S cmake -B "$build_dir" -G Ninja \
   -DULTRAVNC_BUILD_PORTABLE_LIBS=ON \
@@ -36,5 +37,10 @@ cmake --install "$build_dir" --prefix "$install_prefix"
 
 viewer_bin="$install_prefix/bin/uvnc_qt_viewer"
 
-timeout 10s "$viewer_bin" --host "$host" --port "$port" --view-only --connect-update-smoke
-QT_QPA_PLATFORM=offscreen timeout 10s "$viewer_bin" --host "$host" --port "$port" --view-only --connect-display-smoke
+args=(--host "$host" --port "$port" --view-only --encodings raw,copyrect,newfbsize)
+if [[ -n "$password" ]]; then
+  args+=(--password "$password")
+fi
+
+timeout 10s "$viewer_bin" "${args[@]}" --connect-update-smoke
+QT_QPA_PLATFORM=offscreen timeout 10s "$viewer_bin" "${args[@]}" --connect-display-smoke
