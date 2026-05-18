@@ -524,9 +524,11 @@ int RunSmokePipeWireAvailabilityTest()
 
 int RunSmokeXTestAvailabilityTest()
 {
-    std::cout << "xtest-build-available=" << (XTestInputBackend::IsBuildAvailable() ? "yes" : "no") << "\n";
-    std::cout << "xtest-runtime-available=" << (XTestInputBackend::IsAvailable() ? "yes" : "no") << "\n";
-    std::cout << "xtest-unavailable-reason=" << XTestInputBackend::UnavailableReason() << "\n";
+    const bool buildAvailable = XTestInputBackend::IsBuildAvailable();
+    const bool runtimeAvailable = XTestInputBackend::IsAvailable();
+    std::cout << "xtest-build-available=" << (buildAvailable ? "yes" : "no") << "\n";
+    std::cout << "xtest-runtime-available=" << (runtimeAvailable ? "yes" : "no") << "\n";
+    std::cout << "xtest-unavailable-reason=" << (runtimeAvailable ? "" : XTestInputBackend::UnavailableReason()) << "\n";
     return 0;
 }
 
