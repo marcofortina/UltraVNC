@@ -72,6 +72,92 @@ QWidget *CreateViewerWindow(const ViewerCliOptions& options)
     return window;
 }
 
+
+unsigned int ScaleColor(unsigned int value, unsigned int max)
+{
+    return max == 0 ? 0 : (value * 255u) / max;
+}
+
+bool RawUpdateToArgbPixels(const ViewerSessionResult& result, std::vector<unsigned int>& pixels, std::string& error)
+{
+    const unsigned int bytesPerPixel = result.format.bitsPerPixel / 8;
+    if (!result.update.received) {
+        error = "no RFB framebuffer update was received";
+        return false;
+    }
+    if (bytesPerPixel == 0 || bytesPerPixel > 4) {
+        error = "unsupported RFB framebuffer update pixel size";
+        return false;
+    }
+    const std::size_t expected = static_cast<std::size_t>(result.update.width) *
+                                 static_cast<std::size_t>(result.update.height) *
+                                 static_cast<std::size_t>(bytesPerPixel);
+    if (result.update.pixels.size() != expected) {
+        error = "unexpected RFB framebuffer update byte count";
+        return false;
+    }
+
+    pixels.clear();
+    pixels.reserve(static_cast<std::size_t>(result.update.width) * result.update.height);
+    for (std::size_t offset = 0; offset < result.update.pixels.size(); offset += bytesPerPixel) {
+        unsigned int raw = 0;
+        if (result.format.bigEndian) {
+            for (unsigned int i = 0; i < bytesPerPixel; ++i) {
+                raw = (raw << 8) | result.update.pixels[offset + i];
+            }
+        } else {
+            for (unsigned int i = 0; i < bytesPerPixel; ++i) {
+                raw |= static_cast<unsigned int>(result.update.pixels[offset + i]) << (8 * i);
+            }
+        }
+        const unsigned int red = ScaleColor((raw >> result.format.redShift) & result.format.redMax, result.format.redMax);
+        const unsigned int green = ScaleColor((raw >> result.format.greenShift) & result.format.greenMax, result.format.greenMax);
+        const unsigned int blue = ScaleColor((raw >> result.format.blueShift) & result.format.blueMax, result.format.blueMax);
+        pixels.push_back(0xff000000u | (red << 16) | (green << 8) | blue);
+    }
+    return true;
+}
+
+int RunConnectDisplaySmoke(int argc, char **argv, const ViewerCliOptions& options)
+{
+    ViewerSessionResult result;
+    std::string error;
+    if (!ViewerSession().RequestOneFramebufferUpdate(options.config, result, &error)) {
+        std::cerr << error << "\n";
+        return 1;
+    }
+
+    std::vector<unsigned int> pixels;
+    if (!RawUpdateToArgbPixels(result, pixels, error)) {
+        std::cerr << error << "\n";
+        return 1;
+    }
+
+    QApplication app(argc, argv);
+    QWidget window;
+    window.setWindowTitle(QStringLiteral("UltraVNC Qt Viewer RFB display smoke"));
+    QVBoxLayout *layout = new QVBoxLayout(&window);
+    QLabel *status = new QLabel(QString("RFB update: %1x%2 from %3")
+        .arg(result.update.width)
+        .arg(result.update.height)
+        .arg(QString::fromStdString(result.desktopName)));
+    QtViewerSurface *surface = new QtViewerSurface();
+    if (!surface->SetArgbFramebuffer(static_cast<int>(result.update.width), static_cast<int>(result.update.height), pixels)) {
+        std::cerr << "failed to load RFB update into Qt surface\n";
+        return 1;
+    }
+    layout->addWidget(status);
+    layout->addWidget(surface, 1);
+    window.resize(640, 360);
+    window.show();
+    QTimer::singleShot(0, &app, &QCoreApplication::quit);
+
+    std::cout << "displayed " << result.update.width << "x" << result.update.height
+              << " name=\"" << result.desktopName << "\""
+              << " bytes=" << result.update.pixels.size() << "\n";
+    return app.exec();
+}
+
 int RunConnectSmoke(const ViewerCliOptions& options)
 {
     ViewerSessionResult result;
@@ -111,6 +197,10 @@ int main(int argc, char **argv)
 
     if (options.validateOnly) {
         return 0;
+    }
+
+    if (options.connectDisplaySmoke) {
+        return RunConnectDisplaySmoke(argc, argv, options);
     }
 
     if (options.connectSmoke || options.connectUpdateSmoke) {
