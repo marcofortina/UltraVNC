@@ -9,6 +9,7 @@
 #include "vncLinuxCaptureBackend.h"
 
 #include "vncLinuxX11FramebufferSource.h"
+#include "vncLinuxPipeWirePortalCapture.h"
 
 namespace uvnc {
 namespace winvnc {
@@ -42,6 +43,10 @@ bool ParseCaptureBackendName(const std::string& name, CaptureBackend& backend)
         backend = CaptureBackend::X11;
         return true;
     }
+    if (name == "pipewire") {
+        backend = CaptureBackend::PipeWire;
+        return true;
+    }
     return false;
 }
 
@@ -56,6 +61,8 @@ const char *CaptureBackendName(CaptureBackend backend)
         return "raw-file";
     case CaptureBackend::X11:
         return "x11";
+    case CaptureBackend::PipeWire:
+        return "pipewire";
     }
     return "unknown";
 }
@@ -71,6 +78,8 @@ const char *CaptureBackendDescription(CaptureBackend backend)
         return "exact-size raw framebuffer file";
     case CaptureBackend::X11:
         return "X11 root-window capture using XGetImage";
+    case CaptureBackend::PipeWire:
+        return "PipeWire/XDG portal capture skeleton";
     }
     return "unknown capture backend";
 }
@@ -85,6 +94,8 @@ bool IsCaptureBackendRuntimeAvailable(CaptureBackend backend, bool hasRawFramebu
         return hasRawFramebufferFile;
     case CaptureBackend::X11:
         return X11DesktopSource::IsAvailable();
+    case CaptureBackend::PipeWire:
+        return PipeWirePortalCaptureBackend::RuntimeAvailable();
     }
     return false;
 }
@@ -97,6 +108,8 @@ bool ResolveCaptureBackend(CaptureBackend requested,
     if (requested == CaptureBackend::Auto) {
         if (hasRawFramebufferFile) {
             resolved = CaptureBackend::RawFile;
+        } else if (PipeWirePortalCaptureBackend::RuntimeAvailable()) {
+            resolved = CaptureBackend::PipeWire;
         } else if (X11DesktopSource::IsAvailable()) {
             resolved = CaptureBackend::X11;
         } else {

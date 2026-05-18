@@ -20,6 +20,7 @@ enum class CaptureBackend {
     Memory,
     RawFile,
     X11,
+    PipeWire,
 };
 
 bool ParseCaptureBackendName(const std::string& name, CaptureBackend& backend);
