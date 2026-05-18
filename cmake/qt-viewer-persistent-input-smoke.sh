@@ -88,7 +88,7 @@ if ! timeout 10s "$viewer_bin" --host 127.0.0.1 --port "$port" --persistent-inpu
   exit 1
 fi
 cat "$viewer_output"
-grep -q 'persistent-input 64x48 name="qt-viewer-persistent-input-smoke" update=64x48 bytes=12288' "$viewer_output" || {
+grep -q 'persistent-input 64x48 name="qt-viewer-persistent-input-smoke" update=64x48 bytes=12288 clipboard=sent' "$viewer_output" || {
   echo "Qt viewer persistent input smoke output did not match expectations." >&2
   cat "$viewer_output" >&2
   cat "$server_log" >&2
