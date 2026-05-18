@@ -1,3 +1,10 @@
+## Production baseline status
+
+The native Linux Qt viewer has a production-baseline validation path when the
+local compressed-encoding smoke, the Qt viewer smoke helpers and the configured
+real-server matrix all pass. The production gate does not replace real vendor
+coverage; it makes missing matrix entries explicit and reproducible.
+
 # Native Linux Qt viewer production-readiness checklist
 
 The native Linux Qt viewer is now a real executable that can connect to VNCAuth-capable VNC servers and render framebuffer updates through the Qt surface.

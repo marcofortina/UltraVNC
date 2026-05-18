@@ -229,3 +229,11 @@ cmake/qt-viewer-production-gate-smoke.sh \
 
 Only enable labels for servers that are actually available in the lab; the gate
 checks the matrix inputs and then executes the real-server smoke entries.
+
+## Production baseline status
+
+The viewer is considered production-baseline for the explicitly validated
+encoding, authentication, clipboard and input paths once the local production
+gate and the required real-server matrix pass. Vendor-specific extensions that
+are not covered by the matrix remain outside the claim until reproduced and
+covered by targeted tests.
