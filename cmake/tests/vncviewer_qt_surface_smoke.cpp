@@ -36,11 +36,11 @@ int main(int argc, char **argv)
     QKeyEvent keyRelease(QEvent::KeyRelease, Qt::Key_Control, Qt::NoModifier);
     QApplication::sendEvent(&surface, &keyRelease);
 
-    QMouseEvent mousePress(QEvent::MouseButtonPress, QPointF(10, 11), Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+    QMouseEvent mousePress(QEvent::MouseButtonPress, QPointF(10, 11), QPointF(10, 11), QPointF(10, 11), Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
     QApplication::sendEvent(&surface, &mousePress);
-    QMouseEvent mouseMove(QEvent::MouseMove, QPointF(12, 13), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+    QMouseEvent mouseMove(QEvent::MouseMove, QPointF(12, 13), QPointF(12, 13), QPointF(12, 13), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
     QApplication::sendEvent(&surface, &mouseMove);
-    QMouseEvent mouseRelease(QEvent::MouseButtonRelease, QPointF(14, 15), Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+    QMouseEvent mouseRelease(QEvent::MouseButtonRelease, QPointF(14, 15), QPointF(14, 15), QPointF(14, 15), Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
     QApplication::sendEvent(&surface, &mouseRelease);
 
     assert(surface.InputState().keyPresses == 1);
