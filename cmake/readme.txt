@@ -157,6 +157,7 @@ UVNC_RUN_XTEST_LIVE=1 UltraVNC/cmake/linux-input-smoke.sh /tmp/uvnc-linux-input-
 # - docs/native-linux-milestone-closure.md
 # - docs/native-linux-viewer-strategy.md
 # - docs/native-linux-server-strategy.md
+# - docs/native-linux-input-backend.md
 
 ######################
 
