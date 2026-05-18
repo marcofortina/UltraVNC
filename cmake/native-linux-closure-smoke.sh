@@ -19,3 +19,5 @@ INSTALL_PREFIX="${3:-/tmp/uvnc-linux-closure-install}"
 "${SCRIPT_DIR}/memory-server-rfb-closure.sh" "${WINVNC_BUILD_DIR}" "${INSTALL_PREFIX}"
 "${SCRIPT_DIR}/x11-capture-smoke.sh" "${WINVNC_BUILD_DIR}" "${INSTALL_PREFIX}"
 "${SCRIPT_DIR}/pipewire-capture-smoke.sh" "${WINVNC_BUILD_DIR}" "${INSTALL_PREFIX}"
+
+cmake/linux-input-smoke.sh "${WINVNC_BUILD_DIR}" "${INSTALL_PREFIX}"
