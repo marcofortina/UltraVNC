@@ -42,8 +42,8 @@ if [[ -n "${INSTALL_PREFIX}" ]]; then
     "${INSTALL_PREFIX}/bin/uvnc_repeater_headless" --smoke-test --quiet
 
     "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --help >/dev/null
-    "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --validate-config --width 64 --height 32 --name installed-memory-smoke
-    "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --print-config --pattern gradient-y --fill-byte 42 --width 64 --height 32 --name installed-print-config >/dev/null
+    "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --allow-no-auth --validate-config --width 64 --height 32 --name installed-memory-smoke
+    "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --allow-no-auth --print-config --pattern gradient-y --fill-byte 42 --width 64 --height 32 --name installed-print-config >/dev/null
     "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --smoke-test --width 64 --height 32 --name installed-memory-smoke
     "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --smoke-update-test --width 64 --height 32 --name installed-update-smoke
     "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --smoke-multi-update-test --max-updates 3 --width 64 --height 32 --name installed-multi-update-smoke

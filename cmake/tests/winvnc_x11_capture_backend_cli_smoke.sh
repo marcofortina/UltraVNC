@@ -11,7 +11,7 @@ set -euo pipefail
 
 server="$1"
 
-if "${server}" --validate-config --capture-backend x11; then
+if "${server}" --allow-no-auth --validate-config --capture-backend x11; then
     exit 0
 fi
 

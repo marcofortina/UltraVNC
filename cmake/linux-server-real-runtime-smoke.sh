@@ -30,7 +30,7 @@ test -x "${BIN}"
 
 "${BIN}" --smoke-x11-availability-test
 "${BIN}" --smoke-xtest-availability-test
-"${BIN}" --validate-config --capture-backend memory --input-backend none
+"${BIN}" --allow-no-auth --validate-config --capture-backend memory --input-backend none
 "${BIN}" --print-config --capture-backend auto --input-backend auto >/dev/null
 
 RUNTIME_LOG_SHUTDOWN_DIR="$(mktemp -d /tmp/uvnc-linux-server-log-shutdown.XXXXXX)"
@@ -105,7 +105,7 @@ case "${DISPLAY}" in
     ;;
 esac
 
-"${BIN}" --validate-config --capture-backend x11 --input-backend none
+"${BIN}" --allow-no-auth --validate-config --capture-backend x11 --input-backend none
 
 RUNTIME_DIR="$(mktemp -d /tmp/uvnc-linux-server-real-runtime.XXXXXX)"
 CONFIG_FILE="${RUNTIME_DIR}/uvnc-winvnc-linux-server.conf"

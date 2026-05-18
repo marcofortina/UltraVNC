@@ -25,10 +25,10 @@ ctest --test-dir "${BUILD_DIR}" --output-on-failure \
 
 cmake --install "${BUILD_DIR}" --prefix "${INSTALL_PREFIX}"
 
-"${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --validate-config --capture-backend memory
+"${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --allow-no-auth --validate-config --capture-backend memory
 
 if [[ -z "${DISPLAY:-}" ]]; then
-  if "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --validate-config --capture-backend x11; then
+  if "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --allow-no-auth --validate-config --capture-backend x11; then
     echo "X11 backend unexpectedly validated without DISPLAY" >&2
     exit 1
   fi
@@ -48,7 +48,7 @@ case "${DISPLAY}" in
     ;;
 esac
 
-if ! "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --validate-config --capture-backend x11; then
+if ! "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --allow-no-auth --validate-config --capture-backend x11; then
   echo "Skipping live X11 capture smoke because the X11 backend is not available for DISPLAY=${DISPLAY}."
   exit 0
 fi

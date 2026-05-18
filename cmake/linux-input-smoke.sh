@@ -14,8 +14,8 @@ ctest --test-dir "${BUILD_DIR}" --output-on-failure -R 'winvnc_linux_input|winvn
 cmake --install "${BUILD_DIR}" --prefix "${INSTALL_PREFIX}"
 
 "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --smoke-xtest-availability-test
-"${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --validate-config --input-backend none
-"${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --print-config --input-backend none >/dev/null
+"${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --allow-no-auth --validate-config --input-backend none
+"${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --allow-no-auth --print-config --input-backend none >/dev/null
 
 if [[ "${UVNC_RUN_XTEST_LIVE:-0}" != "1" ]]; then
   echo "Skipping live XTest injection smoke because UVNC_RUN_XTEST_LIVE=1 is not set."

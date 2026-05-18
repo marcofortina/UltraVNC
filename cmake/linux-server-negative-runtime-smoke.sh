@@ -105,13 +105,13 @@ wait "${PORT_HOLDER}" 2>/dev/null || true
 PORT_HOLDER=""
 grep -q 'failed to start memory server' /tmp/uvnc-negative-runtime.err
 
-if DISPLAY= "${BIN}" --validate-config --capture-backend x11 >/tmp/uvnc-negative-runtime.out 2>/tmp/uvnc-negative-runtime.err; then
+if DISPLAY= "${BIN}" --allow-no-auth --validate-config --capture-backend x11 >/tmp/uvnc-negative-runtime.out 2>/tmp/uvnc-negative-runtime.err; then
   echo "explicit X11 backend unexpectedly validated with DISPLAY unset" >&2
   exit 1
 fi
 grep -q 'capture backend is not available: x11' /tmp/uvnc-negative-runtime.err
 
-if DISPLAY= "${BIN}" --validate-config --input-backend xtest >/tmp/uvnc-negative-runtime.out 2>/tmp/uvnc-negative-runtime.err; then
+if DISPLAY= "${BIN}" --allow-no-auth --validate-config --input-backend xtest >/tmp/uvnc-negative-runtime.out 2>/tmp/uvnc-negative-runtime.err; then
   echo "explicit XTest backend unexpectedly validated with DISPLAY unset" >&2
   exit 1
 fi
