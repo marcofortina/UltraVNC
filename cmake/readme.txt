@@ -323,6 +323,15 @@ The Qt viewer shell is optional and requires Qt6 Widgets development files. The
 smoke uses `QT_QPA_PLATFORM=offscreen` for CI-safe event-loop, framebuffer
 surface and local keyboard/pointer event validation.
 
+Visible interactive Qt viewer launch against a known server:
+
+```sh
+cmake/qt-viewer-interactive-smoke.sh 127.0.0.1 5900   /tmp/uvnc-qt-viewer-interactive-build   /tmp/uvnc-qt-viewer-interactive-install
+```
+
+The visible helper opens the interactive Qt shell with host/port/options controls
+and continuous update polling enabled.
+
 Native Linux Qt viewer RFB session smoke:
 
 ```sh
