@@ -17,6 +17,8 @@
 #include <string>
 #include <vector>
 
+#include <zlib.h>
+
 namespace uvnc {
 namespace vncviewer {
 namespace portable {
@@ -89,6 +91,8 @@ private:
     ViewerSessionResult state_;
     ViewerConfig config_;
     std::vector<CARD8> framebuffer_;
+    z_stream zrleStream_;
+    bool zrleStreamInitialized_;
 };
 
 } // namespace portable
