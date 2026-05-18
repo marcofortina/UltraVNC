@@ -39,6 +39,8 @@ private:
     void SendQtKeyEvent(int key, bool down);
     void SendQtPointerEvent(Qt::MouseButtons buttons, const QPoint& position);
     void SendClipboardText(bool showDialogOnError);
+    void LoadProfile();
+    void SaveProfile();
     void StartContinuousUpdatesIfRequested();
     void StopContinuousUpdates();
     void SetStatus(const QString& status);
@@ -55,6 +57,8 @@ private:
     QPushButton *updateButton_;
     QPushButton *reconnectButton_;
     QPushButton *disconnectButton_;
+    QPushButton *loadProfileButton_;
+    QPushButton *saveProfileButton_;
     QLineEdit *clipboardEdit_;
     QPushButton *sendClipboardButton_;
     QLabel *statusLabel_;

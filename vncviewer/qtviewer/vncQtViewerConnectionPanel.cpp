@@ -17,6 +17,7 @@
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QSettings>
 #include <QSpinBox>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -150,6 +151,8 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
       updateButton_(new QPushButton(QStringLiteral("Update once"))),
       reconnectButton_(new QPushButton(QStringLiteral("Reconnect"))),
       disconnectButton_(new QPushButton(QStringLiteral("Disconnect"))),
+      loadProfileButton_(new QPushButton(QStringLiteral("Load profile"))),
+      saveProfileButton_(new QPushButton(QStringLiteral("Save profile"))),
       clipboardEdit_(new QLineEdit()),
       sendClipboardButton_(new QPushButton(QStringLiteral("Send clipboard"))),
       statusLabel_(new QLabel(QStringLiteral("Disconnected"))),
@@ -165,6 +168,8 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     intervalSpin_->setObjectName(QStringLiteral("intervalSpin"));
     clipboardEdit_->setObjectName(QStringLiteral("clipboardEdit"));
     sendClipboardButton_->setObjectName(QStringLiteral("sendClipboardButton"));
+    loadProfileButton_->setObjectName(QStringLiteral("loadProfileButton"));
+    saveProfileButton_->setObjectName(QStringLiteral("saveProfileButton"));
     statusLabel_->setObjectName(QStringLiteral("statusLabel"));
 
     portSpin_->setRange(1, 65535);
@@ -194,6 +199,10 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     buttons->addWidget(reconnectButton_);
     buttons->addWidget(disconnectButton_);
 
+    QHBoxLayout *profiles = new QHBoxLayout();
+    profiles->addWidget(loadProfileButton_);
+    profiles->addWidget(saveProfileButton_);
+
     QHBoxLayout *clipboard = new QHBoxLayout();
     clipboard->addWidget(clipboardEdit_, 1);
     clipboard->addWidget(sendClipboardButton_);
@@ -202,6 +211,7 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     layout->addLayout(form);
     layout->addLayout(options);
     layout->addLayout(buttons);
+    layout->addLayout(profiles);
     layout->addLayout(clipboard);
     layout->addWidget(statusLabel_);
     layout->addWidget(surface_, 1);
@@ -228,6 +238,12 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     QObject::connect(sendClipboardButton_, &QPushButton::clicked, this, [this]() {
         SendClipboardText(true);
     });
+    QObject::connect(loadProfileButton_, &QPushButton::clicked, this, [this]() {
+        LoadProfile();
+    });
+    QObject::connect(saveProfileButton_, &QPushButton::clicked, this, [this]() {
+        SaveProfile();
+    });
     QObject::connect(continuousTimer_, &QTimer::timeout, this, [this]() {
         RequestUpdate(false);
     });
@@ -238,6 +254,7 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
         SendQtPointerEvent(buttons, position);
     });
 
+    LoadProfile();
     SetStatus(QStringLiteral("Disconnected"));
 }
 
@@ -257,6 +274,34 @@ portable::ViewerConfig QtViewerConnectionPanel::CurrentConfig() const
     config.SetContinuousUpdates(continuousCheck_->isChecked());
     config.SetUpdateIntervalMs(static_cast<unsigned int>(intervalSpin_->value()));
     return config;
+}
+
+
+void QtViewerConnectionPanel::LoadProfile()
+{
+    QSettings settings(QStringLiteral("UltraVNC"), QStringLiteral("QtViewer"));
+    hostEdit_->setText(settings.value(QStringLiteral("host"), hostEdit_->text()).toString());
+    portSpin_->setValue(settings.value(QStringLiteral("port"), portSpin_->value()).toInt());
+    passwordEdit_->setText(settings.value(QStringLiteral("password"), passwordEdit_->text()).toString());
+    sharedCheck_->setChecked(settings.value(QStringLiteral("shared"), sharedCheck_->isChecked()).toBool());
+    viewOnlyCheck_->setChecked(settings.value(QStringLiteral("viewOnly"), viewOnlyCheck_->isChecked()).toBool());
+    continuousCheck_->setChecked(settings.value(QStringLiteral("continuousUpdates"), continuousCheck_->isChecked()).toBool());
+    intervalSpin_->setValue(settings.value(QStringLiteral("updateIntervalMs"), intervalSpin_->value()).toInt());
+    SetStatus(QStringLiteral("Profile loaded"));
+}
+
+void QtViewerConnectionPanel::SaveProfile()
+{
+    QSettings settings(QStringLiteral("UltraVNC"), QStringLiteral("QtViewer"));
+    settings.setValue(QStringLiteral("host"), hostEdit_->text());
+    settings.setValue(QStringLiteral("port"), portSpin_->value());
+    settings.setValue(QStringLiteral("password"), passwordEdit_->text());
+    settings.setValue(QStringLiteral("shared"), sharedCheck_->isChecked());
+    settings.setValue(QStringLiteral("viewOnly"), viewOnlyCheck_->isChecked());
+    settings.setValue(QStringLiteral("continuousUpdates"), continuousCheck_->isChecked());
+    settings.setValue(QStringLiteral("updateIntervalMs"), intervalSpin_->value());
+    settings.sync();
+    SetStatus(QStringLiteral("Profile saved"));
 }
 
 void QtViewerConnectionPanel::RequestUpdate(bool showDialogOnError)
