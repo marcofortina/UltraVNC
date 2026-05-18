@@ -1,14 +1,23 @@
 name: Native Linux subset
 
 on:
+  workflow_dispatch:
   pull_request:
     branches: [ main, master ]
   push:
     branches: [ main, master ]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: native-linux-subset-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  native-linux-closure:
+  native-linux-ci-gate:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,67 +42,8 @@ jobs:
             libxi-dev \
             qt6-base-dev
 
-      - name: Repeater Linux closure smoke
+      - name: Native Linux CI gate smoke
         run: |
-          cmake/repeater-linux-smoke.sh \
-            /tmp/uvnc-repeater-linux-build \
-            /tmp/uvnc-linux-closure-install
-
-      - name: WinVNC portable core closure smoke
-        run: |
-          cmake/winvnc-portable-core-closure.sh \
-            /tmp/uvnc-winvnc-portable-core-build \
-            /tmp/uvnc-linux-closure-install
-
-      - name: Memory server RFB closure smoke
-        run: |
-          cmake/memory-server-rfb-closure.sh \
-            /tmp/uvnc-memory-server-rfb-build \
-            /tmp/uvnc-linux-closure-install
-
-      - name: X11 capture smoke
-        run: |
-          cmake/x11-capture-smoke.sh \
-            /tmp/uvnc-x11-capture-build \
-            /tmp/uvnc-linux-closure-install
-
-      - name: PipeWire portal capture smoke
-        run: |
-          cmake/pipewire-capture-smoke.sh \
-            /tmp/uvnc-pipewire-capture-build \
-            /tmp/uvnc-linux-closure-install
-
-      - name: Linux input backend smoke
-        run: |
-          cmake/linux-input-smoke.sh \
-            /tmp/uvnc-linux-input-build \
-            /tmp/uvnc-linux-closure-install
-
-      - name: Native Linux server integration smoke
-        run: |
-          cmake/linux-server-integration-smoke.sh \
-            /tmp/uvnc-linux-server-integration-build \
-            /tmp/uvnc-linux-closure-install
-
-      - name: Native Linux Qt viewer smoke
-        run: |
-          cmake/qt-viewer-smoke.sh \
-            /tmp/uvnc-qt-viewer-build \
-            /tmp/uvnc-linux-closure-install
-
-      - name: Native Linux Qt viewer RFB smoke
-        run: |
-          cmake/qt-viewer-rfb-smoke.sh \
-            /tmp/uvnc-qt-viewer-rfb-build \
-            /tmp/uvnc-linux-closure-install
-
-      - name: Native Linux Qt viewer persistent input smoke
-        run: |
-          cmake/qt-viewer-persistent-input-smoke.sh \
-            /tmp/uvnc-qt-viewer-persistent-input-build \
-            /tmp/uvnc-linux-closure-install
-
-      - name: Native Linux Qt viewer compressed encoding smoke
-        run: |
-          cmake/qt-viewer-compressed-encoding-smoke.sh \
-            /tmp/uvnc-qt-viewer-compressed-encoding-build
+          cmake/native-linux-ci-gate-smoke.sh \
+            /tmp/uvnc-native-linux-ci-gate-build \
+            /tmp/uvnc-native-linux-ci-gate-install
