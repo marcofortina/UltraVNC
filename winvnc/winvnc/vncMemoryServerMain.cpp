@@ -545,14 +545,18 @@ int RunSmokeXTestInputTest(bool allowInputInjection)
 
     XTestInputBackend input;
     std::string error;
-    if (!input.InjectKeySym(0xffe3, false, &error)) { // XK_Control_L release, intentionally low-impact.
+    if (!input.InjectKeySym(0xffe3, true, &error) || !input.InjectKeySym(0xffe3, false, &error)) { // XK_Control_L press/release, intentionally low-impact.
         std::cerr << "XTest key injection smoke failed: " << error << "\n";
         return 1;
     }
-    if (!input.InjectPointer(0, 0, 0, &error)) {
+    if (!input.InjectPointerRelative(24, 24, &error) ||
+        !input.InjectButton(1, true, &error) ||
+        !input.InjectButton(1, false, &error) ||
+        !input.InjectPointerRelative(-24, -24, &error)) {
         std::cerr << "XTest pointer injection smoke failed: " << error << "\n";
         return 1;
     }
+    std::cout << "Injected XTest Control_L press/release, pointer motion, and button click.\n";
     return 0;
 }
 

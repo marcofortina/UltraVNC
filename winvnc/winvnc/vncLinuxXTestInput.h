@@ -30,6 +30,8 @@ public:
 
     bool InjectKeySym(CARD32 keysym, bool down, std::string *error = nullptr);
     bool InjectPointer(CARD8 buttonMask, unsigned int x, unsigned int y, std::string *error = nullptr);
+    bool InjectPointerRelative(int dx, int dy, std::string *error = nullptr);
+    bool InjectButton(unsigned int button, bool down, std::string *error = nullptr);
 
     static bool IsBuildAvailable();
     static bool IsAvailable(const std::string& displayName = std::string());

@@ -12,6 +12,7 @@
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <X11/extensions/XTest.h>
+#include <X11/Xutil.h>
 #endif
 
 namespace uvnc {
@@ -67,7 +68,7 @@ bool XTestInputBackend::InjectKeySym(CARD32 keysym, bool down, std::string *erro
         return false;
     }
     const bool ok = XTestFakeKeyEvent(display, keycode, down ? True : False, CurrentTime) != 0;
-    XFlush(display);
+    XSync(display, False);
     if (!ok) {
         SetError(error, "XTest key injection failed");
         return false;
@@ -101,7 +102,7 @@ bool XTestInputBackend::InjectPointer(CARD8 buttonMask, unsigned int x, unsigned
             return false;
         }
     }
-    XFlush(display);
+    XSync(display, False);
     buttonMask_ = buttonMask;
     if (error) error->clear();
     return true;
@@ -109,6 +110,64 @@ bool XTestInputBackend::InjectPointer(CARD8 buttonMask, unsigned int x, unsigned
     (void)buttonMask;
     (void)x;
     (void)y;
+    if (error) *error = UnavailableReason();
+    return false;
+#endif
+}
+
+bool XTestInputBackend::InjectPointerRelative(int dx, int dy, std::string *error)
+{
+#if defined(UVNC_HAVE_XTEST)
+    if (!Initialize(error)) {
+        return false;
+    }
+    Display *display = static_cast<Display *>(display_);
+    Window root = DefaultRootWindow(display);
+    Window returnedRoot = 0;
+    Window returnedChild = 0;
+    int rootX = 0;
+    int rootY = 0;
+    int winX = 0;
+    int winY = 0;
+    unsigned int mask = 0;
+    if (XQueryPointer(display, root, &returnedRoot, &returnedChild, &rootX, &rootY, &winX, &winY, &mask) == 0) {
+        SetError(error, "XTest cannot query current pointer position");
+        return false;
+    }
+    const bool moved = XTestFakeMotionEvent(display, DefaultScreen(display), rootX + dx, rootY + dy, CurrentTime) != 0;
+    XSync(display, False);
+    if (!moved) {
+        SetError(error, "XTest relative pointer motion injection failed");
+        return false;
+    }
+    if (error) error->clear();
+    return true;
+#else
+    (void)dx;
+    (void)dy;
+    if (error) *error = UnavailableReason();
+    return false;
+#endif
+}
+
+bool XTestInputBackend::InjectButton(unsigned int button, bool down, std::string *error)
+{
+#if defined(UVNC_HAVE_XTEST)
+    if (!Initialize(error)) {
+        return false;
+    }
+    Display *display = static_cast<Display *>(display_);
+    const bool ok = XTestFakeButtonEvent(display, button, down ? True : False, CurrentTime) != 0;
+    XSync(display, False);
+    if (!ok) {
+        SetError(error, "XTest button injection failed");
+        return false;
+    }
+    if (error) error->clear();
+    return true;
+#else
+    (void)button;
+    (void)down;
     if (error) *error = UnavailableReason();
     return false;
 #endif
