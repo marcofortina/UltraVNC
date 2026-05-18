@@ -15,7 +15,7 @@ PartOf=graphical-session.target
 [Service]
 Type=simple
 EnvironmentFile=-%h/.config/ultravnc/uvnc-winvnc-memory-server.env
-ExecStart=@CMAKE_INSTALL_FULL_BINDIR@/uvnc_winvnc_memory_server --bind-address ${UVNC_BIND_ADDRESS} --port ${UVNC_PORT} --name ${UVNC_DESKTOP_NAME} --capture-backend ${UVNC_CAPTURE_BACKEND} --input-backend ${UVNC_INPUT_BACKEND} --serve-forever --max-updates ${UVNC_MAX_UPDATES} --pid-file ${UVNC_PID_FILE} --status-file ${UVNC_STATUS_FILE}
+ExecStart=@CMAKE_INSTALL_FULL_BINDIR@/uvnc_winvnc_memory_server --config %h/.config/ultravnc/uvnc-winvnc-linux-server.conf --serve-forever --max-updates ${UVNC_MAX_UPDATES} --pid-file ${UVNC_PID_FILE} --status-file ${UVNC_STATUS_FILE}
 Restart=on-failure
 RestartSec=2s
 

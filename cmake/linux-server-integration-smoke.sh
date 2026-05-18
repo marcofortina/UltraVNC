@@ -25,20 +25,22 @@ cmake --install "${BUILD_DIR}" --prefix "${INSTALL_PREFIX}"
 
 SERVICE_FILE="${INSTALL_PREFIX}/share/ultravnc/linux/uvnc-winvnc-memory-server.service"
 ENV_FILE="${INSTALL_PREFIX}/share/ultravnc/linux/uvnc-winvnc-memory-server.env.example"
+CONFIG_FILE="${INSTALL_PREFIX}/share/ultravnc/linux/uvnc-winvnc-linux-server.conf.example"
 INTEGRATION_DOC="${INSTALL_PREFIX}/share/ultravnc/linux/native-linux-server-backend-integration.md"
 
 test -f "${SERVICE_FILE}"
 test -f "${ENV_FILE}"
+test -f "${CONFIG_FILE}"
 test -f "${INTEGRATION_DOC}"
 grep -q 'uvnc_winvnc_memory_server' "${SERVICE_FILE}"
-grep -q '^UVNC_CAPTURE_BACKEND=auto$' "${ENV_FILE}"
-grep -q '^UVNC_INPUT_BACKEND=none$' "${ENV_FILE}"
+grep -q '^capture_backend=auto$' "${CONFIG_FILE}"
+grep -q '^input_backend=none$' "${CONFIG_FILE}"
 grep -q 'Manual X11 validation' "${INTEGRATION_DOC}"
 grep -q 'Manual PipeWire/XDG portal validation' "${INTEGRATION_DOC}"
 grep -q 'Manual XTest validation' "${INTEGRATION_DOC}"
 
-"${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --validate-config --capture-backend memory --input-backend none
-"${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --print-config --capture-backend auto --input-backend auto >/dev/null
+"${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --validate-config --config "${CONFIG_FILE}" --capture-backend memory --input-backend none
+"${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --print-config --config "${CONFIG_FILE}" --capture-backend auto --input-backend auto >/dev/null
 "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --smoke-pipewire-availability-test >/dev/null
 "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --smoke-xtest-availability-test >/dev/null
 

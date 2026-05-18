@@ -1,0 +1,18 @@
+# This file is part of UltraVNC
+# https://github.com/ultravnc/UltraVNC
+# https://uvnc.com/
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# SPDX-FileCopyrightText: Copyright (C) 2002-2025 UltraVNC Team Members. All Rights Reserved.
+
+# Conservative native Linux server runtime config.
+# Copy to ~/.config/ultravnc/uvnc-winvnc-linux-server.conf and adjust per host.
+
+bind_address=127.0.0.1
+port=5901
+name=uvnc-linux-server
+capture_backend=auto
+input_backend=none
+max_updates=1024
+serve_updates=true
