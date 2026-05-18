@@ -27,6 +27,17 @@ ViewerCliOptions::ViewerCliOptions()
 
 namespace {
 
+bool ParseUnsigned(const std::string& text, unsigned int& value)
+{
+    char *end = nullptr;
+    const long parsed = std::strtol(text.c_str(), &end, 10);
+    if (!end || *end != '\0' || parsed <= 0) {
+        return false;
+    }
+    value = static_cast<unsigned int>(parsed);
+    return true;
+}
+
 bool ParsePort(const std::string& text, unsigned short& port)
 {
     char *end = nullptr;
@@ -78,6 +89,17 @@ bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& opti
             options.config.SetRequestUpdate(true);
         } else if (arg == "--view-only") {
             options.config.SetViewOnly(true);
+        } else if (arg == "--password" && i + 1 < args.size()) {
+            options.config.SetPassword(args[++i]);
+        } else if (arg == "--continuous-updates") {
+            options.config.SetContinuousUpdates(true);
+        } else if (arg == "--update-interval-ms" && i + 1 < args.size()) {
+            unsigned int interval = 0;
+            if (!ParseUnsigned(args[++i], interval)) {
+                error = "invalid --update-interval-ms";
+                return false;
+            }
+            options.config.SetUpdateIntervalMs(interval);
         } else {
             error = "unknown or incomplete option: " + arg;
             return false;
@@ -104,7 +126,10 @@ std::string ViewerCliUsage(const char *programName)
         << "  --shared               Request shared session, default\n"
         << "  --exclusive            Request exclusive session\n"
         << "  --request-update       Request an initial framebuffer update in future session smoke\n"
-        << "  --view-only            Disable local input forwarding in the viewer shell\n";
+        << "  --view-only            Disable local input forwarding in the viewer shell\n"
+        << "  --password <password>  Password for future VNCAuth-capable sessions\n"
+        << "  --continuous-updates   Repeatedly request updates in the interactive Qt shell\n"
+        << "  --update-interval-ms <ms> Continuous-update interval, default 1000\n";
     return out.str();
 }
 

@@ -32,6 +32,11 @@ int main()
     args.push_back("--exclusive");
     args.push_back("--request-update");
     args.push_back("--view-only");
+    args.push_back("--password");
+    args.push_back("secret");
+    args.push_back("--continuous-updates");
+    args.push_back("--update-interval-ms");
+    args.push_back("250");
     args.push_back("--smoke-test");
     args.push_back("--connect-smoke");
     args.push_back("--connect-update-smoke");
@@ -42,6 +47,9 @@ int main()
     assert(options.config.RequestUpdate());
     assert(options.config.ViewOnly());
     assert(options.smokeTest);
+    assert(options.config.Password() == "secret");
+    assert(options.config.ContinuousUpdates());
+    assert(options.config.UpdateIntervalMs() == 250);
     assert(options.connectSmoke);
     assert(options.connectUpdateSmoke);
 
@@ -56,6 +64,12 @@ int main()
     args.push_back("70000");
     assert(!ParseViewerCli(args, options, error));
     assert(error == "invalid --port");
+
+    args.clear();
+    args.push_back("--update-interval-ms");
+    args.push_back("0");
+    assert(!ParseViewerCli(args, options, error));
+    assert(error == "invalid --update-interval-ms");
 
     args.clear();
     args.push_back("--unknown");
