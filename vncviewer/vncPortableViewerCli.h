@@ -27,6 +27,7 @@ struct ViewerCliOptions {
     bool smokeTest;
     bool connectSmoke;
     bool connectUpdateSmoke;
+    bool connectDisplaySmoke;
 };
 
 bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& options, std::string& error);

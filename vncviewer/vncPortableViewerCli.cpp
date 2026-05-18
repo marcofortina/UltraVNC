@@ -20,7 +20,8 @@ ViewerCliOptions::ViewerCliOptions()
       validateOnly(false),
       smokeTest(false),
       connectSmoke(false),
-      connectUpdateSmoke(false)
+      connectUpdateSmoke(false),
+      connectDisplaySmoke(false)
 {
 }
 
@@ -56,6 +57,9 @@ bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& opti
             options.connectSmoke = true;
         } else if (arg == "--connect-update-smoke") {
             options.connectUpdateSmoke = true;
+            options.config.SetRequestUpdate(true);
+        } else if (arg == "--connect-display-smoke") {
+            options.connectDisplaySmoke = true;
             options.config.SetRequestUpdate(true);
         } else if (arg == "--host" && i + 1 < args.size()) {
             options.config.SetHost(args[++i]);
@@ -94,6 +98,7 @@ std::string ViewerCliUsage(const char *programName)
         << "  --smoke-test           Create the Qt viewer shell and exit\n"
         << "  --connect-smoke        Connect to an RFB server, complete handshake, and exit\n"
         << "  --connect-update-smoke Connect to an RFB server, request one raw update, and exit\n"
+        << "  --connect-display-smoke Connect, render one update into the Qt surface, and exit\n"
         << "  --host <host>          Viewer target host, default 127.0.0.1\n"
         << "  --port <port>          Viewer target port, default 5900\n"
         << "  --shared               Request shared session, default\n"

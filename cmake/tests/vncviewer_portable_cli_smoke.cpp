@@ -46,6 +46,12 @@ int main()
     assert(options.connectUpdateSmoke);
 
     args.clear();
+    args.push_back("--connect-display-smoke");
+    assert(ParseViewerCli(args, options, error));
+    assert(options.connectDisplaySmoke);
+    assert(options.config.RequestUpdate());
+
+    args.clear();
     args.push_back("--port");
     args.push_back("70000");
     assert(!ParseViewerCli(args, options, error));
