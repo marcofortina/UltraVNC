@@ -10,6 +10,7 @@ project(vncviewer_qt LANGUAGES CXX)
 
 find_package(Qt6 QUIET COMPONENTS Widgets)
 find_package(ZLIB REQUIRED)
+find_package(JPEG REQUIRED)
 if(NOT Qt6_FOUND)
     message(STATUS "Qt6 Widgets not found; skipping experimental native Linux Qt viewer shell")
     return()
@@ -34,7 +35,7 @@ target_include_directories(uvnc_qt_viewer PRIVATE
     "${CMAKE_SOURCE_DIR}/../common"
 )
 
-target_link_libraries(uvnc_qt_viewer PRIVATE Qt6::Widgets libwinvncportablecore ZLIB::ZLIB)
+target_link_libraries(uvnc_qt_viewer PRIVATE Qt6::Widgets libwinvncportablecore ZLIB::ZLIB JPEG::JPEG)
 
 add_executable(vncviewer_qt_connection_panel_smoke
     "${CMAKE_SOURCE_DIR}/tests/vncviewer_qt_connection_panel_smoke.cpp"
@@ -53,7 +54,7 @@ target_include_directories(vncviewer_qt_connection_panel_smoke PRIVATE
     "${CMAKE_SOURCE_DIR}/.."
     "${CMAKE_SOURCE_DIR}/../common"
 )
-target_link_libraries(vncviewer_qt_connection_panel_smoke PRIVATE Qt6::Widgets libwinvncportablecore ZLIB::ZLIB)
+target_link_libraries(vncviewer_qt_connection_panel_smoke PRIVATE Qt6::Widgets libwinvncportablecore ZLIB::ZLIB JPEG::JPEG)
 add_test(NAME vncviewer_qt_connection_panel_smoke COMMAND vncviewer_qt_connection_panel_smoke)
 set_tests_properties(vncviewer_qt_connection_panel_smoke PROPERTIES
     LABELS "native-linux;vncviewer-qt"

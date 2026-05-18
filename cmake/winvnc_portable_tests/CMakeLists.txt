@@ -11,13 +11,14 @@
 project(winvnc_portable_tests LANGUAGES CXX C)
 
 find_package(ZLIB REQUIRED)
+find_package(JPEG REQUIRED)
 
 function(uvnc_add_winvnc_portable_test name source)
     add_executable(${name}
         "${CMAKE_SOURCE_DIR}/tests/${source}"
     )
 
-    target_link_libraries(${name} PRIVATE libwinvncportablecore ZLIB::ZLIB)
+    target_link_libraries(${name} PRIVATE libwinvncportablecore ZLIB::ZLIB JPEG::JPEG)
 
     add_test(NAME ${name} COMMAND ${name})
     set_tests_properties(${name}
@@ -44,7 +45,7 @@ function(uvnc_add_viewer_portable_test name source)
         "${CMAKE_SOURCE_DIR}/.."
         "${CMAKE_SOURCE_DIR}/../common"
     )
-    target_link_libraries(${name} PRIVATE libwinvncportablecore ZLIB::ZLIB)
+    target_link_libraries(${name} PRIVATE libwinvncportablecore ZLIB::ZLIB JPEG::JPEG)
 
     add_test(NAME ${name} COMMAND ${name})
     set_tests_properties(${name}

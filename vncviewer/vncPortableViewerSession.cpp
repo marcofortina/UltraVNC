@@ -20,6 +20,10 @@
 
 #include <zlib.h>
 
+extern "C" {
+#include <jpeglib.h>
+}
+
 namespace uvnc {
 namespace vncviewer {
 namespace portable {
@@ -565,6 +569,116 @@ unsigned int TightBytesPerPixel(const rfbPixelFormat& format)
     return ZrleBytesPerPixel(format);
 }
 
+std::vector<CARD8> PackRgbPixel(const rfbPixelFormat& format, CARD8 red, CARD8 green, CARD8 blue)
+{
+    const unsigned int bytesPerPixel = BytesPerPixel(format);
+    const CARD32 r = format.redMax == 255 ? red : static_cast<CARD32>((static_cast<unsigned int>(red) * format.redMax) / 255);
+    const CARD32 g = format.greenMax == 255 ? green : static_cast<CARD32>((static_cast<unsigned int>(green) * format.greenMax) / 255);
+    const CARD32 b = format.blueMax == 255 ? blue : static_cast<CARD32>((static_cast<unsigned int>(blue) * format.blueMax) / 255);
+    const CARD32 value = ((r & format.redMax) << format.redShift) |
+                         ((g & format.greenMax) << format.greenShift) |
+                         ((b & format.blueMax) << format.blueShift);
+    std::vector<CARD8> pixel(bytesPerPixel, 0);
+    for (unsigned int i = 0; i < bytesPerPixel; ++i) {
+        pixel[i] = static_cast<CARD8>((value >> (8 * i)) & 0xff);
+    }
+    return pixel;
+}
+
+bool DecodeTightJpegPayload(const rfbPixelFormat& format,
+                            const std::vector<CARD8>& jpeg,
+                            unsigned int width,
+                            unsigned int height,
+                            std::vector<CARD8>& pixels,
+                            std::string *error)
+{
+    jpeg_decompress_struct cinfo;
+    jpeg_error_mgr jerr;
+    std::memset(&cinfo, 0, sizeof(cinfo));
+    cinfo.err = jpeg_std_error(&jerr);
+    jpeg_create_decompress(&cinfo);
+    jpeg_mem_src(&cinfo, const_cast<unsigned char *>(jpeg.data()), static_cast<unsigned long>(jpeg.size()));
+    if (jpeg_read_header(&cinfo, TRUE) != JPEG_HEADER_OK) {
+        jpeg_destroy_decompress(&cinfo);
+        SetError(error, "failed to read RFB Tight JPEG header");
+        return false;
+    }
+    cinfo.out_color_space = JCS_RGB;
+    if (!jpeg_start_decompress(&cinfo)) {
+        jpeg_destroy_decompress(&cinfo);
+        SetError(error, "failed to start RFB Tight JPEG decompression");
+        return false;
+    }
+    if (cinfo.output_width != width || cinfo.output_height != height || cinfo.output_components != 3) {
+        jpeg_finish_decompress(&cinfo);
+        jpeg_destroy_decompress(&cinfo);
+        SetError(error, "RFB Tight JPEG dimensions do not match rectangle");
+        return false;
+    }
+
+    const unsigned int bytesPerPixel = BytesPerPixel(format);
+    pixels.assign(static_cast<std::size_t>(width) * height * bytesPerPixel, 0);
+    std::vector<CARD8> row(static_cast<std::size_t>(width) * 3);
+    while (cinfo.output_scanline < cinfo.output_height) {
+        JSAMPROW rowPointer = row.data();
+        const unsigned int y = cinfo.output_scanline;
+        jpeg_read_scanlines(&cinfo, &rowPointer, 1);
+        for (unsigned int x = 0; x < width; ++x) {
+            const std::size_t src = static_cast<std::size_t>(x) * 3;
+            const std::vector<CARD8> pixel = PackRgbPixel(format, row[src], row[src + 1], row[src + 2]);
+            const std::size_t dst = (static_cast<std::size_t>(y) * width + x) * bytesPerPixel;
+            std::copy(pixel.begin(), pixel.end(), pixels.begin() + dst);
+        }
+    }
+    jpeg_finish_decompress(&cinfo);
+    jpeg_destroy_decompress(&cinfo);
+    return true;
+}
+
+bool DecodeTightGradientPayload(const rfbPixelFormat& format,
+                                const std::vector<CARD8>& payload,
+                                unsigned int width,
+                                unsigned int height,
+                                std::vector<CARD8>& pixels,
+                                std::string *error)
+{
+    const unsigned int compactBytes = TightBytesPerPixel(format);
+    const unsigned int bytesPerPixel = BytesPerPixel(format);
+    const std::size_t expected = static_cast<std::size_t>(width) * height * compactBytes;
+    if (payload.size() != expected) {
+        SetError(error, "invalid RFB Tight gradient payload size");
+        return false;
+    }
+    pixels.assign(static_cast<std::size_t>(width) * height * bytesPerPixel, 0);
+    std::vector<CARD8> previousRow(static_cast<std::size_t>(width) * compactBytes, 0);
+    std::vector<CARD8> currentRow(static_cast<std::size_t>(width) * compactBytes, 0);
+    std::size_t offset = 0;
+    for (unsigned int y = 0; y < height; ++y) {
+        std::fill(currentRow.begin(), currentRow.end(), 0);
+        for (unsigned int x = 0; x < width; ++x) {
+            std::vector<CARD8> compact(compactBytes, 0);
+            for (unsigned int c = 0; c < compactBytes; ++c) {
+                const int left = x == 0 ? 0 : currentRow[static_cast<std::size_t>(x - 1) * compactBytes + c];
+                const int up = y == 0 ? 0 : previousRow[static_cast<std::size_t>(x) * compactBytes + c];
+                const int upLeft = (x == 0 || y == 0) ? 0 : previousRow[static_cast<std::size_t>(x - 1) * compactBytes + c];
+                const int predicted = std::max(0, std::min(255, left + up - upLeft));
+                compact[c] = static_cast<CARD8>((predicted + payload[offset++]) & 0xff);
+                currentRow[static_cast<std::size_t>(x) * compactBytes + c] = compact[c];
+            }
+            const std::vector<CARD8> pixel = ExpandZrlePixel(format, compact);
+            if (pixel.size() != bytesPerPixel) {
+                SetError(error, "failed to expand RFB Tight gradient pixel");
+                return false;
+            }
+            const std::size_t dst = (static_cast<std::size_t>(y) * width + x) * bytesPerPixel;
+            std::copy(pixel.begin(), pixel.end(), pixels.begin() + dst);
+        }
+        previousRow.swap(currentRow);
+    }
+    return true;
+}
+
+
 bool ReadTightPixel(TcpSocket& socket, const rfbPixelFormat& format, std::vector<CARD8>& pixel, std::string *error)
 {
     const unsigned int compactBytes = TightBytesPerPixel(format);
@@ -707,8 +821,23 @@ bool ReadTightRectPayload(TcpSocket& socket,
         return true;
     }
     if (subencoding == rfbTightJpeg) {
-        SetError(error, "unsupported RFB Tight JPEG rectangle");
-        return false;
+        CARD32 jpegSize = 0;
+        if (!ReadTightCompactLength(socket, jpegSize, error)) {
+            return false;
+        }
+        std::vector<CARD8> jpeg(jpegSize);
+        if (jpegSize > 0 && !socket.ReadExact(jpeg.data(), jpeg.size())) {
+            SetError(error, "failed to read RFB Tight JPEG payload");
+            return false;
+        }
+        if (!DecodeTightJpegPayload(result.format, jpeg, rectangle.width, rectangle.height, rectangle.pixels, error)) {
+            return false;
+        }
+        if (!EnsureFramebufferStorage(result, framebuffer, error)) {
+            return false;
+        }
+        CopyRectToFramebuffer(result, framebuffer, rectangle.x, rectangle.y, rectangle.width, rectangle.height, rectangle.pixels);
+        return true;
     }
     if (subencoding > rfbTightNoZlib) {
         SetError(error, "unsupported RFB Tight subencoding");
@@ -743,6 +872,8 @@ bool ReadTightRectPayload(TcpSocket& socket,
             palette.push_back(color);
         }
         bitsPerPixel = paletteSize == 2 ? 1 : 8;
+    } else if (filter == rfbTightFilterGradient) {
+        bitsPerPixel = TightBytesPerPixel(result.format) * 8;
     } else if (filter != rfbTightFilterCopy) {
         SetError(error, "unsupported RFB Tight filter");
         return false;
@@ -758,6 +889,10 @@ bool ReadTightRectPayload(TcpSocket& socket,
     }
     if (filter == rfbTightFilterCopy) {
         if (!DecodeTightCopyPayload(result.format, payload, rectangle.width, rectangle.height, rectangle.pixels, error)) {
+            return false;
+        }
+    } else if (filter == rfbTightFilterGradient) {
+        if (!DecodeTightGradientPayload(result.format, payload, rectangle.width, rectangle.height, rectangle.pixels, error)) {
             return false;
         }
     } else if (!DecodeTightPalettePayload(result.format, palette, payload, rectangle.width, rectangle.height, rectangle.pixels, error)) {
