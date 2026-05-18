@@ -90,3 +90,4 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/uvnc_qt_viewer.desktop" DES
 install(FILES "${CMAKE_SOURCE_DIR}/../vncviewer/res/logo.svg" DESTINATION share/icons/hicolor/scalable/apps RENAME uvnc_qt_viewer.svg)
 install(FILES "${CMAKE_SOURCE_DIR}/../docs/native-linux-qt-viewer.md" DESTINATION share/doc/ultravnc)
 install(FILES "${CMAKE_SOURCE_DIR}/../docs/native-linux-qt-viewer-production-checklist.md" DESTINATION share/doc/ultravnc)
+install(FILES "${CMAKE_SOURCE_DIR}/../docs/examples/native-linux-qt-viewer-real-server-matrix.example" DESTINATION share/doc/ultravnc/examples)
