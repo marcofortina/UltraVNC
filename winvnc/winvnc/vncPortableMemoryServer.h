@@ -28,7 +28,9 @@ public:
     bool ServeOne();
     bool ServeOneUpdate(RfbInputSink *inputSink = nullptr);
     bool ServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink = nullptr);
+    bool TryServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink, unsigned int acceptTimeoutMs, bool& accepted);
     bool ServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink = nullptr, unsigned int maxMessages = 128);
+    bool TryServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, unsigned int acceptTimeoutMs, bool& accepted);
     void Stop();
     bool Running() const { return listener_.Valid(); }
     unsigned short Port() const { return listener_.Port(); }

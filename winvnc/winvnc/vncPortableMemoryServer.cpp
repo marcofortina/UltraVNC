@@ -74,13 +74,21 @@ bool MemoryServer::ServeOneUpdate(RfbInputSink *inputSink)
 
 bool MemoryServer::ServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink)
 {
+    bool accepted = false;
+    return TryServeOneUpdates(updateCount, inputSink, 0, accepted) && accepted;
+}
+
+bool MemoryServer::TryServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink, unsigned int acceptTimeoutMs, bool& accepted)
+{
+    accepted = false;
     if (!listener_.Valid()) {
         return false;
     }
     TcpSocket client;
-    if (!listener_.Accept(client)) {
-        return false;
+    if (!listener_.AcceptWithTimeoutMs(client, acceptTimeoutMs)) {
+        return true;
     }
+    accepted = true;
     RfbServerSession session;
     return session.RunHandshake(client, config_) &&
            session.ServeFramebufferUpdates(client, framebuffer_, updateCount, 128, nullptr, nullptr, inputSink);
@@ -88,13 +96,21 @@ bool MemoryServer::ServeOneUpdates(unsigned int updateCount, RfbInputSink *input
 
 bool MemoryServer::ServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages)
 {
+    bool accepted = false;
+    return TryServeOneUpdatesFromSource(source, updateCount, inputSink, maxMessages, 0, accepted) && accepted;
+}
+
+bool MemoryServer::TryServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, unsigned int acceptTimeoutMs, bool& accepted)
+{
+    accepted = false;
     if (!listener_.Valid()) {
         return false;
     }
     TcpSocket client;
-    if (!listener_.Accept(client)) {
-        return false;
+    if (!listener_.AcceptWithTimeoutMs(client, acceptTimeoutMs)) {
+        return true;
     }
+    accepted = true;
 
     RfbServerSession session;
     if (!session.RunHandshake(client, config_)) {
