@@ -123,7 +123,7 @@ bool RunHandshakeOnSocket(TcpSocket& socket, const ViewerConfig& config, ViewerS
     }
 
     if (selectedSecurity == rfbVncAuth) {
-        std::vector<unsigned char> challenge(CHALLENGESIZE);
+        std::vector<unsigned char> challenge(16);
         if (!socket.ReadExact(challenge.data(), challenge.size())) {
             SetError(error, "failed to read RFB VNCAuth challenge");
             return false;
