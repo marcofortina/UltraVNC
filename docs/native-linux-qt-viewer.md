@@ -48,7 +48,42 @@ cmake/qt-viewer-rfb-smoke.sh   /tmp/uvnc-qt-viewer-rfb-build   /tmp/uvnc-qt-view
 
 This helper starts the native Linux memory server on a loopback port, runs
 `uvnc_qt_viewer --connect-update-smoke`, completes the RFB handshake and reads
-one raw framebuffer update.
+one raw framebuffer update. It also runs `--connect-display-smoke` to render that
+update into the Qt framebuffer surface with `QT_QPA_PLATFORM=offscreen`.
+
+## Manual validation against a known VNC server
+
+Use this only against a no-auth test server. The current native Linux viewer
+smoke client intentionally supports only RFB 3.8 no-auth plus raw framebuffer
+updates.
+
+```sh
+cmake/qt-viewer-known-server-smoke.sh \
+  127.0.0.1 \
+  5900 \
+  /tmp/uvnc-qt-viewer-known-server-build \
+  /tmp/uvnc-qt-viewer-known-server-install
+```
+
+Equivalent direct commands after building/installing `uvnc_qt_viewer`:
+
+```sh
+/tmp/uvnc-qt-viewer-known-server-install/bin/uvnc_qt_viewer \
+  --host 127.0.0.1 \
+  --port 5900 \
+  --view-only \
+  --connect-update-smoke
+
+QT_QPA_PLATFORM=offscreen \
+/tmp/uvnc-qt-viewer-known-server-install/bin/uvnc_qt_viewer \
+  --host 127.0.0.1 \
+  --port 5900 \
+  --view-only \
+  --connect-display-smoke
+```
+
+Expected output contains the negotiated framebuffer size, desktop name and raw
+update byte count.
 
 ## Current scope
 
@@ -61,10 +96,12 @@ Implemented in this milestone:
 - Qt framebuffer surface widget with deterministic synthetic pixels.
 - Local keyboard and pointer event handling inside the Qt surface.
 - RFB handshake/update smoke path against `uvnc_winvnc_memory_server`.
+- One-shot RFB update rendering into the Qt framebuffer surface.
+- Manual known-server validation helper for no-auth raw RFB test servers.
 
 Not implemented in this milestone:
 
 - Long-running RFB network session ownership by the Qt viewer.
-- Displaying live remote framebuffer updates in the Qt surface.
+- Continuous live remote framebuffer updates in the Qt surface.
 - Keyboard/pointer forwarding to a remote server.
 - Clipboard and file transfer.
