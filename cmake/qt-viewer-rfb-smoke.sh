@@ -39,6 +39,7 @@ PY
 server_bin="$install_prefix/bin/uvnc_winvnc_memory_server"
 viewer_bin="$install_prefix/bin/uvnc_qt_viewer"
 
+server_log="$(mktemp)"
 "$server_bin" \
   --bind-address 127.0.0.1 \
   --port "$port" \
@@ -47,23 +48,55 @@ viewer_bin="$install_prefix/bin/uvnc_qt_viewer"
   --name qt-viewer-rfb-smoke \
   --fill-byte 90 \
   --serve-updates \
-  --max-updates 1 &
+  --max-updates 1 >"$server_log" 2>&1 &
 server_pid="$!"
-trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+cleanup() {
+  kill "$server_pid" 2>/dev/null || true
+  rm -f "$server_log"
+}
+trap cleanup EXIT
 
-connected=0
-for _ in $(seq 1 50); do
-  if "$viewer_bin" --host 127.0.0.1 --port "$port" --view-only --connect-update-smoke; then
-    connected=1
+server_ready=0
+for _ in $(seq 1 100); do
+  if grep -q "listening on 127.0.0.1:$port" "$server_log"; then
+    server_ready=1
     break
   fi
-  sleep 0.1
+  if ! kill -0 "$server_pid" 2>/dev/null; then
+    echo "Qt viewer RFB smoke server exited before listening." >&2
+    cat "$server_log" >&2
+    exit 1
+  fi
+  sleep 0.05
 done
 
-if [[ "$connected" != "1" ]]; then
-  echo "Qt viewer failed to connect to the memory server smoke target." >&2
+if [[ "$server_ready" != "1" ]]; then
+  echo "Qt viewer RFB smoke server did not become ready." >&2
+  cat "$server_log" >&2
+  exit 1
+fi
+
+if ! timeout 10s "$viewer_bin" --host 127.0.0.1 --port "$port" --view-only --connect-update-smoke; then
+  echo "Qt viewer failed to complete the RFB update smoke." >&2
+  cat "$server_log" >&2
+  exit 1
+fi
+
+server_done=0
+for _ in $(seq 1 100); do
+  if ! kill -0 "$server_pid" 2>/dev/null; then
+    server_done=1
+    break
+  fi
+  sleep 0.05
+done
+
+if [[ "$server_done" != "1" ]]; then
+  echo "Qt viewer RFB smoke server did not exit after the viewer completed." >&2
+  cat "$server_log" >&2
   exit 1
 fi
 
 wait "$server_pid"
 trap - EXIT
+rm -f "$server_log"

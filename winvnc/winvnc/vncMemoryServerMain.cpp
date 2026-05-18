@@ -657,7 +657,7 @@ int main(int argc, char **argv)
         std::cerr << "failed to start memory server\n";
         return 1;
     }
-    std::cout << "listening on " << config.BindAddress() << ":" << server.Port() << "\n";
+    std::cout << "listening on " << config.BindAddress() << ":" << server.Port() << "\n" << std::flush;
     const bool served = serveUpdates ? server.ServeOneUpdates(maxUpdates) : server.ServeOne();
     server.Stop();
     return served ? 0 : 1;
