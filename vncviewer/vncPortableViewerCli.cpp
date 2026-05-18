@@ -137,6 +137,13 @@ bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& opti
                 return false;
             }
             options.config.SetEncodings(encodings);
+        } else if (arg == "--socket-timeout-ms" && i + 1 < args.size()) {
+            unsigned int timeout = 0;
+            if (!ParseUnsigned(args[++i], timeout)) {
+                error = "invalid --socket-timeout-ms";
+                return false;
+            }
+            options.config.SetSocketTimeoutMs(timeout);
         } else if (arg == "--update-interval-ms" && i + 1 < args.size()) {
             unsigned int interval = 0;
             if (!ParseUnsigned(args[++i], interval)) {
@@ -176,6 +183,7 @@ std::string ViewerCliUsage(const char *programName)
         << "  --clipboard-text <text> Clipboard text sent by persistent input smoke\n"
         << "  --encodings <list>     Comma-separated encodings: raw,copyrect,hextile,zlib,rre,corre,newfbsize\n"
         << "  --continuous-updates   Repeatedly request updates in the interactive Qt shell\n"
+        << "  --socket-timeout-ms <ms> Socket read/write timeout, default 15000\n"
         << "  --update-interval-ms <ms> Continuous-update interval, default 1000\n";
     return out.str();
 }

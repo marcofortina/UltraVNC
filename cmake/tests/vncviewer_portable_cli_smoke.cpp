@@ -41,6 +41,8 @@ int main()
     args.push_back("hello clipboard");
     args.push_back("--update-interval-ms");
     args.push_back("250");
+    args.push_back("--socket-timeout-ms");
+    args.push_back("5000");
     args.push_back("--smoke-test");
     args.push_back("--connect-smoke");
     args.push_back("--connect-update-smoke");
@@ -61,6 +63,7 @@ int main()
     assert(options.config.ContinuousUpdates());
     assert(options.clipboardText == "hello clipboard");
     assert(options.config.UpdateIntervalMs() == 250);
+    assert(options.config.SocketTimeoutMs() == 5000);
     assert(options.connectSmoke);
     assert(options.connectUpdateSmoke);
     assert(options.persistentInputSmoke);
@@ -76,6 +79,12 @@ int main()
     args.push_back("70000");
     assert(!ParseViewerCli(args, options, error));
     assert(error == "invalid --port");
+
+    args.clear();
+    args.push_back("--socket-timeout-ms");
+    args.push_back("0");
+    assert(!ParseViewerCli(args, options, error));
+    assert(error == "invalid --socket-timeout-ms");
 
     args.clear();
     args.push_back("--update-interval-ms");
