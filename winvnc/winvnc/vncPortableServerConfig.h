@@ -18,6 +18,14 @@ namespace uvnc {
 namespace winvnc {
 namespace portable {
 
+enum class ServerAuthMode {
+    NoAuth,
+    VncPassword
+};
+
+const char *ServerAuthModeName(ServerAuthMode mode);
+bool ParseServerAuthMode(const std::string& value, ServerAuthMode& mode);
+
 class ServerConfig {
 public:
     ServerConfig();
@@ -30,6 +38,10 @@ public:
     unsigned char FillByte() const { return fillByte_; }
     FramebufferPattern Pattern() const { return pattern_; }
     rfbPixelFormat PixelFormat() const { return format_; }
+    ServerAuthMode AuthMode() const { return authMode_; }
+    const std::string& VncPassword() const { return vncPassword_; }
+    bool AllowNoAuth() const { return allowNoAuth_; }
+    bool AllowPublicNoAuth() const { return allowPublicNoAuth_; }
 
     void SetBindAddress(const std::string& bindAddress) { bindAddress_ = bindAddress; }
     void SetPort(unsigned short port) { port_ = port; }
@@ -38,6 +50,10 @@ public:
     void SetFillByte(unsigned char fillByte) { fillByte_ = fillByte; }
     void SetPattern(FramebufferPattern pattern) { pattern_ = pattern; }
     void SetPixelFormat(const rfbPixelFormat& format) { format_ = format; }
+    void SetAuthMode(ServerAuthMode mode) { authMode_ = mode; }
+    void SetVncPassword(const std::string& password) { vncPassword_ = password; }
+    void SetAllowNoAuth(bool allow) { allowNoAuth_ = allow; }
+    void SetAllowPublicNoAuth(bool allow) { allowPublicNoAuth_ = allow; }
 
     bool Validate(std::string *error = nullptr) const;
 
@@ -52,6 +68,10 @@ private:
     unsigned char fillByte_;
     FramebufferPattern pattern_;
     rfbPixelFormat format_;
+    ServerAuthMode authMode_;
+    std::string vncPassword_;
+    bool allowNoAuth_;
+    bool allowPublicNoAuth_;
 };
 
 } // namespace portable

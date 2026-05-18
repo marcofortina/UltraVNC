@@ -29,6 +29,30 @@ namespace uvnc {
 namespace winvnc {
 namespace portable {
 
+const char *ServerAuthModeName(ServerAuthMode mode)
+{
+    switch (mode) {
+    case ServerAuthMode::NoAuth:
+        return "none";
+    case ServerAuthMode::VncPassword:
+        return "vnc-password";
+    }
+    return "unknown";
+}
+
+bool ParseServerAuthMode(const std::string& value, ServerAuthMode& mode)
+{
+    if (value == "none" || value == "no-auth") {
+        mode = ServerAuthMode::NoAuth;
+        return true;
+    }
+    if (value == "vnc-password" || value == "vncauth") {
+        mode = ServerAuthMode::VncPassword;
+        return true;
+    }
+    return false;
+}
+
 ServerConfig::ServerConfig()
     : bindAddress_("127.0.0.1"),
       port_(0),
@@ -37,7 +61,11 @@ ServerConfig::ServerConfig()
       desktopName_("UltraVNC native Linux memory server"),
       fillByte_(0x22),
       pattern_(FramebufferPattern::Solid),
-      format_(DefaultPixelFormat())
+      format_(DefaultPixelFormat()),
+      authMode_(ServerAuthMode::NoAuth),
+      vncPassword_(),
+      allowNoAuth_(false),
+      allowPublicNoAuth_(false)
 {
 }
 
@@ -76,6 +104,16 @@ bool ServerConfig::Validate(std::string *error) const
     if (format_.bitsPerPixel % 8 != 0) {
         if (error) *error = "bitsPerPixel must be byte-aligned";
         return false;
+    }
+    if (authMode_ == ServerAuthMode::VncPassword) {
+        if (vncPassword_.empty()) {
+            if (error) *error = "VNCAuth password must not be empty";
+            return false;
+        }
+        if (vncPassword_.size() > 8) {
+            if (error) *error = "VNCAuth password must be at most 8 bytes";
+            return false;
+        }
     }
     return true;
 }
