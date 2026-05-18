@@ -86,3 +86,9 @@ jobs:
           cmake/qt-viewer-rfb-smoke.sh \
             /tmp/uvnc-qt-viewer-rfb-build \
             /tmp/uvnc-linux-closure-install
+
+      - name: Native Linux Qt viewer persistent input smoke
+        run: |
+          cmake/qt-viewer-persistent-input-smoke.sh \
+            /tmp/uvnc-qt-viewer-persistent-input-build \
+            /tmp/uvnc-linux-closure-install
