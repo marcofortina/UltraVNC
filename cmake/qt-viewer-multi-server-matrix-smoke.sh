@@ -33,7 +33,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     echo "invalid matrix line ${line_no}: ${line}" >&2
     exit 2
   fi
-  encodings="${encodings:-raw,copyrect,hextile,zlib,zrle,rre,corre,newfbsize}"
+  encodings="${encodings:-raw,copyrect,hextile,zlib,zrle,tight,rre,corre,newfbsize}"
   allow_input="${allow_input:-0}"
   echo "==> ${label}: ${host}:${port} (${encodings})"
   if [[ "$allow_input" == "1" ]]; then

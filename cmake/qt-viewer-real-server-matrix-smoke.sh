@@ -23,7 +23,7 @@ password="${5:-}"
 password_file="${UVNC_VIEWER_PASSWORD_FILE:-}"
 password_temp=""
 allow_input="${UVNC_VIEWER_REAL_SERVER_ALLOW_INPUT:-0}"
-encodings="${UVNC_VIEWER_REAL_SERVER_ENCODINGS:-raw,copyrect,hextile,zlib,zrle,rre,corre,newfbsize}"
+encodings="${UVNC_VIEWER_REAL_SERVER_ENCODINGS:-raw,copyrect,hextile,zlib,zrle,tight,rre,corre,newfbsize}"
 
 cmake -S cmake -B "$build_dir" -G Ninja \
   -DULTRAVNC_BUILD_PORTABLE_LIBS=ON \

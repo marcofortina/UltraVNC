@@ -52,7 +52,7 @@ elif [[ -z "$password_file" && -n "$password" ]]; then
     password_file="$password_temp"
   fi
 fi
-args=(--host "$host" --port "$port" --view-only --encodings "${UVNC_VIEWER_REAL_SERVER_ENCODINGS:-raw,copyrect,hextile,zlib,zrle,rre,corre,newfbsize}")
+args=(--host "$host" --port "$port" --view-only --encodings "${UVNC_VIEWER_REAL_SERVER_ENCODINGS:-raw,copyrect,hextile,zlib,zrle,tight,rre,corre,newfbsize}")
 if [[ -n "$password_file" ]]; then
   args+=(--password-file "$password_file")
 fi
