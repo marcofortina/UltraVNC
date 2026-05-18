@@ -144,3 +144,7 @@ cmake/qt-viewer-known-server-smoke.sh 127.0.0.1 5900 \
   /tmp/uvnc-known-server-install \
   secret
 ```
+
+Real-server update compatibility note:
+
+The portable Qt viewer now accepts FramebufferUpdate messages with multiple rectangles and composes supported raw/CopyRect rectangles into the local framebuffer before handing pixels to the Qt surface. This is required for interoperability with real VNC servers, which commonly send more than one rectangle per update.
