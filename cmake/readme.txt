@@ -310,3 +310,14 @@ Installed integration examples are placed under:
 ```sh
 /tmp/uvnc-linux-server-integration-install/share/ultravnc/linux/
 ```
+
+Native Linux Qt viewer shell smoke:
+
+```sh
+cmake/qt-viewer-smoke.sh \
+  /tmp/uvnc-qt-viewer-build \
+  /tmp/uvnc-qt-viewer-install
+```
+
+The Qt viewer shell is optional and requires Qt6 Widgets development files. The
+smoke uses `QT_QPA_PLATFORM=offscreen` for CI-safe event-loop validation.
