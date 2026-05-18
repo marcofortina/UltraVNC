@@ -8,7 +8,9 @@
 # // SPDX-FileCopyrightText: Copyright (C) 1999-2002 Vdacc-VNC & eSVNC Projects. All Rights Reserved.
 # //
 
-project(winvnc_portable_tests LANGUAGES CXX)
+project(winvnc_portable_tests LANGUAGES CXX C)
+
+find_package(ZLIB REQUIRED)
 
 function(uvnc_add_winvnc_portable_test name source)
     add_executable(${name}
@@ -172,3 +174,5 @@ uvnc_add_viewer_portable_test(vncviewer_portable_encoding_negotiation_smoke vncv
 uvnc_add_viewer_portable_test(vncviewer_portable_multi_rect_update_smoke vncviewer_portable_multi_rect_update_smoke.cpp)
 
 uvnc_add_viewer_portable_test(vncviewer_portable_server_messages_smoke vncviewer_portable_server_messages_smoke.cpp)
+
+uvnc_add_viewer_portable_test(vncviewer_portable_compressed_encoding_smoke vncviewer_portable_compressed_encoding_smoke.cpp)
