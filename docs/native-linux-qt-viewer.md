@@ -51,6 +51,17 @@ This helper starts the native Linux memory server on a loopback port, runs
 one raw framebuffer update. It also runs `--connect-display-smoke` to render that
 update into the Qt framebuffer surface with `QT_QPA_PLATFORM=offscreen`.
 
+## Persistent input smoke
+
+```sh
+cmake/qt-viewer-persistent-input-smoke.sh   /tmp/uvnc-qt-viewer-persistent-input-build   /tmp/uvnc-qt-viewer-persistent-input-install
+```
+
+This helper keeps one RFB connection open long enough to send keyboard and
+pointer events before requesting a framebuffer update. It exercises the portable
+persistent viewer session and the same wire encoders used by the Qt input
+forwarding path.
+
 ## Manual validation against a known VNC server
 
 Use this only against a no-auth test server. The current native Linux viewer
@@ -96,13 +107,13 @@ Implemented in this milestone:
 - Qt framebuffer surface widget with deterministic synthetic pixels.
 - Local keyboard and pointer event handling inside the Qt surface.
 - Interactive connection panel for host, port, password, shared/view-only mode and continuous-update polling.
+- Persistent RFB session ownership inside the Qt connection panel.
 - RFB handshake/update smoke path against `uvnc_winvnc_memory_server`.
 - One-shot RFB update rendering into the Qt framebuffer surface.
 - Manual known-server validation helper for no-auth raw RFB test servers.
+- Keyboard/pointer forwarding path for supported Qt key/button events.
 
 Not implemented in this milestone:
 
-- Long-running RFB network session ownership by the Qt viewer.
-- Continuous live remote framebuffer updates in the Qt surface.
-- Keyboard/pointer forwarding to a remote server.
+- Continuous live remote framebuffer updates against broad real-world VNC servers.
 - Clipboard and file transfer.
