@@ -45,7 +45,10 @@ typedef uint8_t  CARD8;
 #endif
 
 // include the protocol spec
+#ifndef UVNC_RFBPROTO_INCLUDED
+#define UVNC_RFBPROTO_INCLUDED
 #include <rfb/rfbproto.h>
+#endif
 
 // define some quick endian conversions
 // change this if necessary

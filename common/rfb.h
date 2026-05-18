@@ -40,7 +40,10 @@ typedef uint8_t  CARD8;
 #define DISPLAY_TO_HPORT(d) ( (d) + HTTP_PORT_OFFSET )
 
 // include the protocol spec
+#ifndef UVNC_RFBPROTO_INCLUDED
+#define UVNC_RFBPROTO_INCLUDED
 #include <rfb/rfbproto.h>
+#endif
 
 // define some quick endian conversions
 // change this if necessary
