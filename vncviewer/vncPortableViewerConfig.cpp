@@ -27,6 +27,10 @@ ViewerConfig::ViewerConfig()
 {
     encodings_.push_back(rfbEncodingRaw);
     encodings_.push_back(rfbEncodingCopyRect);
+    encodings_.push_back(rfbEncodingHextile);
+    encodings_.push_back(rfbEncodingZlib);
+    encodings_.push_back(rfbEncodingRRE);
+    encodings_.push_back(rfbEncodingCoRRE);
     encodings_.push_back(rfbEncodingNewFBSize);
 }
 

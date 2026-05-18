@@ -53,6 +53,14 @@ bool ParseEncodingList(const std::string& text, std::vector<unsigned int>& encod
             encodings.push_back(rfbEncodingRaw);
         } else if (token == "copyrect") {
             encodings.push_back(rfbEncodingCopyRect);
+        } else if (token == "hextile") {
+            encodings.push_back(rfbEncodingHextile);
+        } else if (token == "zlib") {
+            encodings.push_back(rfbEncodingZlib);
+        } else if (token == "rre") {
+            encodings.push_back(rfbEncodingRRE);
+        } else if (token == "corre") {
+            encodings.push_back(rfbEncodingCoRRE);
         } else if (token == "newfbsize") {
             encodings.push_back(rfbEncodingNewFBSize);
         } else {
@@ -166,7 +174,7 @@ std::string ViewerCliUsage(const char *programName)
         << "  --view-only            Disable local input forwarding in the viewer shell\n"
         << "  --password <password>  Password for VNCAuth-capable sessions\n"
         << "  --clipboard-text <text> Clipboard text sent by persistent input smoke\n"
-        << "  --encodings <list>     Comma-separated encodings: raw,copyrect,newfbsize\n"
+        << "  --encodings <list>     Comma-separated encodings: raw,copyrect,hextile,zlib,rre,corre,newfbsize\n"
         << "  --continuous-updates   Repeatedly request updates in the interactive Qt shell\n"
         << "  --update-interval-ms <ms> Continuous-update interval, default 1000\n";
     return out.str();
