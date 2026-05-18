@@ -8,6 +8,8 @@
 
 #include "vncPortableViewerSession.h"
 
+#include "vncPortableVncAuth.h"
+
 #include "vncPortableRfb.h"
 #include "vncPortableRfbMessages.h"
 #include "vncPortableTcp.h"
@@ -20,9 +22,11 @@ namespace portable {
 namespace {
 
 using uvnc::winvnc::portable::AuthOkValue;
+using uvnc::winvnc::portable::EncodeClientCutText;
 using uvnc::winvnc::portable::EncodeFramebufferUpdateRequest;
 using uvnc::winvnc::portable::EncodeKeyEvent;
 using uvnc::winvnc::portable::EncodePointerEvent;
+using uvnc::winvnc::portable::EncodeSetEncodings;
 using uvnc::winvnc::portable::IsProtocolVersionMessage;
 using uvnc::winvnc::portable::ProtocolVersion38;
 using uvnc::winvnc::portable::KeyEvent;
@@ -78,25 +82,65 @@ bool RunHandshakeOnSocket(TcpSocket& socket, const ViewerConfig& config, ViewerS
         return false;
     }
 
-    CARD8 security[2] = {};
-    if (!socket.ReadExact(security, sizeof(security))) {
+    CARD8 securityCount = 0;
+    if (!socket.ReadExact(&securityCount, sizeof(securityCount))) {
+        SetError(error, "failed to read RFB security type count");
+        return false;
+    }
+    if (securityCount == 0) {
+        SetError(error, "RFB server reported no security types");
+        return false;
+    }
+    std::vector<CARD8> securityTypes(securityCount);
+    if (!socket.ReadExact(securityTypes.data(), securityTypes.size())) {
         SetError(error, "failed to read RFB security types");
         return false;
     }
-    if (security[0] != 1 || security[1] != rfbNoAuth) {
-        SetError(error, "RFB server does not offer no-auth security");
+
+    bool offersNoAuth = false;
+    bool offersVncAuth = false;
+    for (std::size_t i = 0; i < securityTypes.size(); ++i) {
+        offersNoAuth = offersNoAuth || securityTypes[i] == rfbNoAuth;
+        offersVncAuth = offersVncAuth || securityTypes[i] == rfbVncAuth;
+    }
+
+    CARD8 selectedSecurity = 0;
+    if (!config.Password().empty() && offersVncAuth) {
+        selectedSecurity = rfbVncAuth;
+    } else if (offersNoAuth) {
+        selectedSecurity = rfbNoAuth;
+    } else if (offersVncAuth) {
+        SetError(error, "RFB server requires VNCAuth but no password was provided");
+        return false;
+    } else {
+        SetError(error, "RFB server does not offer a supported security type");
         return false;
     }
 
-    CARD8 selectedSecurity = rfbNoAuth;
     if (!socket.WriteAll(&selectedSecurity, sizeof(selectedSecurity))) {
-        SetError(error, "failed to select RFB no-auth security");
+        SetError(error, "failed to select RFB security type");
         return false;
+    }
+
+    if (selectedSecurity == rfbVncAuth) {
+        std::vector<unsigned char> challenge(CHALLENGESIZE);
+        if (!socket.ReadExact(challenge.data(), challenge.size())) {
+            SetError(error, "failed to read RFB VNCAuth challenge");
+            return false;
+        }
+        std::vector<unsigned char> response;
+        if (!EncryptVncAuthChallenge(challenge, config.Password(), response, error)) {
+            return false;
+        }
+        if (!socket.WriteAll(response.data(), response.size())) {
+            SetError(error, "failed to write RFB VNCAuth response");
+            return false;
+        }
     }
 
     CARD32 authResult = 1;
-    if (!socket.ReadExact(&authResult, sizeof(authResult)) || authResult != 0) {
-        SetError(error, "RFB no-auth security failed");
+    if (!socket.ReadExact(&authResult, sizeof(authResult)) || Swap32IfLE(authResult) != rfbVncAuthOK) {
+        SetError(error, selectedSecurity == rfbVncAuth ? "RFB VNCAuth security failed" : "RFB no-auth security failed");
         return false;
     }
 
@@ -108,7 +152,19 @@ bool RunHandshakeOnSocket(TcpSocket& socket, const ViewerConfig& config, ViewerS
         return false;
     }
 
-    return ReadServerInit(socket, result, error);
+    if (!ReadServerInit(socket, result, error)) {
+        return false;
+    }
+    std::vector<CARD32> encodings;
+    for (std::size_t i = 0; i < config.Encodings().size(); ++i) {
+        encodings.push_back(static_cast<CARD32>(config.Encodings()[i]));
+    }
+    const std::vector<CARD8> setEncodings = EncodeSetEncodings(encodings);
+    if (!socket.WriteAll(setEncodings.data(), setEncodings.size())) {
+        SetError(error, "failed to write RFB SetEncodings");
+        return false;
+    }
+    return true;
 }
 
 bool ReadOneRawUpdate(TcpSocket& socket, ViewerSessionResult& result, std::string *error)
@@ -237,6 +293,7 @@ bool PersistentViewerSession::Connect(const ViewerConfig& config, ViewerSessionR
         return false;
     }
     state_ = ViewerSessionResult();
+    config_ = config;
     if (!RunHandshakeOnSocket(socket_, config, state_, error)) {
         Disconnect();
         return false;
@@ -313,6 +370,25 @@ bool PersistentViewerSession::SendPointerEvent(CARD8 buttonMask, unsigned int x,
     const rfbPointerEventMsg wire = EncodePointerEvent(event);
     if (!socket_.WriteAll(&wire, sz_rfbPointerEventMsg)) {
         SetError(error, "failed to write RFB pointer event");
+        Disconnect();
+        return false;
+    }
+    if (error) {
+        error->clear();
+    }
+    return true;
+}
+
+
+bool PersistentViewerSession::SendClientCutText(const std::string& text, std::string *error)
+{
+    if (!Connected()) {
+        SetError(error, "RFB viewer session is not connected");
+        return false;
+    }
+    const std::vector<CARD8> bytes = EncodeClientCutText(text);
+    if (!socket_.WriteAll(bytes.data(), bytes.size())) {
+        SetError(error, "failed to write RFB client cut text");
         Disconnect();
         return false;
     }

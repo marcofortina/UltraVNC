@@ -63,10 +63,12 @@ public:
     bool RequestFramebufferUpdate(bool incremental, ViewerSessionResult& result, std::string *error = nullptr);
     bool SendKeyEvent(CARD32 keysym, bool down, std::string *error = nullptr);
     bool SendPointerEvent(CARD8 buttonMask, unsigned int x, unsigned int y, std::string *error = nullptr);
+    bool SendClientCutText(const std::string& text, std::string *error = nullptr);
 
 private:
     uvnc::winvnc::portable::TcpSocket socket_;
     ViewerSessionResult state_;
+    ViewerConfig config_;
 };
 
 } // namespace portable
