@@ -94,6 +94,11 @@ bool PipeWirePortalCaptureBackend::RuntimeAvailable(std::string *reason)
     return RuntimeState(reason) == PipeWirePortalRuntimeState::Built;
 }
 
+bool PipeWirePortalCaptureBackend::CaptureImplemented()
+{
+    return false;
+}
+
 const char *PipeWirePortalCaptureBackend::RuntimeStateName(PipeWirePortalRuntimeState state)
 {
     switch (state) {

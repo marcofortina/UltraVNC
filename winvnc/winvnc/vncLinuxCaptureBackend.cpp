@@ -79,7 +79,7 @@ const char *CaptureBackendDescription(CaptureBackend backend)
     case CaptureBackend::X11:
         return "X11 root-window capture using XGetImage";
     case CaptureBackend::PipeWire:
-        return "PipeWire/XDG portal capture skeleton";
+        return "PipeWire/XDG portal capture skeleton (live frame import not implemented yet)";
     }
     return "unknown capture backend";
 }
@@ -95,7 +95,7 @@ bool IsCaptureBackendRuntimeAvailable(CaptureBackend backend, bool hasRawFramebu
     case CaptureBackend::X11:
         return X11DesktopSource::IsAvailable();
     case CaptureBackend::PipeWire:
-        return PipeWirePortalCaptureBackend::RuntimeAvailable();
+        return PipeWirePortalCaptureBackend::RuntimeAvailable() && PipeWirePortalCaptureBackend::CaptureImplemented();
     }
     return false;
 }
@@ -108,8 +108,6 @@ bool ResolveCaptureBackend(CaptureBackend requested,
     if (requested == CaptureBackend::Auto) {
         if (hasRawFramebufferFile) {
             resolved = CaptureBackend::RawFile;
-        } else if (PipeWirePortalCaptureBackend::RuntimeAvailable()) {
-            resolved = CaptureBackend::PipeWire;
         } else if (X11DesktopSource::IsAvailable()) {
             resolved = CaptureBackend::X11;
         } else {

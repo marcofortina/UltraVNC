@@ -54,6 +54,7 @@ class PipeWirePortalCaptureBackend {
 public:
     static bool BuildAvailable();
     static bool RuntimeAvailable(std::string *reason = nullptr);
+    static bool CaptureImplemented();
     static PipeWirePortalRuntimeState RuntimeState(std::string *reason = nullptr);
     static const char *RuntimeStateName(PipeWirePortalRuntimeState state);
     static PipeWirePortalSessionRequest DefaultSessionRequest();
