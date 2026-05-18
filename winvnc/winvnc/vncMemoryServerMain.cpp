@@ -28,9 +28,13 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <sys/stat.h>
 #include <unistd.h>
 
 using uvnc::winvnc::portable::ServerConfig;
+using uvnc::winvnc::portable::ServerAuthMode;
+using uvnc::winvnc::portable::ServerAuthModeName;
+using uvnc::winvnc::portable::ParseServerAuthMode;
 using uvnc::winvnc::linuxfb::CaptureBackend;
 using uvnc::winvnc::linuxfb::CaptureBackendName;
 using uvnc::winvnc::linuxfb::LoadRawFramebufferFile;
@@ -75,6 +79,88 @@ void InstallStopSignalHandlers()
 {
     std::signal(SIGINT, HandleStopSignal);
     std::signal(SIGTERM, HandleStopSignal);
+}
+
+bool IsLoopbackBindAddress(const std::string& address)
+{
+    return address == "127.0.0.1" || address == "127.0.0.0";
+}
+
+bool IsAllInterfacesBindAddress(const std::string& address)
+{
+    return address == "0.0.0.0";
+}
+
+bool ValidateRegularFilePermissions(const std::string& path, bool requirePrivate, std::string *error)
+{
+    struct stat st;
+    if (stat(path.c_str(), &st) != 0) {
+        if (error) *error = "cannot stat file: " + path;
+        return false;
+    }
+    if (!S_ISREG(st.st_mode)) {
+        if (error) *error = "not a regular file: " + path;
+        return false;
+    }
+    if (st.st_mode & (S_IWGRP | S_IWOTH)) {
+        if (error) *error = "file must not be group/world writable: " + path;
+        return false;
+    }
+    if (requirePrivate && (st.st_mode & (S_IRWXG | S_IRWXO))) {
+        if (error) *error = "password file must not be accessible by group/other: " + path;
+        return false;
+    }
+    return true;
+}
+
+bool ReadPasswordFile(const std::string& path, std::string& password, std::string *error)
+{
+    if (!ValidateRegularFilePermissions(path, true, error)) {
+        return false;
+    }
+    std::ifstream input(path.c_str(), std::ios::binary);
+    if (!input) {
+        if (error) *error = "cannot open password file: " + path;
+        return false;
+    }
+    std::getline(input, password);
+    while (!password.empty() && (password[password.size() - 1] == '\r' || password[password.size() - 1] == '\n')) {
+        password.resize(password.size() - 1);
+    }
+    if (password.empty()) {
+        if (error) *error = "password file is empty: " + path;
+        return false;
+    }
+    if (password.size() > 8) {
+        if (error) *error = "VNCAuth password file value must be at most 8 bytes: " + path;
+        return false;
+    }
+    return true;
+}
+
+bool EnforceLinuxServerSecurityPolicy(const ServerConfig& config, std::string *error)
+{
+    if (config.AuthMode() == ServerAuthMode::NoAuth) {
+        if (!config.AllowNoAuth()) {
+            if (error) *error = "no-auth is disabled by default; use --allow-no-auth only for loopback/lab use or configure --auth vnc-password --password-file";
+            return false;
+        }
+        if (!IsLoopbackBindAddress(config.BindAddress()) && !config.AllowPublicNoAuth()) {
+            if (error) *error = "refusing no-auth on a non-loopback bind address; configure VNCAuth or use --allow-public-no-auth only for controlled lab validation";
+            return false;
+        }
+    }
+    return true;
+}
+
+void PrintSecurityWarnings(const ServerConfig& config)
+{
+    if (IsAllInterfacesBindAddress(config.BindAddress())) {
+        std::cerr << "warning: listening on 0.0.0.0; this experimental Linux server has no transport encryption yet" << "\n";
+    }
+    if (config.AuthMode() == ServerAuthMode::VncPassword) {
+        std::cerr << "warning: VNCAuth protects the handshake but does not encrypt framebuffer/input traffic" << "\n";
+    }
 }
 
 bool WriteTextFile(const std::string& path, const std::string& value)
@@ -174,6 +260,10 @@ void PrintUsage(const char *name)
               << "  --input-backend <name> Input backend: auto, none, xtest\n"
               << "  --raw-framebuffer-file <path> Serve exact-size raw framebuffer file instead of synthetic pattern\n"
               << "  --config <path>         Load key=value server runtime config before CLI overrides\n"
+              << "  --auth <mode>           Auth mode: none or vnc-password\n"
+              << "  --password-file <path>  Read VNCAuth password from a private file, max 8 bytes\n"
+              << "  --allow-no-auth         Explicitly allow no-auth loopback/lab mode\n"
+              << "  --allow-public-no-auth  Explicitly allow no-auth on non-loopback lab binds\n"
               << "  --validate-config       Validate options and exit\n"
               << "  --print-config          Print resolved configuration and exit\n"
               << "  --smoke-test            Start on loopback, complete one RFB handshake, and exit\n"
@@ -228,6 +318,30 @@ bool AddConfigOption(const std::string& key, const std::string& value, std::vect
         args.push_back("--input-backend");
     } else if (key == "raw_framebuffer_file") {
         args.push_back("--raw-framebuffer-file");
+    } else if (key == "auth") {
+        args.push_back("--auth");
+    } else if (key == "password_file") {
+        args.push_back("--password-file");
+    } else if (key == "allow_no_auth") {
+        if (value == "true" || value == "1" || value == "yes") {
+            args.push_back("--allow-no-auth");
+            return true;
+        }
+        if (value == "false" || value == "0" || value == "no") {
+            return true;
+        }
+        if (error) *error = "invalid boolean value for allow_no_auth";
+        return false;
+    } else if (key == "allow_public_no_auth") {
+        if (value == "true" || value == "1" || value == "yes") {
+            args.push_back("--allow-public-no-auth");
+            return true;
+        }
+        if (value == "false" || value == "0" || value == "no") {
+            return true;
+        }
+        if (error) *error = "invalid boolean value for allow_public_no_auth";
+        return false;
     } else if (key == "max_updates") {
         args.push_back("--max-updates");
     } else if (key == "pid_file") {
@@ -271,6 +385,9 @@ bool AddConfigOption(const std::string& key, const std::string& value, std::vect
 
 bool AppendConfigFileArgs(const std::string& path, std::vector<std::string>& args, std::string *error)
 {
+    if (!ValidateRegularFilePermissions(path, false, error)) {
+        return false;
+    }
     std::ifstream input(path.c_str());
     if (!input) {
         if (error) *error = "cannot open config file: " + path;
@@ -350,7 +467,7 @@ bool ParseUnsigned(const char *value, unsigned int min, unsigned int max, unsign
     return true;
 }
 
-bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& captureBackend, InputBackend& inputBackend, std::string& rawFramebufferFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& smokeX11UpdateTest, bool& smokeX11AvailabilityTest, bool& smokePipeWireAvailabilityTest, bool& smokeXTestAvailabilityTest, bool& smokeXTestInputTest, bool& allowInputInjection, bool& serveUpdates, bool& serveForever, unsigned int& maxUpdates, std::string& pidFile, std::string& statusFile, std::string& logFile)
+bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& captureBackend, InputBackend& inputBackend, std::string& rawFramebufferFile, std::string& passwordFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& smokeX11UpdateTest, bool& smokeX11AvailabilityTest, bool& smokePipeWireAvailabilityTest, bool& smokeXTestAvailabilityTest, bool& smokeXTestInputTest, bool& allowInputInjection, bool& serveUpdates, bool& serveForever, unsigned int& maxUpdates, std::string& pidFile, std::string& statusFile, std::string& logFile)
 {
     validateOnly = false;
     printConfig = false;
@@ -373,6 +490,7 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
     captureBackend = CaptureBackend::Auto;
     inputBackend = InputBackend::Auto;
     rawFramebufferFile.clear();
+    passwordFile.clear();
     for (int i = 1; i < argc; ++i) {
         const std::string arg(argv[i]);
         if (arg == "--help") {
@@ -386,22 +504,27 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
             smokeTest = true;
             config.SetBindAddress("127.0.0.1");
             config.SetPort(0);
+            config.SetAllowNoAuth(true);
         } else if (arg == "--smoke-update-test") {
             smokeUpdateTest = true;
             config.SetBindAddress("127.0.0.1");
             config.SetPort(0);
+            config.SetAllowNoAuth(true);
         } else if (arg == "--smoke-multi-update-test") {
             smokeMultiUpdateTest = true;
             config.SetBindAddress("127.0.0.1");
             config.SetPort(0);
+            config.SetAllowNoAuth(true);
         } else if (arg == "--smoke-raw-file-update-test") {
             smokeRawFileUpdateTest = true;
             config.SetBindAddress("127.0.0.1");
             config.SetPort(0);
+            config.SetAllowNoAuth(true);
         } else if (arg == "--smoke-x11-update-test") {
             smokeX11UpdateTest = true;
             config.SetBindAddress("127.0.0.1");
             config.SetPort(0);
+            config.SetAllowNoAuth(true);
         } else if (arg == "--smoke-x11-availability-test") {
             smokeX11AvailabilityTest = true;
         } else if (arg == "--smoke-pipewire-availability-test") {
@@ -412,6 +535,19 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
             smokeXTestInputTest = true;
         } else if (arg == "--allow-input-injection") {
             allowInputInjection = true;
+        } else if (arg == "--allow-no-auth") {
+            config.SetAllowNoAuth(true);
+        } else if (arg == "--allow-public-no-auth") {
+            config.SetAllowPublicNoAuth(true);
+        } else if (arg == "--auth" && i + 1 < argc) {
+            ServerAuthMode mode = ServerAuthMode::NoAuth;
+            if (!ParseServerAuthMode(argv[++i], mode)) {
+                std::cerr << "invalid --auth\n";
+                return false;
+            }
+            config.SetAuthMode(mode);
+        } else if (arg == "--password-file" && i + 1 < argc) {
+            passwordFile = argv[++i];
         } else if (arg == "--serve-updates") {
             serveUpdates = true;
         } else if (arg == "--serve-forever") {
@@ -656,6 +792,9 @@ void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBac
               << "resolved_capture_backend=" << CaptureBackendName(resolvedBackend) << "\n"
               << "input_backend=" << InputBackendName(requestedInputBackend) << "\n"
               << "resolved_input_backend=" << InputBackendName(resolvedInputBackend) << "\n"
+              << "auth=" << ServerAuthModeName(config.AuthMode()) << "\n"
+              << "allow_no_auth=" << (config.AllowNoAuth() ? "yes" : "no") << "\n"
+              << "allow_public_no_auth=" << (config.AllowPublicNoAuth() ? "yes" : "no") << "\n"
               << "serve_updates=" << (serveUpdates ? "yes" : "no") << "\n"
               << "serve_forever=" << (serveForever ? "yes" : "no") << "\n"
               << "max_updates=" << maxUpdates << "\n"
@@ -855,6 +994,7 @@ int main(int argc, char **argv)
     InputBackend inputBackend = InputBackend::Auto;
     InputBackend resolvedInputBackend = InputBackend::None;
     std::string rawFramebufferFile;
+    std::string passwordFile;
     bool validateOnly = false;
     bool printConfig = false;
     bool smokeTest = false;
@@ -884,8 +1024,18 @@ int main(int argc, char **argv)
         mergedArgv.push_back(&mergedArgs[i][0]);
     }
 
-    if (!ParseArgs(static_cast<int>(mergedArgv.size()), mergedArgv.data(), config, captureBackend, inputBackend, rawFramebufferFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, smokeX11AvailabilityTest, smokePipeWireAvailabilityTest, smokeXTestAvailabilityTest, smokeXTestInputTest, allowInputInjection, serveUpdates, serveForever, maxUpdates, pidFile, statusFile, logFile)) {
+    if (!ParseArgs(static_cast<int>(mergedArgv.size()), mergedArgv.data(), config, captureBackend, inputBackend, rawFramebufferFile, passwordFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, smokeX11AvailabilityTest, smokePipeWireAvailabilityTest, smokeXTestAvailabilityTest, smokeXTestInputTest, allowInputInjection, serveUpdates, serveForever, maxUpdates, pidFile, statusFile, logFile)) {
         return 2;
+    }
+
+    if (!passwordFile.empty()) {
+        std::string password;
+        if (!ReadPasswordFile(passwordFile, password, &error)) {
+            std::cerr << "invalid config: " << error << "\n";
+            return 2;
+        }
+        config.SetAuthMode(ServerAuthMode::VncPassword);
+        config.SetVncPassword(password);
     }
 
     InstallStopSignalHandlers();
@@ -904,6 +1054,10 @@ int main(int argc, char **argv)
     }
     if (smokeXTestInputTest) {
         return RunSmokeXTestInputTest(allowInputInjection);
+    }
+    if (!EnforceLinuxServerSecurityPolicy(config, &error)) {
+        std::cerr << "invalid config: " << error << "\n";
+        return 2;
     }
     if (!ResolveCaptureBackend(captureBackend, !rawFramebufferFile.empty(), resolvedCaptureBackend, &error)) {
         std::cerr << "invalid capture backend: " << error << "\n";
@@ -951,6 +1105,8 @@ int main(int argc, char **argv)
         coutRedirect.Redirect(std::cout, logStream.rdbuf());
         cerrRedirect.Redirect(std::cerr, logStream.rdbuf());
     }
+
+    PrintSecurityWarnings(config);
 
     if (!WriteTextFile(statusFile, "starting\n")) {
         std::cerr << "failed to write status file: " << statusFile << "\n";

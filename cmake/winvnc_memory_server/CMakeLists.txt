@@ -20,28 +20,28 @@ if(BUILD_TESTING)
     add_test(NAME winvnc_memory_server_help COMMAND uvnc_winvnc_memory_server --help)
     set_tests_properties(winvnc_memory_server_help PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
 
-    add_test(NAME winvnc_memory_server_validate COMMAND uvnc_winvnc_memory_server --validate-config --width 320 --height 240 --name smoke)
+    add_test(NAME winvnc_memory_server_validate COMMAND uvnc_winvnc_memory_server --allow-no-auth --validate-config --width 320 --height 240 --name smoke)
     set_tests_properties(winvnc_memory_server_validate PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
 
-    add_test(NAME winvnc_memory_server_validate_pattern COMMAND uvnc_winvnc_memory_server --validate-config --pattern checker --width 320 --height 240 --name smoke)
+    add_test(NAME winvnc_memory_server_validate_pattern COMMAND uvnc_winvnc_memory_server --allow-no-auth --validate-config --pattern checker --width 320 --height 240 --name smoke)
     set_tests_properties(winvnc_memory_server_validate_pattern PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
 
-    add_test(NAME winvnc_memory_server_print_config COMMAND uvnc_winvnc_memory_server --print-config --pattern gradient-y --fill-byte 42 --width 64 --height 32 --name printed-config --max-updates 5)
+    add_test(NAME winvnc_memory_server_print_config COMMAND uvnc_winvnc_memory_server --allow-no-auth --print-config --pattern gradient-y --fill-byte 42 --width 64 --height 32 --name printed-config --max-updates 5)
     set_tests_properties(winvnc_memory_server_print_config PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
 
     add_test(NAME winvnc_memory_server_config_file COMMAND "${CMAKE_SOURCE_DIR}/tests/winvnc_memory_server_config_file_smoke.sh" $<TARGET_FILE:uvnc_winvnc_memory_server>)
     set_tests_properties(winvnc_memory_server_config_file PROPERTIES LABELS "native-linux;winvnc-memory-server;linux-server-integration" TIMEOUT 5)
 
-    add_test(NAME winvnc_memory_server_invalid_width COMMAND uvnc_winvnc_memory_server --validate-config --width 0)
+    add_test(NAME winvnc_memory_server_invalid_width COMMAND uvnc_winvnc_memory_server --allow-no-auth --validate-config --width 0)
     set_tests_properties(winvnc_memory_server_invalid_width PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5 WILL_FAIL TRUE)
 
-    add_test(NAME winvnc_memory_server_invalid_fill_byte COMMAND uvnc_winvnc_memory_server --validate-config --fill-byte 256)
+    add_test(NAME winvnc_memory_server_invalid_fill_byte COMMAND uvnc_winvnc_memory_server --allow-no-auth --validate-config --fill-byte 256)
     set_tests_properties(winvnc_memory_server_invalid_fill_byte PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5 WILL_FAIL TRUE)
 
-    add_test(NAME winvnc_memory_server_invalid_bind_address COMMAND uvnc_winvnc_memory_server --validate-config --bind-address localhost)
+    add_test(NAME winvnc_memory_server_invalid_bind_address COMMAND uvnc_winvnc_memory_server --allow-no-auth --validate-config --bind-address localhost)
     set_tests_properties(winvnc_memory_server_invalid_bind_address PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5 WILL_FAIL TRUE)
 
-    add_test(NAME winvnc_memory_server_invalid_pattern COMMAND uvnc_winvnc_memory_server --validate-config --pattern unknown)
+    add_test(NAME winvnc_memory_server_invalid_pattern COMMAND uvnc_winvnc_memory_server --allow-no-auth --validate-config --pattern unknown)
     set_tests_properties(winvnc_memory_server_invalid_pattern PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5 WILL_FAIL TRUE)
 
     add_test(NAME winvnc_memory_server_smoke COMMAND uvnc_winvnc_memory_server --smoke-test --width 64 --height 32 --name memory-smoke)
@@ -56,13 +56,13 @@ if(BUILD_TESTING)
     add_test(NAME winvnc_memory_server_raw_file_update_smoke COMMAND uvnc_winvnc_memory_server --smoke-raw-file-update-test --fill-byte 153 --width 64 --height 32 --name raw-file-update-smoke)
     set_tests_properties(winvnc_memory_server_raw_file_update_smoke PROPERTIES LABELS "native-linux;winvnc-memory-server;linux-server-real" TIMEOUT 5)
 
-    add_test(NAME winvnc_memory_server_invalid_max_updates COMMAND uvnc_winvnc_memory_server --validate-config --max-updates 0)
+    add_test(NAME winvnc_memory_server_invalid_max_updates COMMAND uvnc_winvnc_memory_server --allow-no-auth --validate-config --max-updates 0)
     set_tests_properties(winvnc_memory_server_invalid_max_updates PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5 WILL_FAIL TRUE)
 
-    add_test(NAME winvnc_memory_server_print_capture_auto COMMAND uvnc_winvnc_memory_server --print-config --capture-backend auto)
+    add_test(NAME winvnc_memory_server_print_capture_auto COMMAND uvnc_winvnc_memory_server --allow-no-auth --print-config --capture-backend auto)
     set_tests_properties(winvnc_memory_server_print_capture_auto PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5 PASS_REGULAR_EXPRESSION "resolved_capture_backend=(memory|x11)")
 
-    add_test(NAME winvnc_memory_server_invalid_capture_backend COMMAND uvnc_winvnc_memory_server --validate-config --capture-backend unknown)
+    add_test(NAME winvnc_memory_server_invalid_capture_backend COMMAND uvnc_winvnc_memory_server --allow-no-auth --validate-config --capture-backend unknown)
     set_tests_properties(winvnc_memory_server_invalid_capture_backend PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5 WILL_FAIL TRUE)
 
     add_test(NAME winvnc_memory_server_pipewire_availability_smoke COMMAND uvnc_winvnc_memory_server --smoke-pipewire-availability-test)
@@ -77,10 +77,10 @@ if(BUILD_TESTING)
     add_test(NAME winvnc_memory_server_xtest_availability COMMAND uvnc_winvnc_memory_server --smoke-xtest-availability-test)
     set_tests_properties(winvnc_memory_server_xtest_availability PROPERTIES LABELS "native-linux;winvnc-memory-server;linux-input" TIMEOUT 5)
 
-    add_test(NAME winvnc_memory_server_invalid_input_backend COMMAND uvnc_winvnc_memory_server --validate-config --input-backend invalid)
+    add_test(NAME winvnc_memory_server_invalid_input_backend COMMAND uvnc_winvnc_memory_server --allow-no-auth --validate-config --input-backend invalid)
     set_tests_properties(winvnc_memory_server_invalid_input_backend PROPERTIES LABELS "native-linux;winvnc-memory-server;linux-input" TIMEOUT 5 WILL_FAIL TRUE)
 
-    add_test(NAME winvnc_memory_server_print_input_backend COMMAND uvnc_winvnc_memory_server --print-config --input-backend none)
+    add_test(NAME winvnc_memory_server_print_input_backend COMMAND uvnc_winvnc_memory_server --allow-no-auth --print-config --input-backend none)
     set_tests_properties(winvnc_memory_server_print_input_backend PROPERTIES LABELS "native-linux;winvnc-memory-server;linux-input" TIMEOUT 5)
 
     add_test(NAME winvnc_memory_server_xtest_input_guarded COMMAND uvnc_winvnc_memory_server --smoke-xtest-input-test)
