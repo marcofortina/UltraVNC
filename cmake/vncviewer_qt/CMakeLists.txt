@@ -19,13 +19,15 @@ add_executable(uvnc_qt_viewer
     "${CMAKE_SOURCE_DIR}/../vncviewer/qtviewer/vncQtViewerSurface.cpp"
     "${CMAKE_SOURCE_DIR}/../vncviewer/vncPortableViewerConfig.cpp"
     "${CMAKE_SOURCE_DIR}/../vncviewer/vncPortableViewerCli.cpp"
+    "${CMAKE_SOURCE_DIR}/../vncviewer/vncPortableViewerSession.cpp"
 )
 
 target_include_directories(uvnc_qt_viewer PRIVATE
     "${CMAKE_SOURCE_DIR}/../vncviewer"
+    "${CMAKE_SOURCE_DIR}/../winvnc/winvnc"
 )
 
-target_link_libraries(uvnc_qt_viewer PRIVATE Qt6::Widgets)
+target_link_libraries(uvnc_qt_viewer PRIVATE Qt6::Widgets libwinvncportablecore)
 
 add_executable(vncviewer_qt_surface_smoke
     "${CMAKE_SOURCE_DIR}/tests/vncviewer_qt_surface_smoke.cpp"
