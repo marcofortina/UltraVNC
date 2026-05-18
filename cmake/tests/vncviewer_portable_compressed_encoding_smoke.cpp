@@ -206,6 +206,64 @@ int main()
         return client.WriteAll(&header, sz_rfbZRLEHeader) && client.WriteAll(compressed.data(), compressed.size());
     }, port));
 
+    assert(RunOneServer(rfbEncodingZRLE, [](TcpSocket& client) {
+        std::vector<CARD8> zrle;
+        zrle.push_back(0); // raw compact pixels
+        const std::vector<CARD8> color = CompactPixel(0x84);
+        for (unsigned int i = 0; i < 16; ++i) {
+            zrle.insert(zrle.end(), color.begin(), color.end());
+        }
+        const std::vector<CARD8> compressed = Compress(zrle);
+        rfbZRLEHeader header;
+        header.length = Swap32IfLE(static_cast<CARD32>(compressed.size()));
+        return client.WriteAll(&header, sz_rfbZRLEHeader) && client.WriteAll(compressed.data(), compressed.size());
+    }, port));
+
+    assert(RunOneServer(rfbEncodingZRLE, [](TcpSocket& client) {
+        std::vector<CARD8> zrle;
+        zrle.push_back(2); // two-colour packed palette
+        const std::vector<CARD8> first = CompactPixel(0x88);
+        const std::vector<CARD8> second = CompactPixel(0x8c);
+        zrle.insert(zrle.end(), first.begin(), first.end());
+        zrle.insert(zrle.end(), second.begin(), second.end());
+        for (unsigned int row = 0; row < 4; ++row) {
+            zrle.push_back(0x50); // 0,1,0,1 and row padding
+        }
+        const std::vector<CARD8> compressed = Compress(zrle);
+        rfbZRLEHeader header;
+        header.length = Swap32IfLE(static_cast<CARD32>(compressed.size()));
+        return client.WriteAll(&header, sz_rfbZRLEHeader) && client.WriteAll(compressed.data(), compressed.size());
+    }, port));
+
+    assert(RunOneServer(rfbEncodingZRLE, [](TcpSocket& client) {
+        std::vector<CARD8> zrle;
+        zrle.push_back(128); // plain RLE
+        const std::vector<CARD8> color = CompactPixel(0x90);
+        zrle.insert(zrle.end(), color.begin(), color.end());
+        zrle.push_back(15); // 16 pixels total, encoded as run length - 1
+        const std::vector<CARD8> compressed = Compress(zrle);
+        rfbZRLEHeader header;
+        header.length = Swap32IfLE(static_cast<CARD32>(compressed.size()));
+        return client.WriteAll(&header, sz_rfbZRLEHeader) && client.WriteAll(compressed.data(), compressed.size());
+    }, port));
+
+    assert(RunOneServer(rfbEncodingZRLE, [](TcpSocket& client) {
+        std::vector<CARD8> zrle;
+        zrle.push_back(130); // palette RLE, two colours
+        const std::vector<CARD8> first = CompactPixel(0x94);
+        const std::vector<CARD8> second = CompactPixel(0x98);
+        zrle.insert(zrle.end(), first.begin(), first.end());
+        zrle.insert(zrle.end(), second.begin(), second.end());
+        zrle.push_back(0x80);
+        zrle.push_back(7); // eight pixels of palette index 0
+        zrle.push_back(0x81);
+        zrle.push_back(7); // eight pixels of palette index 1
+        const std::vector<CARD8> compressed = Compress(zrle);
+        rfbZRLEHeader header;
+        header.length = Swap32IfLE(static_cast<CARD32>(compressed.size()));
+        return client.WriteAll(&header, sz_rfbZRLEHeader) && client.WriteAll(compressed.data(), compressed.size());
+    }, port));
+
     assert(RunOneServer(rfbEncodingHextile, [](TcpSocket& client) {
         CARD8 subencoding = rfbHextileBackgroundSpecified | rfbHextileAnySubrects | rfbHextileSubrectsColoured;
         const std::vector<CARD8> background = Pixel(0x60);
