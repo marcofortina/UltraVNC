@@ -56,11 +56,12 @@ int main()
     assert(options.config.RequestUpdate());
     assert(options.config.ViewOnly());
     assert(options.smokeTest);
-    assert(options.config.Encodings().size() == 7);
+    assert(options.config.Encodings().size() == 8);
     assert(options.config.Encodings()[0] == rfbEncodingRaw);
     assert(options.config.Encodings()[1] == rfbEncodingCopyRect);
     assert(options.config.Encodings()[2] == rfbEncodingHextile);
     assert(options.config.Encodings()[3] == rfbEncodingZlib);
+    assert(options.config.Encodings()[4] == rfbEncodingZRLE);
     assert(options.config.Password() == "secret");
     assert(options.config.ContinuousUpdates());
     assert(options.clipboardText == "hello clipboard");
