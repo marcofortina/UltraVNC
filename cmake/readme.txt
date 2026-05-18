@@ -322,3 +322,13 @@ cmake/qt-viewer-smoke.sh \
 The Qt viewer shell is optional and requires Qt6 Widgets development files. The
 smoke uses `QT_QPA_PLATFORM=offscreen` for CI-safe event-loop, framebuffer
 surface and local keyboard/pointer event validation.
+
+Native Linux Qt viewer RFB session smoke:
+
+```sh
+cmake/qt-viewer-rfb-smoke.sh   /tmp/uvnc-qt-viewer-rfb-build   /tmp/uvnc-qt-viewer-rfb-install
+```
+
+This starts `uvnc_winvnc_memory_server` on loopback and verifies that
+`uvnc_qt_viewer --connect-update-smoke` completes a handshake and reads one raw
+framebuffer update.

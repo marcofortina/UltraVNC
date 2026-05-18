@@ -40,6 +40,16 @@ cmake/qt-viewer-smoke.sh \
 The smoke uses `QT_QPA_PLATFORM=offscreen` so CI can validate shell creation
 without requiring a visible desktop session.
 
+## RFB session smoke
+
+```sh
+cmake/qt-viewer-rfb-smoke.sh   /tmp/uvnc-qt-viewer-rfb-build   /tmp/uvnc-qt-viewer-rfb-install
+```
+
+This helper starts the native Linux memory server on a loopback port, runs
+`uvnc_qt_viewer --connect-update-smoke`, completes the RFB handshake and reads
+one raw framebuffer update.
+
 ## Current scope
 
 Implemented in this milestone:
@@ -50,10 +60,11 @@ Implemented in this milestone:
 - Offscreen Qt event-loop smoke.
 - Qt framebuffer surface widget with deterministic synthetic pixels.
 - Local keyboard and pointer event handling inside the Qt surface.
+- RFB handshake/update smoke path against `uvnc_winvnc_memory_server`.
 
 Not implemented in this milestone:
 
-- RFB network session ownership by the Qt viewer.
-- RFB-backed framebuffer updates from a remote server.
+- Long-running RFB network session ownership by the Qt viewer.
+- Displaying live remote framebuffer updates in the Qt surface.
 - Keyboard/pointer forwarding to a remote server.
 - Clipboard and file transfer.

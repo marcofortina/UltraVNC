@@ -27,7 +27,7 @@ compatibility layer.
 ## Initial milestones
 
 - Build portable RFB/client transport pieces natively on Linux.
-- Add headless viewer/session smoke tests that connect to a test endpoint.
+- Keep viewer/session smoke tests connected to the native memory server test endpoint.
 - Add platform-neutral clipboard/input abstractions.
 - Add the Qt viewer shell first, then wire tested viewer/session logic into it.
 - Keep the Qt framebuffer surface and Qt input event capture covered by offscreen smoke tests.

@@ -111,4 +111,5 @@ Native Linux Qt viewer progress:
 - The experimental `uvnc_qt_viewer` target builds independently of the Windows viewer UI.
 - The Qt shell now has a framebuffer surface widget with deterministic offscreen smoke coverage.
 - Keyboard and pointer events are captured inside the Qt surface for future RFB forwarding.
-- RFB-backed session ownership and remote framebuffer updates are still follow-up work.
+- `uvnc_qt_viewer --connect-update-smoke` connects to the native memory server and reads one raw framebuffer update.
+- Long-running remote session ownership and live Qt surface updates are still follow-up work.
