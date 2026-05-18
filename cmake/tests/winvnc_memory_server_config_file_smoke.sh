@@ -23,6 +23,10 @@ capture_backend=memory
 input_backend=none
 max_updates=7
 serve_updates=false
+serve_forever=true
+pid_file=/tmp/uvnc-config-file-smoke.pid
+status_file=/tmp/uvnc-config-file-smoke.status
+log_file=/tmp/uvnc-config-file-smoke.log
 EOF
 
 output="$(${server} --config "${config}" --print-config --width 96)"
@@ -35,6 +39,10 @@ grep -q '^name=config-file-smoke$' <<<"${output}"
 grep -q '^capture_backend=memory$' <<<"${output}"
 grep -q '^input_backend=none$' <<<"${output}"
 grep -q '^max_updates=7$' <<<"${output}"
+grep -q '^serve_forever=yes$' <<<"${output}"
+grep -q '^pid_file=/tmp/uvnc-config-file-smoke.pid$' <<<"${output}"
+grep -q '^status_file=/tmp/uvnc-config-file-smoke.status$' <<<"${output}"
+grep -q '^log_file=/tmp/uvnc-config-file-smoke.log$' <<<"${output}"
 
 cat >"${config}" <<'EOF'
 unknown_key=value

@@ -19,6 +19,8 @@
 #include "vncPortableTcp.h"
 
 #include <algorithm>
+#include <csignal>
+#include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -26,6 +28,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <unistd.h>
 
 using uvnc::winvnc::portable::ServerConfig;
 using uvnc::winvnc::linuxfb::CaptureBackend;
@@ -55,6 +58,9 @@ using uvnc::winvnc::portable::ParseFramebufferPattern;
 
 namespace {
 
+volatile std::sig_atomic_t g_stopRequested = 0;
+
+\nvoid HandleStopSignal(int)\n{\n    g_stopRequested = 1;\n}\n\nbool StopRequested()\n{\n    return g_stopRequested != 0;\n}\n\nvoid InstallStopSignalHandlers()\n{\n    std::signal(SIGINT, HandleStopSignal);\n    std::signal(SIGTERM, HandleStopSignal);\n}\n\nbool WriteTextFile(const std::string& path, const std::string& value)\n{\n    if (path.empty()) {\n        return true;\n    }\n    std::ofstream out(path.c_str(), std::ios::trunc);\n    if (!out) {\n        return false;\n    }\n    out << value;\n    return static_cast<bool>(out);\n}\n\nvoid RemoveFileIfSet(const std::string& path)\n{\n    if (!path.empty()) {\n        std::remove(path.c_str());\n    }\n}\n
 class XTestRfbInputSink : public RfbInputSink {
 public:
     bool InjectKey(const KeyEvent& event, std::string *error) override
@@ -103,6 +109,10 @@ void PrintUsage(const char *name)
               << "  --allow-input-injection Allow live input injection smoke tests\n"
               << "  --max-updates <count>  Number of updates for multi-update smoke/serve mode, default 3\n"
               << "  --serve-updates        Serve one client through --max-updates framebuffer updates\n"
+              << "  --serve-forever        Keep accepting update clients until SIGINT/SIGTERM\n"
+              << "  --pid-file <path>      Write process id while the server is running\n"
+              << "  --status-file <path>   Write coarse runtime status transitions\n"
+              << "  --log-file <path>      Append stdout/stderr logs to a file\n"
               << "  --help                  Show this help\n";
 }
 \nstd::string Trim(const std::string& value)\n{\n    const std::string whitespace = " \t\r\n";\n    const std::size_t begin = value.find_first_not_of(whitespace);\n    if (begin == std::string::npos) {\n        return std::string();\n    }\n    const std::size_t end = value.find_last_not_of(whitespace);\n    return value.substr(begin, end - begin + 1);\n}\n\nbool AddConfigOption(const std::string& key, const std::string& value, std::vector<std::string>& args, std::string *error)\n{\n    if (key == "bind_address") {\n        args.push_back("--bind-address");\n    } else if (key == "port") {\n        args.push_back("--port");\n    } else if (key == "width") {\n        args.push_back("--width");\n    } else if (key == "height") {\n        args.push_back("--height");\n    } else if (key == "name") {\n        args.push_back("--name");\n    } else if (key == "fill_byte") {\n        args.push_back("--fill-byte");\n    } else if (key == "pattern") {\n        args.push_back("--pattern");\n    } else if (key == "capture_backend") {\n        args.push_back("--capture-backend");\n    } else if (key == "input_backend") {\n        args.push_back("--input-backend");\n    } else if (key == "raw_framebuffer_file") {\n        args.push_back("--raw-framebuffer-file");\n    } else if (key == "max_updates") {\n        args.push_back("--max-updates");\n    } else if (key == "serve_updates") {\n        if (value == "true" || value == "1" || value == "yes") {\n            args.push_back("--serve-updates");\n            return true;\n        }\n        if (value == "false" || value == "0" || value == "no") {\n            return true;\n        }\n        if (error) *error = "invalid boolean value for serve_updates";\n        return false;\n    } else {\n        if (error) *error = "unknown config key: " + key;\n        return false;\n    }\n\n    if (value.empty()) {\n        if (error) *error = "empty value for config key: " + key;\n        return false;\n    }\n    args.push_back(value);\n    return true;\n}\n\nbool AppendConfigFileArgs(const std::string& path, std::vector<std::string>& args, std::string *error)\n{\n    std::ifstream input(path.c_str());\n    if (!input) {\n        if (error) *error = "cannot open config file: " + path;\n        return false;\n    }\n\n    std::string line;\n    unsigned int lineNumber = 0;\n    while (std::getline(input, line)) {\n        lineNumber += 1;\n        const std::size_t comment = line.find('#');\n        if (comment != std::string::npos) {\n            line = line.substr(0, comment);\n        }\n        line = Trim(line);\n        if (line.empty()) {\n            continue;\n        }\n        const std::size_t equals = line.find('=');\n        if (equals == std::string::npos) {\n            if (error) {\n                std::ostringstream out;\n                out << "invalid config line " << lineNumber << ": expected key=value";\n                *error = out.str();\n            }\n            return false;\n        }\n        const std::string key = Trim(line.substr(0, equals));\n        const std::string value = Trim(line.substr(equals + 1));\n        if (!AddConfigOption(key, value, args, error)) {\n            return false;\n        }\n    }\n    return true;\n}\n\nbool BuildMergedArgsWithConfig(int argc, char **argv, std::vector<std::string>& merged, std::string *error)\n{\n    merged.clear();\n    merged.push_back(argv[0]);\n\n    for (int i = 1; i < argc; ++i) {\n        const std::string arg(argv[i]);\n        if (arg == "--config") {\n            if (i + 1 >= argc) {\n                if (error) *error = "missing --config value";\n                return false;\n            }\n            if (!AppendConfigFileArgs(argv[++i], merged, error)) {\n                return false;\n            }\n        }\n    }\n\n    for (int i = 1; i < argc; ++i) {\n        const std::string arg(argv[i]);\n        if (arg == "--config") {\n            ++i;\n            continue;\n        }\n        merged.push_back(arg);\n    }\n    return true;\n}\n
@@ -120,7 +130,7 @@ bool ParseUnsigned(const char *value, unsigned int min, unsigned int max, unsign
     return true;
 }
 
-bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& captureBackend, InputBackend& inputBackend, std::string& rawFramebufferFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& smokeX11UpdateTest, bool& smokePipeWireAvailabilityTest, bool& smokeXTestAvailabilityTest, bool& smokeXTestInputTest, bool& allowInputInjection, bool& serveUpdates, unsigned int& maxUpdates)
+bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& captureBackend, InputBackend& inputBackend, std::string& rawFramebufferFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& smokeX11UpdateTest, bool& smokePipeWireAvailabilityTest, bool& smokeXTestAvailabilityTest, bool& smokeXTestInputTest, bool& allowInputInjection, bool& serveUpdates, bool& serveForever, unsigned int& maxUpdates, std::string& pidFile, std::string& statusFile, std::string& logFile)
 {
     validateOnly = false;
     printConfig = false;
@@ -134,7 +144,11 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
     smokeXTestInputTest = false;
     allowInputInjection = false;
     serveUpdates = false;
+    serveForever = false;
     maxUpdates = 3;
+    pidFile.clear();
+    statusFile.clear();
+    logFile.clear();
     captureBackend = CaptureBackend::Auto;
     inputBackend = InputBackend::Auto;
     rawFramebufferFile.clear();
@@ -177,6 +191,14 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
             allowInputInjection = true;
         } else if (arg == "--serve-updates") {
             serveUpdates = true;
+        } else if (arg == "--serve-forever") {
+            serveForever = true;
+        } else if (arg == "--pid-file" && i + 1 < argc) {
+            pidFile = argv[++i];
+        } else if (arg == "--status-file" && i + 1 < argc) {
+            statusFile = argv[++i];
+        } else if (arg == "--log-file" && i + 1 < argc) {
+            logFile = argv[++i];
         } else if (arg == "--max-updates" && i + 1 < argc) {
             if (!ParseUnsigned(argv[++i], 1, 1024, maxUpdates)) {
                 std::cerr << "invalid --max-updates\n";
@@ -282,6 +304,11 @@ bool RunMemoryServerClientHandshake(TcpSocket& client, const ServerConfig& confi
 
 bool RunSmokeTest(const ServerConfig& config)
 {
+    if (!WriteTextFile(statusFile, "starting\n")) {
+        std::cerr << "failed to write status file: " << statusFile << "\n";
+        return 1;
+    }
+
     MemoryServer server;
     if (!server.Start(config)) {
         std::cerr << "failed to start memory server smoke test\n";
@@ -398,7 +425,7 @@ bool RunSmokeMultiUpdateTest(const ServerConfig& config, unsigned int maxUpdates
     return clientOk && serverOk;
 }
 
-void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBackend, CaptureBackend resolvedBackend, InputBackend requestedInputBackend, InputBackend resolvedInputBackend, unsigned int maxUpdates)
+void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBackend, CaptureBackend resolvedBackend, InputBackend requestedInputBackend, InputBackend resolvedInputBackend, bool serveUpdates, bool serveForever, unsigned int maxUpdates, const std::string& pidFile, const std::string& statusFile, const std::string& logFile)
 {
     std::cout << "bind_address=" << config.BindAddress() << "\n"
               << "port=" << config.Port() << "\n"
@@ -411,7 +438,12 @@ void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBac
               << "resolved_capture_backend=" << CaptureBackendName(resolvedBackend) << "\n"
               << "input_backend=" << InputBackendName(requestedInputBackend) << "\n"
               << "resolved_input_backend=" << InputBackendName(resolvedInputBackend) << "\n"
-              << "max_updates=" << maxUpdates << "\n";
+              << "serve_updates=" << (serveUpdates ? "yes" : "no") << "\n"
+              << "serve_forever=" << (serveForever ? "yes" : "no") << "\n"
+              << "max_updates=" << maxUpdates << "\n"
+              << "pid_file=" << pidFile << "\n"
+              << "status_file=" << statusFile << "\n"
+              << "log_file=" << logFile << "\n";
 }
 
 ServerConfig ConfigForCapturedFramebuffer(const ServerConfig& base, const Framebuffer& framebuffer)
@@ -605,7 +637,11 @@ int main(int argc, char **argv)
     bool smokeXTestInputTest = false;
     bool allowInputInjection = false;
     bool serveUpdates = false;
+    bool serveForever = false;
     unsigned int maxUpdates = 3;
+    std::string pidFile;
+    std::string statusFile;
+    std::string logFile;
     std::string error;
     std::vector<std::string> mergedArgs;
     if (!BuildMergedArgsWithConfig(argc, argv, mergedArgs, &error)) {
@@ -617,9 +653,21 @@ int main(int argc, char **argv)
         mergedArgv.push_back(&mergedArgs[i][0]);
     }
 
-    if (!ParseArgs(static_cast<int>(mergedArgv.size()), mergedArgv.data(), config, captureBackend, inputBackend, rawFramebufferFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, smokePipeWireAvailabilityTest, smokeXTestAvailabilityTest, smokeXTestInputTest, allowInputInjection, serveUpdates, maxUpdates)) {
+    if (!ParseArgs(static_cast<int>(mergedArgv.size()), mergedArgv.data(), config, captureBackend, inputBackend, rawFramebufferFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, smokePipeWireAvailabilityTest, smokeXTestAvailabilityTest, smokeXTestInputTest, allowInputInjection, serveUpdates, serveForever, maxUpdates, pidFile, statusFile, logFile)) {
         return 2;
     }
+
+    std::ofstream logStream;
+    if (!logFile.empty()) {
+        logStream.open(logFile.c_str(), std::ios::app);
+        if (!logStream) {
+            std::cerr << "invalid config: cannot open log file: " << logFile << "\n";
+            return 2;
+        }
+        std::cout.rdbuf(logStream.rdbuf());
+        std::cerr.rdbuf(logStream.rdbuf());
+    }
+    InstallStopSignalHandlers();
     if (!config.Validate(&error)) {
         std::cerr << "invalid config: " << error << "\n";
         return 2;
@@ -645,7 +693,7 @@ int main(int argc, char **argv)
         return 0;
     }
     if (printConfig) {
-        PrintResolvedConfig(config, captureBackend, resolvedCaptureBackend, inputBackend, resolvedInputBackend, maxUpdates);
+        PrintResolvedConfig(config, captureBackend, resolvedCaptureBackend, inputBackend, resolvedInputBackend, serveUpdates, serveForever, maxUpdates, pidFile, statusFile, logFile);
         return 0;
     }
     if (smokeTest) {
@@ -695,9 +743,38 @@ int main(int argc, char **argv)
         std::cerr << "failed to start memory server\n";
         return 1;
     }
+    if (!WriteTextFile(pidFile, std::to_string(static_cast<long long>(getpid())) + "\n")) {
+        std::cerr << "failed to write pid file: " << pidFile << "\n";
+        server.Stop();
+        WriteTextFile(statusFile, "failed\n");
+        return 1;
+    }
+
+    const std::string listeningStatus = std::string("listening ") + config.BindAddress() + ":" + std::to_string(server.Port()) + "\n";
+    WriteTextFile(statusFile, listeningStatus);
     std::cout << "listening on " << config.BindAddress() << ":" << server.Port() << "\n" << std::flush;
-    const bool served = serveUpdates && liveSource ? server.ServeOneUpdatesFromSource(*liveSource, maxUpdates, inputSink) :
-        (serveUpdates ? server.ServeOneUpdates(maxUpdates, inputSink) : server.ServeOne());
+
+    bool served = false;
+    if (serveForever) {
+        served = true;
+        while (!StopRequested()) {
+            bool accepted = false;
+            const bool ok = liveSource ?
+                server.TryServeOneUpdatesFromSource(*liveSource, maxUpdates, inputSink, 128, 250, accepted) :
+                server.TryServeOneUpdates(maxUpdates, inputSink, 250, accepted);
+            if (!ok) {
+                served = false;
+                break;
+            }
+        }
+    } else {
+        served = serveUpdates && liveSource ? server.ServeOneUpdatesFromSource(*liveSource, maxUpdates, inputSink) :
+            (serveUpdates ? server.ServeOneUpdates(maxUpdates, inputSink) : server.ServeOne());
+    }
+
+    WriteTextFile(statusFile, StopRequested() ? "stopping\n" : (served ? "completed\n" : "failed\n"));
     server.Stop();
+    RemoveFileIfSet(pidFile);
+    WriteTextFile(statusFile, served ? "stopped\n" : "failed\n");
     return served ? 0 : 1;
 }
