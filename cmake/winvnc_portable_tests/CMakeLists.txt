@@ -30,11 +30,14 @@ function(uvnc_add_viewer_portable_test name source)
         "${CMAKE_SOURCE_DIR}/tests/${source}"
         "${CMAKE_SOURCE_DIR}/../vncviewer/vncPortableViewerConfig.cpp"
         "${CMAKE_SOURCE_DIR}/../vncviewer/vncPortableViewerCli.cpp"
+        "${CMAKE_SOURCE_DIR}/../vncviewer/vncPortableViewerSession.cpp"
     )
 
     target_include_directories(${name} PRIVATE
         "${CMAKE_SOURCE_DIR}/../vncviewer"
+        "${CMAKE_SOURCE_DIR}/../winvnc/winvnc"
     )
+    target_link_libraries(${name} PRIVATE libwinvncportablecore)
 
     add_test(NAME ${name} COMMAND ${name})
     set_tests_properties(${name}
@@ -152,3 +155,5 @@ uvnc_add_viewer_portable_test(vncviewer_portable_config_smoke vncviewer_portable
 uvnc_add_viewer_portable_test(vncviewer_portable_cli_smoke vncviewer_portable_cli_smoke.cpp)
 
 uvnc_add_viewer_portable_test(vncviewer_portable_wire_types_smoke vncviewer_portable_wire_types_smoke.cpp)
+
+uvnc_add_viewer_portable_test(vncviewer_portable_persistent_session_smoke vncviewer_portable_persistent_session_smoke.cpp)
