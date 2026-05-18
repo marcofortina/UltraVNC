@@ -103,3 +103,12 @@ Native Linux server backend integration progress:
 - Capture and input backend configuration is documented for the current Linux server path.
 - Manual validation steps are documented for X11 capture, PipeWire/XDG portal scaffolding and XTest input.
 - The integration smoke verifies installed templates, installed docs and backend CLI wiring.
+
+
+Native Linux Qt viewer progress:
+
+- Qt is the selected frontend toolkit for the native Linux viewer path.
+- The experimental `uvnc_qt_viewer` target builds independently of the Windows viewer UI.
+- The Qt shell now has a framebuffer surface widget with deterministic offscreen smoke coverage.
+- Keyboard and pointer events are captured inside the Qt surface for future RFB forwarding.
+- RFB-backed session ownership and remote framebuffer updates are still follow-up work.
