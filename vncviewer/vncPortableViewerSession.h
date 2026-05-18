@@ -12,6 +12,7 @@
 #include "vncPortableViewerConfig.h"
 
 #include "rfb.h"
+#include "vncPortableTcp.h"
 
 #include <string>
 #include <vector>
@@ -46,6 +47,26 @@ class ViewerSession {
 public:
     bool RunHandshake(const ViewerConfig& config, ViewerSessionResult& result, std::string *error = nullptr) const;
     bool RequestOneFramebufferUpdate(const ViewerConfig& config, ViewerSessionResult& result, std::string *error = nullptr) const;
+};
+
+class PersistentViewerSession {
+public:
+    PersistentViewerSession();
+    PersistentViewerSession(const PersistentViewerSession&) = delete;
+    PersistentViewerSession& operator=(const PersistentViewerSession&) = delete;
+    ~PersistentViewerSession();
+
+    bool Connect(const ViewerConfig& config, ViewerSessionResult& result, std::string *error = nullptr);
+    bool Connected() const;
+    void Disconnect();
+
+    bool RequestFramebufferUpdate(bool incremental, ViewerSessionResult& result, std::string *error = nullptr);
+    bool SendKeyEvent(CARD32 keysym, bool down, std::string *error = nullptr);
+    bool SendPointerEvent(CARD8 buttonMask, unsigned int x, unsigned int y, std::string *error = nullptr);
+
+private:
+    uvnc::winvnc::portable::TcpSocket socket_;
+    ViewerSessionResult state_;
 };
 
 } // namespace portable

@@ -21,8 +21,12 @@ namespace {
 
 using uvnc::winvnc::portable::AuthOkValue;
 using uvnc::winvnc::portable::EncodeFramebufferUpdateRequest;
+using uvnc::winvnc::portable::EncodeKeyEvent;
+using uvnc::winvnc::portable::EncodePointerEvent;
 using uvnc::winvnc::portable::IsProtocolVersionMessage;
 using uvnc::winvnc::portable::ProtocolVersion38;
+using uvnc::winvnc::portable::KeyEvent;
+using uvnc::winvnc::portable::PointerEvent;
 using uvnc::winvnc::portable::TcpSocket;
 
 void SetError(std::string *error, const std::string& message)
@@ -191,34 +195,121 @@ bool ViewerSession::RunHandshake(const ViewerConfig& config, ViewerSessionResult
 
 bool ViewerSession::RequestOneFramebufferUpdate(const ViewerConfig& config, ViewerSessionResult& result, std::string *error) const
 {
+    PersistentViewerSession session;
+    if (!session.Connect(config, result, error)) {
+        return false;
+    }
+    return session.RequestFramebufferUpdate(false, result, error);
+}
+
+PersistentViewerSession::PersistentViewerSession()
+    : socket_(),
+      state_()
+{
+}
+
+PersistentViewerSession::~PersistentViewerSession()
+{
+    Disconnect();
+}
+
+bool PersistentViewerSession::Connect(const ViewerConfig& config, ViewerSessionResult& result, std::string *error)
+{
     std::string validationError;
     if (!config.Validate(&validationError)) {
         SetError(error, validationError);
         return false;
     }
 
-    TcpSocket socket;
-    if (!TcpSocket::Connect(config.Host(), config.Port(), socket)) {
+    Disconnect();
+    if (!TcpSocket::Connect(config.Host(), config.Port(), socket_)) {
         SetError(error, "failed to connect to RFB server");
         return false;
     }
-    result = ViewerSessionResult();
-    if (!RunHandshakeOnSocket(socket, config, result, error)) {
+    state_ = ViewerSessionResult();
+    if (!RunHandshakeOnSocket(socket_, config, state_, error)) {
+        Disconnect();
+        return false;
+    }
+    result = state_;
+    return true;
+}
+
+bool PersistentViewerSession::Connected() const
+{
+    return socket_.Valid();
+}
+
+void PersistentViewerSession::Disconnect()
+{
+    socket_.Close();
+    state_ = ViewerSessionResult();
+}
+
+bool PersistentViewerSession::RequestFramebufferUpdate(bool incremental, ViewerSessionResult& result, std::string *error)
+{
+    if (!Connected()) {
+        SetError(error, "RFB viewer session is not connected");
         return false;
     }
 
     uvnc::winvnc::portable::FramebufferUpdateRequest request;
-    request.incremental = false;
+    request.incremental = incremental;
     request.x = 0;
     request.y = 0;
-    request.width = result.width;
-    request.height = result.height;
+    request.width = state_.width;
+    request.height = state_.height;
     const rfbFramebufferUpdateRequestMsg wire = EncodeFramebufferUpdateRequest(request);
-    if (!socket.WriteAll(&wire, sz_rfbFramebufferUpdateRequestMsg)) {
+    if (!socket_.WriteAll(&wire, sz_rfbFramebufferUpdateRequestMsg)) {
         SetError(error, "failed to write RFB framebuffer update request");
+        Disconnect();
         return false;
     }
-    return ReadOneRawUpdate(socket, result, error);
+    state_.update = ViewerFramebufferUpdate();
+    if (!ReadOneRawUpdate(socket_, state_, error)) {
+        Disconnect();
+        return false;
+    }
+    result = state_;
+    return true;
+}
+
+bool PersistentViewerSession::SendKeyEvent(CARD32 keysym, bool down, std::string *error)
+{
+    if (!Connected()) {
+        SetError(error, "RFB viewer session is not connected");
+        return false;
+    }
+    const KeyEvent event{down, keysym};
+    const rfbKeyEventMsg wire = EncodeKeyEvent(event);
+    if (!socket_.WriteAll(&wire, sz_rfbKeyEventMsg)) {
+        SetError(error, "failed to write RFB key event");
+        Disconnect();
+        return false;
+    }
+    if (error) {
+        error->clear();
+    }
+    return true;
+}
+
+bool PersistentViewerSession::SendPointerEvent(CARD8 buttonMask, unsigned int x, unsigned int y, std::string *error)
+{
+    if (!Connected()) {
+        SetError(error, "RFB viewer session is not connected");
+        return false;
+    }
+    const PointerEvent event{buttonMask, x, y};
+    const rfbPointerEventMsg wire = EncodePointerEvent(event);
+    if (!socket_.WriteAll(&wire, sz_rfbPointerEventMsg)) {
+        SetError(error, "failed to write RFB pointer event");
+        Disconnect();
+        return false;
+    }
+    if (error) {
+        error->clear();
+    }
+    return true;
 }
 
 } // namespace portable
