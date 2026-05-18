@@ -136,8 +136,9 @@ systemctl --user start uvnc-winvnc-memory-server.service
 systemctl --user status uvnc-winvnc-memory-server.service
 ```
 
-The runtime writes a pid file and a coarse status file while running. The unit
-uses the systemd user runtime directory for those files.
+The runtime writes pid, status and log files while running. The unit passes
+these paths explicitly with the systemd user runtime directory, so the example
+does not rely on environment-file specifier expansion for runtime state paths.
 
 ## Failure modes
 

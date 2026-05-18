@@ -135,5 +135,5 @@ Live injection requires explicit opt-in and must not be enabled by default in CI
 ## Runtime operator notes
 
 See `native-linux-server-runtime.md` for the current config file format,
-systemd user-service flow, status/pid files, X11 validation, XTest validation,
-failure modes and current production limitations.
+systemd user-service flow, status/pid/log files, X11 validation, XTest
+validation, failure modes and current production limitations.
