@@ -200,23 +200,43 @@ bool ReadOneRawUpdate(TcpSocket& socket, ViewerSessionResult& result, std::strin
     result.update.width = Swap16IfLE(rect.r.w);
     result.update.height = Swap16IfLE(rect.r.h);
     result.update.encoding = Swap32IfLE(rect.encoding);
-    if (result.update.encoding != rfbEncodingRaw) {
-        SetError(error, "unsupported RFB framebuffer update encoding");
-        return false;
+
+    if (result.update.encoding == rfbEncodingRaw) {
+        const unsigned int bytesPerPixel = result.format.bitsPerPixel / 8;
+        if (bytesPerPixel == 0 || result.update.width == 0 || result.update.height == 0) {
+            SetError(error, "invalid RFB framebuffer update dimensions");
+            return false;
+        }
+        result.update.pixels.resize(result.update.width * result.update.height * bytesPerPixel);
+        if (!socket.ReadExact(result.update.pixels.data(), result.update.pixels.size())) {
+            SetError(error, "failed to read RFB raw framebuffer update pixels");
+            return false;
+        }
+        result.update.received = true;
+        return true;
     }
 
-    const unsigned int bytesPerPixel = result.format.bitsPerPixel / 8;
-    if (bytesPerPixel == 0 || result.update.width == 0 || result.update.height == 0) {
-        SetError(error, "invalid RFB framebuffer update dimensions");
-        return false;
+    if (result.update.encoding == rfbEncodingCopyRect) {
+        rfbCopyRect copyRect;
+        if (!socket.ReadExact(&copyRect, sz_rfbCopyRect)) {
+            SetError(error, "failed to read RFB CopyRect payload");
+            return false;
+        }
+        result.update.sourceX = Swap16IfLE(copyRect.srcX);
+        result.update.sourceY = Swap16IfLE(copyRect.srcY);
+        result.update.received = true;
+        return true;
     }
-    result.update.pixels.resize(result.update.width * result.update.height * bytesPerPixel);
-    if (!socket.ReadExact(result.update.pixels.data(), result.update.pixels.size())) {
-        SetError(error, "failed to read RFB raw framebuffer update pixels");
-        return false;
+
+    if (result.update.encoding == rfbEncodingNewFBSize) {
+        result.width = result.update.width;
+        result.height = result.update.height;
+        result.update.received = true;
+        return true;
     }
-    result.update.received = true;
-    return true;
+
+    SetError(error, "unsupported RFB framebuffer update encoding");
+    return false;
 }
 
 } // namespace
@@ -227,6 +247,8 @@ ViewerFramebufferUpdate::ViewerFramebufferUpdate()
       y(0),
       width(0),
       height(0),
+      sourceX(0),
+      sourceY(0),
       encoding(0),
       pixels()
 {

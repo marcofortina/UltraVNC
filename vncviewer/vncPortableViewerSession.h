@@ -29,6 +29,8 @@ struct ViewerFramebufferUpdate {
     unsigned int y;
     unsigned int width;
     unsigned int height;
+    unsigned int sourceX;
+    unsigned int sourceY;
     CARD32 encoding;
     std::vector<CARD8> pixels;
 };
