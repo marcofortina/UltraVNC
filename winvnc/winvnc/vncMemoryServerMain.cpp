@@ -8,6 +8,8 @@
 
 #include "vncLinuxCaptureBackend.h"
 #include "vncLinuxFramebufferSource.h"
+#include "vncLinuxInputBackend.h"
+#include "vncLinuxXTestInput.h"
 #include "vncLinuxPipeWirePortalCapture.h"
 #include "vncLinuxX11FramebufferSource.h"
 #include "vncPortableFramebufferPattern.h"
@@ -32,6 +34,11 @@ using uvnc::winvnc::linuxfb::PipeWirePortalRuntimeState;
 using uvnc::winvnc::linuxfb::ParseCaptureBackendName;
 using uvnc::winvnc::linuxfb::ResolveCaptureBackend;
 using uvnc::winvnc::linuxfb::X11DesktopSource;
+using uvnc::winvnc::linuxinput::InputBackend;
+using uvnc::winvnc::linuxinput::InputBackendName;
+using uvnc::winvnc::linuxinput::ParseInputBackendName;
+using uvnc::winvnc::linuxinput::ResolveInputBackend;
+using uvnc::winvnc::linuxinput::XTestInputBackend;
 using uvnc::winvnc::portable::Framebuffer;
 using uvnc::winvnc::portable::MemoryServer;
 using uvnc::winvnc::portable::FramebufferUpdateRequest;
@@ -58,6 +65,7 @@ void PrintUsage(const char *name)
               << "  --fill-byte <0-255>    Fill byte for the in-memory framebuffer, default 34\n"
               << "  --pattern <name>       Framebuffer pattern: solid, checker, gradient-x, gradient-y\n"
               << "  --capture-backend <name> Capture backend: auto, memory, raw-file, x11, pipewire\n"
+              << "  --input-backend <name> Input backend: auto, none, xtest\n"
               << "  --raw-framebuffer-file <path> Serve exact-size raw framebuffer file instead of synthetic pattern\n"
               << "  --validate-config       Validate options and exit\n"
               << "  --print-config          Print resolved configuration and exit\n"
@@ -67,6 +75,7 @@ void PrintUsage(const char *name)
               << "  --smoke-raw-file-update-test Start on loopback using a raw framebuffer file, request one update, and exit\n"
               << "  --smoke-x11-update-test Start on loopback using an X11 snapshot, request one update, and exit\n"
               << "  --smoke-pipewire-availability-test Print PipeWire/XDG portal runtime availability and exit\n"
+              << "  --smoke-xtest-availability-test Print XTest input runtime availability and exit\n"
               << "  --max-updates <count>  Number of updates for multi-update smoke/serve mode, default 3\n"
               << "  --serve-updates        Serve one client through --max-updates framebuffer updates\n"
               << "  --help                  Show this help\n";
@@ -86,7 +95,7 @@ bool ParseUnsigned(const char *value, unsigned int min, unsigned int max, unsign
     return true;
 }
 
-bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& captureBackend, std::string& rawFramebufferFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& smokeX11UpdateTest, bool& smokePipeWireAvailabilityTest, bool& serveUpdates, unsigned int& maxUpdates)
+bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& captureBackend, InputBackend& inputBackend, std::string& rawFramebufferFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& smokeX11UpdateTest, bool& smokePipeWireAvailabilityTest, bool& smokeXTestAvailabilityTest, bool& serveUpdates, unsigned int& maxUpdates)
 {
     validateOnly = false;
     printConfig = false;
@@ -96,9 +105,11 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
     smokeRawFileUpdateTest = false;
     smokeX11UpdateTest = false;
     smokePipeWireAvailabilityTest = false;
+    smokeXTestAvailabilityTest = false;
     serveUpdates = false;
     maxUpdates = 3;
     captureBackend = CaptureBackend::Auto;
+    inputBackend = InputBackend::Auto;
     rawFramebufferFile.clear();
     for (int i = 1; i < argc; ++i) {
         const std::string arg(argv[i]);
@@ -131,6 +142,8 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
             config.SetPort(0);
         } else if (arg == "--smoke-pipewire-availability-test") {
             smokePipeWireAvailabilityTest = true;
+        } else if (arg == "--smoke-xtest-availability-test") {
+            smokeXTestAvailabilityTest = true;
         } else if (arg == "--serve-updates") {
             serveUpdates = true;
         } else if (arg == "--max-updates" && i + 1 < argc) {
@@ -149,6 +162,11 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
             }
         } else if (arg == "--raw-framebuffer-file" && i + 1 < argc) {
             rawFramebufferFile = argv[++i];
+        } else if (arg == "--input-backend" && i + 1 < argc) {
+            if (!ParseInputBackendName(argv[++i], inputBackend)) {
+                std::cerr << "invalid --input-backend\n";
+                return false;
+            }
         } else if (arg == "--pattern" && i + 1 < argc) {
             FramebufferPattern pattern = FramebufferPattern::Solid;
             if (!ParseFramebufferPattern(argv[++i], pattern)) {
@@ -349,7 +367,7 @@ bool RunSmokeMultiUpdateTest(const ServerConfig& config, unsigned int maxUpdates
     return clientOk && serverOk;
 }
 
-void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBackend, CaptureBackend resolvedBackend, unsigned int maxUpdates)
+void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBackend, CaptureBackend resolvedBackend, InputBackend requestedInputBackend, InputBackend resolvedInputBackend, unsigned int maxUpdates)
 {
     std::cout << "bind_address=" << config.BindAddress() << "\n"
               << "port=" << config.Port() << "\n"
@@ -360,6 +378,8 @@ void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBac
               << "pattern=" << FramebufferPatternName(config.Pattern()) << "\n"
               << "capture_backend=" << CaptureBackendName(requestedBackend) << "\n"
               << "resolved_capture_backend=" << CaptureBackendName(resolvedBackend) << "\n"
+              << "input_backend=" << InputBackendName(requestedInputBackend) << "\n"
+              << "resolved_input_backend=" << InputBackendName(resolvedInputBackend) << "\n"
               << "max_updates=" << maxUpdates << "\n";
 }
 
@@ -484,6 +504,14 @@ int RunSmokePipeWireAvailabilityTest()
     return 0;
 }
 
+int RunSmokeXTestAvailabilityTest()
+{
+    std::cout << "xtest-build-available=" << (XTestInputBackend::IsBuildAvailable() ? "yes" : "no") << "\n";
+    std::cout << "xtest-runtime-available=" << (XTestInputBackend::IsAvailable() ? "yes" : "no") << "\n";
+    std::cout << "xtest-unavailable-reason=" << XTestInputBackend::UnavailableReason() << "\n";
+    return 0;
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -491,6 +519,8 @@ int main(int argc, char **argv)
     ServerConfig config;
     CaptureBackend captureBackend = CaptureBackend::Auto;
     CaptureBackend resolvedCaptureBackend = CaptureBackend::Memory;
+    InputBackend inputBackend = InputBackend::Auto;
+    InputBackend resolvedInputBackend = InputBackend::None;
     std::string rawFramebufferFile;
     bool validateOnly = false;
     bool printConfig = false;
@@ -500,9 +530,10 @@ int main(int argc, char **argv)
     bool smokeRawFileUpdateTest = false;
     bool smokeX11UpdateTest = false;
     bool smokePipeWireAvailabilityTest = false;
+    bool smokeXTestAvailabilityTest = false;
     bool serveUpdates = false;
     unsigned int maxUpdates = 3;
-    if (!ParseArgs(argc, argv, config, captureBackend, rawFramebufferFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, smokePipeWireAvailabilityTest, serveUpdates, maxUpdates)) {
+    if (!ParseArgs(argc, argv, config, captureBackend, inputBackend, rawFramebufferFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, smokePipeWireAvailabilityTest, smokeXTestAvailabilityTest, serveUpdates, maxUpdates)) {
         return 2;
     }
     std::string error;
@@ -513,15 +544,22 @@ int main(int argc, char **argv)
     if (smokePipeWireAvailabilityTest) {
         return RunSmokePipeWireAvailabilityTest();
     }
+    if (smokeXTestAvailabilityTest) {
+        return RunSmokeXTestAvailabilityTest();
+    }
     if (!ResolveCaptureBackend(captureBackend, !rawFramebufferFile.empty(), resolvedCaptureBackend, &error)) {
         std::cerr << "invalid capture backend: " << error << "\n";
+        return 2;
+    }
+    if (!ResolveInputBackend(inputBackend, resolvedInputBackend, &error)) {
+        std::cerr << "invalid input backend: " << error << "\n";
         return 2;
     }
     if (validateOnly) {
         return 0;
     }
     if (printConfig) {
-        PrintResolvedConfig(config, captureBackend, resolvedCaptureBackend, maxUpdates);
+        PrintResolvedConfig(config, captureBackend, resolvedCaptureBackend, inputBackend, resolvedInputBackend, maxUpdates);
         return 0;
     }
     if (smokeTest) {
