@@ -124,16 +124,16 @@ Implemented in the portable Qt viewer session path:
 
 - RFB 3.8 no-auth handshake.
 - RFB VNCAuth challenge/response when a password is provided.
-- SetEncodings negotiation for raw, CopyRect, RRE, CoRRE, Hextile, Zlib and NewFBSize.
+- SetEncodings negotiation for raw, CopyRect, RRE, CoRRE, Hextile, Zlib, ZRLE and NewFBSize.
 - Raw framebuffer update handling.
-- RRE/CoRRE/Hextile/Zlib framebuffer update decoding.
+- RRE/CoRRE/Hextile/Zlib/ZRLE framebuffer update decoding.
 - CopyRect/NewFBSize metadata handling.
 - ClientCutText clipboard send path.
 - Keyboard and pointer event forwarding over the persistent RFB session.
 
 Still follow-up work:
 
-- Full decoders for ZRLE/Tight/ZlibHex/vendor-specific compressed encodings.
+- Full decoders for Tight/ZlibHex/vendor-specific compressed encodings.
 - ServerCutText/extended clipboard receive UI.
 - Real-server interoperability matrix across multiple VNC servers.
 
@@ -162,7 +162,7 @@ cmake/qt-viewer-real-server-matrix-smoke.sh \
   5901 \
   /tmp/uvnc-real-server-build \
   /tmp/uvnc-real-server-install \
-  secret
+  <VNC_PASSWORD>
 ```
 
 The input/clipboard phase sends key, pointer and ClientCutText messages, so it is
@@ -175,7 +175,7 @@ cmake/qt-viewer-real-server-matrix-smoke.sh \
   5901 \
   /tmp/uvnc-real-server-build \
   /tmp/uvnc-real-server-install \
-  secret
+  <VNC_PASSWORD>
 ```
 
 Current validated real-server scope covers RFB 3.8 no-auth/VNCAuth, raw updates,
