@@ -52,6 +52,15 @@ PipeWirePortalSourceRequest::PipeWirePortalSourceRequest()
 {
 }
 
+PipeWireStreamDescriptor::PipeWireStreamDescriptor()
+    : nodeId(0),
+      width(0),
+      height(0),
+      stride(0),
+      bytesPerPixel(4)
+{
+}
+
 bool PipeWirePortalCaptureBackend::BuildAvailable()
 {
 #ifdef UVNC_HAVE_PIPEWIRE_PORTAL
@@ -122,6 +131,33 @@ bool PipeWirePortalCaptureBackend::ValidateSessionRequest(const PipeWirePortalSe
     }
     if (request.sessionToken.size() > 128 || request.handleToken.size() > 128) {
         SetReason(error, "PipeWire/XDG portal tokens are too long");
+        return false;
+    }
+    SetReason(error, "");
+    return true;
+}
+
+PipeWireStreamDescriptor PipeWirePortalCaptureBackend::DefaultStreamDescriptor()
+{
+    return PipeWireStreamDescriptor();
+}
+
+bool PipeWirePortalCaptureBackend::ValidateStreamDescriptor(const PipeWireStreamDescriptor& descriptor, std::string *error)
+{
+    if (descriptor.nodeId == 0) {
+        SetReason(error, "PipeWire stream node id must be non-zero");
+        return false;
+    }
+    if (descriptor.width == 0 || descriptor.height == 0) {
+        SetReason(error, "PipeWire stream dimensions must be non-zero");
+        return false;
+    }
+    if (descriptor.bytesPerPixel == 0) {
+        SetReason(error, "PipeWire stream bytes per pixel must be non-zero");
+        return false;
+    }
+    if (descriptor.stride < descriptor.width * descriptor.bytesPerPixel) {
+        SetReason(error, "PipeWire stream stride is smaller than one row");
         return false;
     }
     SetReason(error, "");

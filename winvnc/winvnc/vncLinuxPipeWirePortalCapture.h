@@ -9,6 +9,7 @@
 #ifndef UVNC_WINVNC_LINUX_PIPEWIRE_PORTAL_CAPTURE_H
 #define UVNC_WINVNC_LINUX_PIPEWIRE_PORTAL_CAPTURE_H
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -39,6 +40,16 @@ struct PipeWirePortalSourceRequest {
     PipeWirePortalSourceRequest();
 };
 
+struct PipeWireStreamDescriptor {
+    std::uint32_t nodeId;
+    unsigned int width;
+    unsigned int height;
+    unsigned int stride;
+    unsigned int bytesPerPixel;
+
+    PipeWireStreamDescriptor();
+};
+
 class PipeWirePortalCaptureBackend {
 public:
     static bool BuildAvailable();
@@ -48,6 +59,8 @@ public:
     static PipeWirePortalSessionRequest DefaultSessionRequest();
     static PipeWirePortalSourceRequest DefaultSourceRequest();
     static bool ValidateSessionRequest(const PipeWirePortalSessionRequest& request, std::string *error = nullptr);
+    static PipeWireStreamDescriptor DefaultStreamDescriptor();
+    static bool ValidateStreamDescriptor(const PipeWireStreamDescriptor& descriptor, std::string *error = nullptr);
 };
 
 } // namespace linuxfb
