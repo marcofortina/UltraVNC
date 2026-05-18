@@ -11,6 +11,7 @@
 
 #include <QApplication>
 #include <QCheckBox>
+#include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QSpinBox>
