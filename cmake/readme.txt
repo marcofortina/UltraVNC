@@ -327,6 +327,18 @@ Native Linux Qt viewer RFB session smoke:
 
 ```sh
 cmake/qt-viewer-rfb-smoke.sh   /tmp/uvnc-qt-viewer-rfb-build   /tmp/uvnc-qt-viewer-rfb-install
+
+Native Linux Qt viewer known-server manual smoke:
+
+```sh
+cmake/qt-viewer-known-server-smoke.sh \
+  127.0.0.1 \
+  5900 \
+  /tmp/uvnc-qt-viewer-known-server-build \
+  /tmp/uvnc-qt-viewer-known-server-install
+```
+
+The known-server helper expects an RFB 3.8 no-auth raw update test server.
 ```
 
 This starts `uvnc_winvnc_memory_server` on loopback and verifies that

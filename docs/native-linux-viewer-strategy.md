@@ -37,3 +37,5 @@ compatibility layer.
 - Replacing the Windows viewer UI.
 - Rewriting the whole viewer at once.
 - Hiding Win32 dependencies behind broad fake compatibility headers.
+
+Manual known-server validation now uses the Qt viewer RFB smoke path against an explicit no-auth raw RFB test server. Long-running interactive session ownership remains separate follow-up work.
