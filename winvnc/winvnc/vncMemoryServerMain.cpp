@@ -1088,6 +1088,9 @@ int main(int argc, char **argv)
         std::cerr << "invalid config: " << error << "\n";
         return 2;
     }
+    if (validateOnly || printConfig) {
+        PrintSecurityWarnings(config);
+    }
     if (!ResolveCaptureBackend(captureBackend, !rawFramebufferFile.empty(), resolvedCaptureBackend, &error)) {
         std::cerr << "invalid capture backend: " << error << "\n";
         return 2;

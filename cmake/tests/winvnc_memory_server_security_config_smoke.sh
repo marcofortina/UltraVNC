@@ -40,6 +40,9 @@ grep -q 'password file must not be accessible by group/other' "${tmpdir}/stderr"
 
 chmod 0600 "${password_file}"
 "${server}" --password-file "${password_file}" --validate-config
+"${server}" --password-file "${password_file}" --bind-address 0.0.0.0 --validate-config >"${tmpdir}/public.out" 2>"${tmpdir}/public.err"
+grep -q 'listening on 0.0.0.0' "${tmpdir}/public.err"
+grep -q 'VNCAuth protects the handshake' "${tmpdir}/public.err"
 "${server}" --password-file "${password_file}" --smoke-test --width 32 --height 16 --name vncauth-cli-smoke
 
 output="$(${server} --password-file "${password_file}" --print-config)"
