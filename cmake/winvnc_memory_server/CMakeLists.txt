@@ -62,8 +62,8 @@ if(BUILD_TESTING)
     add_test(NAME winvnc_memory_server_invalid_capture_backend COMMAND uvnc_winvnc_memory_server --validate-config --capture-backend unknown)
     set_tests_properties(winvnc_memory_server_invalid_capture_backend PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5 WILL_FAIL TRUE)
 
-    add_test(NAME winvnc_memory_server_pipewire_backend_cli COMMAND uvnc_winvnc_memory_server --print-config --capture-backend pipewire)
-    set_tests_properties(winvnc_memory_server_pipewire_backend_cli PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5 WILL_FAIL TRUE)
+    add_test(NAME winvnc_memory_server_pipewire_availability_smoke COMMAND uvnc_winvnc_memory_server --smoke-pipewire-availability-test)
+    set_tests_properties(winvnc_memory_server_pipewire_availability_smoke PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
 
     add_test(NAME winvnc_memory_server_x11_capture_backend_cli_smoke COMMAND "${CMAKE_SOURCE_DIR}/tests/winvnc_x11_capture_backend_cli_smoke.sh" $<TARGET_FILE:uvnc_winvnc_memory_server>)
     set_tests_properties(winvnc_memory_server_x11_capture_backend_cli_smoke PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
