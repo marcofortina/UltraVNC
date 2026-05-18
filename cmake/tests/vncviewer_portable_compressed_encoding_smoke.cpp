@@ -189,6 +189,18 @@ int main()
                client.WriteAll(&rect, sz_rfbCoRRERectangle);
     }, port));
 
+
+    assert(RunOneServer(rfbEncodingZRLE, [](TcpSocket& client) {
+        std::vector<CARD8> zrle;
+        zrle.push_back(1); // one solid tile
+        const std::vector<CARD8> color = Pixel(0x80);
+        zrle.insert(zrle.end(), color.begin(), color.end());
+        const std::vector<CARD8> compressed = Compress(zrle);
+        rfbZRLEHeader header;
+        header.length = Swap32IfLE(static_cast<CARD32>(compressed.size()));
+        return client.WriteAll(&header, sz_rfbZRLEHeader) && client.WriteAll(compressed.data(), compressed.size());
+    }, port));
+
     assert(RunOneServer(rfbEncodingHextile, [](TcpSocket& client) {
         CARD8 subencoding = rfbHextileBackgroundSpecified | rfbHextileAnySubrects | rfbHextileSubrectsColoured;
         const std::vector<CARD8> background = Pixel(0x60);
