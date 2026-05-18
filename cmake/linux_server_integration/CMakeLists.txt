@@ -32,7 +32,8 @@ if(BUILD_TESTING)
     add_test(NAME linux_server_runtime_helpers_smoke
         COMMAND "${CMAKE_SOURCE_DIR}/tests/linux_server_runtime_helpers_smoke.sh"
                 "${CMAKE_SOURCE_DIR}/linux-server-real-runtime-smoke.sh"
-                "${CMAKE_SOURCE_DIR}/linux-server-user-service-smoke.sh")
+                "${CMAKE_SOURCE_DIR}/linux-server-user-service-smoke.sh"
+                "${CMAKE_SOURCE_DIR}/linux-server-negative-runtime-smoke.sh")
     set_tests_properties(linux_server_runtime_helpers_smoke PROPERTIES LABELS "native-linux;linux-server-integration" TIMEOUT 5)
 endif()
 

@@ -102,6 +102,18 @@ This is the first real runtime validation gate for X11 capture, server process
 state and graceful shutdown. It still does not replace the later multi-vendor
 viewer compatibility matrix.
 
+Negative runtime cases are covered by:
+
+```sh
+cmake/linux-server-negative-runtime-smoke.sh \
+  /tmp/uvnc-linux-server-negative-runtime-build \
+  /tmp/uvnc-linux-server-negative-runtime-install
+```
+
+That helper checks invalid config, invalid backend names, unwritable log paths,
+occupied TCP ports, and explicit X11/XTest backend failures with `DISPLAY`
+unset.
+
 ## Manual X11 validation
 
 Run from the local graphical X11 session, not from SSH X forwarding:

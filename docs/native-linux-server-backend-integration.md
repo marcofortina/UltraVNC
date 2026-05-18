@@ -69,6 +69,18 @@ cmake/linux-server-user-service-smoke.sh \
 Run the live service smoke only on a disposable or explicitly prepared test
 user.
 
+Negative runtime cases are covered by:
+
+```sh
+cmake/linux-server-negative-runtime-smoke.sh \
+  /tmp/uvnc-linux-server-negative-runtime-build \
+  /tmp/uvnc-linux-server-negative-runtime-install
+```
+
+That helper checks invalid config, invalid backend names, unwritable log paths,
+occupied TCP ports, and explicit X11/XTest backend failures with `DISPLAY`
+unset.
+
 ## Runtime backend selection
 
 Capture backend:
