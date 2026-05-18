@@ -335,7 +335,25 @@ and continuous update polling enabled.
 Native Linux Qt viewer RFB session smoke:
 
 ```sh
-cmake/qt-viewer-rfb-smoke.sh   /tmp/uvnc-qt-viewer-rfb-build   /tmp/uvnc-qt-viewer-rfb-install
+cmake/qt-viewer-rfb-smoke.sh \
+  /tmp/uvnc-qt-viewer-rfb-build \
+  /tmp/uvnc-qt-viewer-rfb-install
+```
+
+This starts `uvnc_winvnc_memory_server` on loopback and verifies that
+`uvnc_qt_viewer --connect-update-smoke` completes a handshake, reads one raw
+framebuffer update, and renders an update into the Qt surface.
+
+Native Linux Qt viewer persistent input smoke:
+
+```sh
+cmake/qt-viewer-persistent-input-smoke.sh \
+  /tmp/uvnc-qt-viewer-persistent-input-build \
+  /tmp/uvnc-qt-viewer-persistent-input-install
+```
+
+This keeps one RFB connection open, sends keyboard and pointer events, then
+requests a raw framebuffer update on the same session.
 
 Native Linux Qt viewer known-server manual smoke:
 
@@ -348,8 +366,3 @@ cmake/qt-viewer-known-server-smoke.sh \
 ```
 
 The known-server helper expects an RFB 3.8 no-auth raw update test server.
-```
-
-This starts `uvnc_winvnc_memory_server` on loopback and verifies that
-`uvnc_qt_viewer --connect-update-smoke` completes a handshake and reads one raw
-framebuffer update.
