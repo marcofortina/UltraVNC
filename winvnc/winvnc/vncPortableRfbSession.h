@@ -11,6 +11,7 @@
 
 #include "vncPortableFramebuffer.h"
 #include "vncPortableRfbClientState.h"
+#include "vncPortableRfbMessages.h"
 #include "vncPortableServerConfig.h"
 #include "vncPortableTcp.h"
 
@@ -30,13 +31,20 @@ struct RfbSessionStats {
     RfbSessionStats();
 };
 
+class RfbInputSink {
+public:
+    virtual ~RfbInputSink() {}
+    virtual bool InjectKey(const KeyEvent& event, std::string *error = nullptr) = 0;
+    virtual bool InjectPointer(const PointerEvent& event, std::string *error = nullptr) = 0;
+};
+
 class RfbServerSession {
 public:
     bool RunHandshake(TcpSocket& socket, const ServerConfig& config) const;
     bool ServeFramebufferUpdateRequest(TcpSocket& socket, const Framebuffer& framebuffer) const;
-    bool ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr) const;
-    bool ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages = 32, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr) const;
-    bool ServeFramebufferUpdates(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages = 128, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr) const;
+    bool ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr, RfbInputSink *inputSink = nullptr) const;
+    bool ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages = 32, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr, RfbInputSink *inputSink = nullptr) const;
+    bool ServeFramebufferUpdates(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages = 128, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr, RfbInputSink *inputSink = nullptr) const;
 };
 
 } // namespace portable

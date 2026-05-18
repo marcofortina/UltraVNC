@@ -25,8 +25,8 @@ public:
     bool Start(const ServerConfig& config);
     bool StartWithFramebuffer(const ServerConfig& config, const Framebuffer& framebuffer);
     bool ServeOne();
-    bool ServeOneUpdate();
-    bool ServeOneUpdates(unsigned int updateCount);
+    bool ServeOneUpdate(RfbInputSink *inputSink = nullptr);
+    bool ServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink = nullptr);
     void Stop();
     bool Running() const { return listener_.Valid(); }
     unsigned short Port() const { return listener_.Port(); }

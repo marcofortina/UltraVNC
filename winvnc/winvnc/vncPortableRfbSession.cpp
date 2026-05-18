@@ -90,7 +90,7 @@ bool RfbServerSession::ServeFramebufferUpdateRequest(TcpSocket& socket, const Fr
     return socket.WriteAll(update.data(), update.size());
 }
 
-bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats, RfbClientState *state) const
+bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink) const
 {
     updateSent = false;
     CARD8 type = 0;
@@ -160,10 +160,19 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
         rfbKeyEventMsg wire;
         wire.type = type;
         const bool ok = socket.ReadExact(reinterpret_cast<char *>(&wire) + 1, sz_rfbKeyEventMsg - 1);
-        if (ok && state) {
+        if (ok) {
             KeyEvent event;
-            if (DecodeKeyEvent(wire, event)) {
+            if (!DecodeKeyEvent(wire, event)) {
+                return false;
+            }
+            if (state) {
                 state->RecordKeyEvent(event);
+            }
+            if (inputSink) {
+                std::string inputError;
+                if (!inputSink->InjectKey(event, &inputError)) {
+                    return false;
+                }
             }
         }
         if (ok && stats) {
@@ -175,10 +184,19 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
         rfbPointerEventMsg wire;
         wire.type = type;
         const bool ok = socket.ReadExact(reinterpret_cast<char *>(&wire) + 1, sz_rfbPointerEventMsg - 1);
-        if (ok && state) {
+        if (ok) {
             PointerEvent event;
-            if (DecodePointerEvent(wire, event)) {
+            if (!DecodePointerEvent(wire, event)) {
+                return false;
+            }
+            if (state) {
                 state->RecordPointerEvent(event);
+            }
+            if (inputSink) {
+                std::string inputError;
+                if (!inputSink->InjectPointer(event, &inputError)) {
+                    return false;
+                }
             }
         }
         if (ok && stats) {
@@ -208,11 +226,11 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
     }
 }
 
-bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state) const
+bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink) const
 {
     for (unsigned int i = 0; i < maxMessages; ++i) {
         bool updateSent = false;
-        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state)) {
+        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state, inputSink)) {
             return false;
         }
         if (updateSent) {
@@ -222,7 +240,7 @@ bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Fram
     return false;
 }
 
-bool RfbServerSession::ServeFramebufferUpdates(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state) const
+bool RfbServerSession::ServeFramebufferUpdates(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink) const
 {
     if (updateCount == 0) {
         return true;
@@ -231,7 +249,7 @@ bool RfbServerSession::ServeFramebufferUpdates(TcpSocket& socket, const Framebuf
     unsigned int sent = 0;
     for (unsigned int i = 0; i < maxMessages && sent < updateCount; ++i) {
         bool updateSent = false;
-        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state)) {
+        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state, inputSink)) {
             return false;
         }
         if (updateSent) {

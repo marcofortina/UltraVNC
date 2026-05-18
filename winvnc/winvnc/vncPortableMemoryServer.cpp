@@ -58,7 +58,7 @@ bool MemoryServer::ServeOne()
     return RfbServerSession().RunHandshake(client, config_);
 }
 
-bool MemoryServer::ServeOneUpdate()
+bool MemoryServer::ServeOneUpdate(RfbInputSink *inputSink)
 {
     if (!listener_.Valid()) {
         return false;
@@ -69,10 +69,10 @@ bool MemoryServer::ServeOneUpdate()
     }
     RfbServerSession session;
     return session.RunHandshake(client, config_) &&
-           session.ServeUntilFramebufferUpdate(client, framebuffer_);
+           session.ServeUntilFramebufferUpdate(client, framebuffer_, 32, nullptr, nullptr, inputSink);
 }
 
-bool MemoryServer::ServeOneUpdates(unsigned int updateCount)
+bool MemoryServer::ServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink)
 {
     if (!listener_.Valid()) {
         return false;
@@ -83,7 +83,7 @@ bool MemoryServer::ServeOneUpdates(unsigned int updateCount)
     }
     RfbServerSession session;
     return session.RunHandshake(client, config_) &&
-           session.ServeFramebufferUpdates(client, framebuffer_, updateCount);
+           session.ServeFramebufferUpdates(client, framebuffer_, updateCount, 128, nullptr, nullptr, inputSink);
 }
 
 void MemoryServer::Stop()
