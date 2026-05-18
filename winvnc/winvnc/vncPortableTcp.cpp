@@ -12,6 +12,7 @@
 #include <cerrno>
 #include <cstring>
 #include <netinet/in.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -220,6 +221,37 @@ bool TcpListener::Accept(TcpSocket& socket)
         if (accepted >= 0) {
             socket = TcpSocket(accepted);
             return true;
+        }
+        if (errno == EINTR) {
+            continue;
+        }
+        return false;
+    }
+}
+
+bool TcpListener::AcceptWithTimeoutMs(TcpSocket& socket, unsigned int timeoutMs)
+{
+    socket.Close();
+    if (!Valid()) {
+        return false;
+    }
+
+    fd_set readSet;
+    FD_ZERO(&readSet);
+    FD_SET(fd_, &readSet);
+
+    timeval timeout;
+    timeout.tv_sec = static_cast<long>(timeoutMs / 1000);
+    timeout.tv_usec = static_cast<long>((timeoutMs % 1000) * 1000);
+
+    for (;;) {
+        fd_set readySet = readSet;
+        const int ready = select(fd_ + 1, &readySet, nullptr, nullptr, timeoutMs == 0 ? nullptr : &timeout);
+        if (ready > 0 && FD_ISSET(fd_, &readySet)) {
+            return Accept(socket);
+        }
+        if (ready == 0) {
+            return false;
         }
         if (errno == EINTR) {
             continue;

@@ -53,6 +53,7 @@ public:
     int NativeHandle() const { return fd_; }
     void Close();
     bool Accept(TcpSocket& socket);
+    bool AcceptWithTimeoutMs(TcpSocket& socket, unsigned int timeoutMs);
 
 private:
     int fd_;
