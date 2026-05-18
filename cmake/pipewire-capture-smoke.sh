@@ -28,7 +28,7 @@ cmake --install "${BUILD_DIR}" --prefix "${INSTALL_PREFIX}"
 "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --smoke-pipewire-availability-test
 
 if "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --validate-config --capture-backend pipewire; then
-  echo "PipeWire/XDG portal backend is available in this session."
+  echo "PipeWire/XDG portal backend is unexpectedly serveable; live capture implementation should add a dedicated smoke before enabling this path."
 else
-  echo "Skipping live PipeWire/XDG portal capture smoke because the runtime is not available."
+  echo "Skipping live PipeWire/XDG portal capture smoke because this block only provides detection/scaffolding; live frame import is not implemented yet."
 fi
