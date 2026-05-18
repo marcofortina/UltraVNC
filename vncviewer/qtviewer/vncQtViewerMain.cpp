@@ -84,7 +84,7 @@ int RunConnectSmoke(const ViewerCliOptions& options)
         return 1;
     }
     std::cout << "connected " << result.width << "x" << result.height
-              << " name="" << result.desktopName << """;
+              << " name=\"" << result.desktopName << "\"";
     if (result.update.received) {
         std::cout << " update=" << result.update.width << "x" << result.update.height
                   << " bytes=" << result.update.pixels.size();
