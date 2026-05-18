@@ -36,6 +36,8 @@ int main(int argc, char **argv)
     QtViewerConnectionPanel panel(config);
     assert(panel.Surface() != nullptr);
     assert(panel.StatusText() == "Disconnected");
+    QLabel *serverClipboard = panel.findChild<QLabel *>("serverClipboardLabel");
+    assert(serverClipboard && serverClipboard->text() == "Server clipboard: <none>");
 
     QLineEdit *host = panel.findChild<QLineEdit *>("hostEdit");
     QSpinBox *port = panel.findChild<QSpinBox *>("portSpin");
