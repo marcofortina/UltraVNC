@@ -22,6 +22,7 @@
 #include <QVBoxLayout>
 
 #include <string>
+#include <rfb/rfbproto.h>
 #include <vector>
 
 namespace uvnc {
@@ -72,6 +73,67 @@ bool RawUpdateToArgbPixels(const portable::ViewerSessionResult& result, std::vec
         pixels.push_back(0xff000000u | (red << 16) | (green << 8) | blue);
     }
     return true;
+}
+
+CARD8 QtButtonsToRfbMask(Qt::MouseButtons buttons)
+{
+    CARD8 mask = 0;
+    if (buttons & Qt::LeftButton) {
+        mask |= 1;
+    }
+    if (buttons & Qt::MiddleButton) {
+        mask |= 2;
+    }
+    if (buttons & Qt::RightButton) {
+        mask |= 4;
+    }
+    return mask;
+}
+
+CARD32 QtKeyToRfbKeysym(int key)
+{
+    if (key >= Qt::Key_Space && key <= Qt::Key_AsciiTilde) {
+        return static_cast<CARD32>(key);
+    }
+    switch (key) {
+    case Qt::Key_Backspace:
+        return 0xff08;
+    case Qt::Key_Tab:
+        return 0xff09;
+    case Qt::Key_Return:
+    case Qt::Key_Enter:
+        return 0xff0d;
+    case Qt::Key_Escape:
+        return 0xff1b;
+    case Qt::Key_Insert:
+        return 0xff63;
+    case Qt::Key_Delete:
+        return 0xffff;
+    case Qt::Key_Home:
+        return 0xff50;
+    case Qt::Key_Left:
+        return 0xff51;
+    case Qt::Key_Up:
+        return 0xff52;
+    case Qt::Key_Right:
+        return 0xff53;
+    case Qt::Key_Down:
+        return 0xff54;
+    case Qt::Key_PageUp:
+        return 0xff55;
+    case Qt::Key_PageDown:
+        return 0xff56;
+    case Qt::Key_End:
+        return 0xff57;
+    case Qt::Key_Shift:
+        return 0xffe1;
+    case Qt::Key_Control:
+        return 0xffe3;
+    case Qt::Key_Alt:
+        return 0xffe9;
+    default:
+        return 0;
+    }
 }
 
 } // namespace
@@ -146,15 +208,23 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     });
     QObject::connect(reconnectButton_, &QPushButton::clicked, this, [this]() {
         StopContinuousUpdates();
+        session_.Disconnect();
         RequestUpdate(true);
         StartContinuousUpdatesIfRequested();
     });
     QObject::connect(disconnectButton_, &QPushButton::clicked, this, [this]() {
         StopContinuousUpdates();
+        session_.Disconnect();
         SetStatus(QStringLiteral("Disconnected"));
     });
     QObject::connect(continuousTimer_, &QTimer::timeout, this, [this]() {
         RequestUpdate(false);
+    });
+    surface_->SetKeyEventCallback([this](int key, bool down) {
+        SendQtKeyEvent(key, down);
+    });
+    surface_->SetPointerEventCallback([this](Qt::MouseButtons buttons, const QPoint& position) {
+        SendQtPointerEvent(buttons, position);
     });
 
     SetStatus(QStringLiteral("Disconnected"));
@@ -183,7 +253,12 @@ void QtViewerConnectionPanel::RequestUpdate(bool showDialogOnError)
     const portable::ViewerConfig config = CurrentConfig();
     portable::ViewerSessionResult result;
     std::string error;
-    if (!portable::ViewerSession().RequestOneFramebufferUpdate(config, result, &error)) {
+    if (!session_.Connected() && !session_.Connect(config, result, &error)) {
+        StopContinuousUpdates();
+        ShowError(QString::fromStdString(error), showDialogOnError);
+        return;
+    }
+    if (!session_.RequestFramebufferUpdate(false, result, &error)) {
         StopContinuousUpdates();
         ShowError(QString::fromStdString(error), showDialogOnError);
         return;
@@ -203,6 +278,37 @@ void QtViewerConnectionPanel::RequestUpdate(bool showDialogOnError)
         .arg(result.update.width)
         .arg(result.update.height)
         .arg(result.update.pixels.size()));
+}
+
+void QtViewerConnectionPanel::SendQtKeyEvent(int key, bool down)
+{
+    if (CurrentConfig().ViewOnly() || !session_.Connected()) {
+        return;
+    }
+    const CARD32 keysym = QtKeyToRfbKeysym(key);
+    if (keysym == 0) {
+        return;
+    }
+    std::string error;
+    if (!session_.SendKeyEvent(keysym, down, &error)) {
+        StopContinuousUpdates();
+        SetStatus(QStringLiteral("Error: ") + QString::fromStdString(error));
+    }
+}
+
+void QtViewerConnectionPanel::SendQtPointerEvent(Qt::MouseButtons buttons, const QPoint& position)
+{
+    if (CurrentConfig().ViewOnly() || !session_.Connected()) {
+        return;
+    }
+    std::string error;
+    if (!session_.SendPointerEvent(QtButtonsToRfbMask(buttons),
+                                   static_cast<unsigned int>(position.x()),
+                                   static_cast<unsigned int>(position.y()),
+                                   &error)) {
+        StopContinuousUpdates();
+        SetStatus(QStringLiteral("Error: ") + QString::fromStdString(error));
+    }
 }
 
 void QtViewerConnectionPanel::StartContinuousUpdatesIfRequested()

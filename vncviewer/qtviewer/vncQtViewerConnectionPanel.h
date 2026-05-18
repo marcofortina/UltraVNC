@@ -10,6 +10,7 @@
 #define UVNC_VNCVIEWER_QT_VIEWER_CONNECTION_PANEL_H
 
 #include "vncPortableViewerConfig.h"
+#include "vncPortableViewerSession.h"
 #include "vncQtViewerSurface.h"
 
 #include <QWidget>
@@ -35,6 +36,8 @@ public:
 
 private:
     void RequestUpdate(bool showDialogOnError);
+    void SendQtKeyEvent(int key, bool down);
+    void SendQtPointerEvent(Qt::MouseButtons buttons, const QPoint& position);
     void StartContinuousUpdatesIfRequested();
     void StopContinuousUpdates();
     void SetStatus(const QString& status);
@@ -54,6 +57,7 @@ private:
     QLabel *statusLabel_;
     QtViewerSurface *surface_;
     QTimer *continuousTimer_;
+    portable::PersistentViewerSession session_;
 };
 
 } // namespace qtviewer
