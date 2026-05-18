@@ -1,0 +1,6 @@
+# label|host|port|password-or-file|encodings|allow-input
+# Use a password file path instead of a literal password for real validation.
+# Keep allow-input=0 unless the target desktop is safe for injected input.
+local-tigervnc|127.0.0.1|5901|/tmp/vnc-password|hextile,zlib,zrle,raw,copyrect,newfbsize|0
+# x11vnc|127.0.0.1|5902|/tmp/x11vnc-password|zlib,zrle,hextile,raw,copyrect,newfbsize|0
+# libvncserver|127.0.0.1|5903||raw,copyrect,newfbsize|0

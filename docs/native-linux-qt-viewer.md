@@ -181,3 +181,22 @@ cmake/qt-viewer-real-server-matrix-smoke.sh \
 Current validated real-server scope covers RFB 3.8 no-auth/VNCAuth, raw updates,
 CopyRect metadata, NewFBSize metadata, multi-rectangle framebuffer updates,
 ServerCutText/Bell tolerance before updates, and ClientCutText send.
+
+## Multi-server matrix smoke
+
+Use a pipe-separated matrix file to validate multiple real servers with one
+command. Password values may be file paths; this avoids exposing secrets in the
+viewer process arguments.
+
+```sh
+cmake/qt-viewer-multi-server-matrix-smoke.sh \
+  docs/examples/native-linux-qt-viewer-real-server-matrix.example \
+  /tmp/uvnc-multi-server-build \
+  /tmp/uvnc-multi-server-install
+```
+
+Matrix columns:
+
+```text
+label|host|port|password-or-file|encodings|allow-input
+```
