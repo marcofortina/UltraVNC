@@ -126,7 +126,7 @@ Implemented in the portable Qt viewer session path:
 - RFB VNCAuth challenge/response when a password is provided.
 - SetEncodings negotiation for raw, CopyRect, RRE, CoRRE, Hextile, Zlib, ZRLE and NewFBSize.
 - Raw framebuffer update handling.
-- RRE/CoRRE/Hextile/Zlib/ZRLE framebuffer update decoding.
+- RRE/CoRRE/Hextile/Zlib/ZRLE framebuffer update decoding, including raw, solid, packed-palette and RLE tiles.
 - CopyRect/NewFBSize metadata handling.
 - ClientCutText clipboard send path.
 - Keyboard and pointer event forwarding over the persistent RFB session.

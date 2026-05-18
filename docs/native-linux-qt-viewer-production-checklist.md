@@ -9,7 +9,7 @@ Production-ready scope currently covered:
 - reconnect/disconnect/update controls;
 - optional auto reconnect;
 - VNCAuth security type 2 challenge/response;
-- raw, CopyRect, RRE, CoRRE, Hextile, Zlib, ZRLE and NewFBSize negotiation/handling;
+- raw, CopyRect, RRE, CoRRE, Hextile, Zlib, ZRLE and NewFBSize negotiation/handling; ZRLE covers raw, solid, packed-palette and RLE tiles;
 - multi-rectangle FramebufferUpdate handling;
 - ClientCutText clipboard send path;
 - ServerCutText receive display;
