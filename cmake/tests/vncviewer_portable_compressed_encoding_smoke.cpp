@@ -14,6 +14,10 @@
 
 #include <zlib.h>
 
+extern "C" {
+#include <jpeglib.h>
+}
+
 #include <cassert>
 #include <cstring>
 #include <string>
@@ -119,6 +123,64 @@ std::vector<CARD8> Compress(const std::vector<CARD8>& input)
     assert(compress2(compressed.data(), &maxSize, input.data(), static_cast<uLong>(input.size()), Z_BEST_SPEED) == Z_OK);
     compressed.resize(maxSize);
     return compressed;
+}
+
+
+std::vector<CARD8> JpegImage(CARD8 value, unsigned int width, unsigned int height)
+{
+    const std::vector<CARD8> rgb{value, static_cast<CARD8>(value + 1), static_cast<CARD8>(value + 2)};
+    std::vector<CARD8> raw(static_cast<std::size_t>(width) * height * 3);
+    for (std::size_t offset = 0; offset < raw.size(); offset += 3) {
+        std::copy(rgb.begin(), rgb.end(), raw.begin() + offset);
+    }
+
+    jpeg_compress_struct cinfo;
+    jpeg_error_mgr jerr;
+    std::memset(&cinfo, 0, sizeof(cinfo));
+    cinfo.err = jpeg_std_error(&jerr);
+    jpeg_create_compress(&cinfo);
+    unsigned char *jpegData = nullptr;
+    unsigned long jpegSize = 0;
+    jpeg_mem_dest(&cinfo, &jpegData, &jpegSize);
+    cinfo.image_width = width;
+    cinfo.image_height = height;
+    cinfo.input_components = 3;
+    cinfo.in_color_space = JCS_RGB;
+    jpeg_set_defaults(&cinfo);
+    jpeg_set_quality(&cinfo, 80, TRUE);
+    jpeg_start_compress(&cinfo, TRUE);
+    while (cinfo.next_scanline < cinfo.image_height) {
+        JSAMPROW row = raw.data() + static_cast<std::size_t>(cinfo.next_scanline) * width * 3;
+        jpeg_write_scanlines(&cinfo, &row, 1);
+    }
+    jpeg_finish_compress(&cinfo);
+    std::vector<CARD8> out(jpegData, jpegData + jpegSize);
+    jpeg_destroy_compress(&cinfo);
+    free(jpegData);
+    return out;
+}
+
+std::vector<CARD8> TightGradientPayload(CARD8 value, unsigned int width, unsigned int height)
+{
+    const std::vector<CARD8> target = CompactPixel(value);
+    std::vector<CARD8> encoded;
+    std::vector<CARD8> previousRow(static_cast<std::size_t>(width) * target.size(), 0);
+    std::vector<CARD8> currentRow(static_cast<std::size_t>(width) * target.size(), 0);
+    for (unsigned int y = 0; y < height; ++y) {
+        std::fill(currentRow.begin(), currentRow.end(), 0);
+        for (unsigned int x = 0; x < width; ++x) {
+            for (unsigned int c = 0; c < target.size(); ++c) {
+                const int left = x == 0 ? 0 : currentRow[static_cast<std::size_t>(x - 1) * target.size() + c];
+                const int up = y == 0 ? 0 : previousRow[static_cast<std::size_t>(x) * target.size() + c];
+                const int upLeft = (x == 0 || y == 0) ? 0 : previousRow[static_cast<std::size_t>(x - 1) * target.size() + c];
+                const int predicted = std::max(0, std::min(255, left + up - upLeft));
+                encoded.push_back(static_cast<CARD8>((target[c] - predicted) & 0xff));
+                currentRow[static_cast<std::size_t>(x) * target.size() + c] = target[c];
+            }
+        }
+        previousRow.swap(currentRow);
+    }
+    return encoded;
 }
 
 bool WriteTightCompactLength(TcpSocket& client, std::size_t length)
@@ -312,6 +374,16 @@ int main()
                client.WriteAll(&wh, sizeof(wh));
     }, port));
 
+    assert(RunOneServer(rfbEncodingHextile, [](TcpSocket& client) {
+        CARD8 subencoding = rfbHextileZlibRaw;
+        const std::vector<CARD8> raw = Solid(0x74, 4, 4);
+        const std::vector<CARD8> compressed = Compress(raw);
+        CARD16 length = Swap16IfLE(static_cast<CARD16>(compressed.size()));
+        return client.WriteAll(&subencoding, sizeof(subencoding)) &&
+               client.WriteAll(&length, sizeof(length)) &&
+               client.WriteAll(compressed.data(), compressed.size());
+    }, port));
+
     assert(RunOneServer(rfbEncodingTight, [](TcpSocket& client) {
         CARD8 control = static_cast<CARD8>(rfbTightFill << 4);
         const std::vector<CARD8> color = CompactPixel(0xa0);
@@ -340,6 +412,25 @@ int main()
                client.WriteAll(first.data(), first.size()) &&
                client.WriteAll(second.data(), second.size()) &&
                client.WriteAll(rows, sizeof(rows));
+    }, port));
+
+    assert(RunOneServer(rfbEncodingTight, [](TcpSocket& client) {
+        CARD8 control = static_cast<CARD8>(rfbTightJpeg << 4);
+        const std::vector<CARD8> jpeg = JpegImage(0xb0, 4, 4);
+        return client.WriteAll(&control, sizeof(control)) &&
+               WriteTightCompactLength(client, jpeg.size()) &&
+               client.WriteAll(jpeg.data(), jpeg.size());
+    }, port));
+
+    assert(RunOneServer(rfbEncodingTight, [](TcpSocket& client) {
+        CARD8 control = static_cast<CARD8>(rfbTightExplicitFilter << 4);
+        CARD8 filter = rfbTightFilterGradient;
+        const std::vector<CARD8> gradient = TightGradientPayload(0xb4, 4, 4);
+        const std::vector<CARD8> compressed = Compress(gradient);
+        return client.WriteAll(&control, sizeof(control)) &&
+               client.WriteAll(&filter, sizeof(filter)) &&
+               WriteTightCompactLength(client, compressed.size()) &&
+               client.WriteAll(compressed.data(), compressed.size());
     }, port));
 
     return 0;
