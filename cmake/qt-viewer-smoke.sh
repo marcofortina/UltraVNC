@@ -25,7 +25,7 @@ if ! cmake --build "$build_dir" --target help | grep -q '^uvnc_qt_viewer:'; then
 fi
 
 cmake --build "$build_dir" --target uvnc_qt_viewer -j"$(nproc)"
-ctest --test-dir "$build_dir" --output-on-failure -R '^vncviewer_qt_smoke$'
+ctest --test-dir "$build_dir" --output-on-failure -R '^vncviewer_qt_(smoke|surface_smoke)$'
 cmake --install "$build_dir" --prefix "$install_prefix"
 
 QT_QPA_PLATFORM=offscreen "$install_prefix/bin/uvnc_qt_viewer" --validate-config --host 127.0.0.1 --port 5900 --view-only
