@@ -52,6 +52,7 @@ private:
     QCheckBox *sharedCheck_;
     QCheckBox *viewOnlyCheck_;
     QCheckBox *continuousCheck_;
+    QCheckBox *autoReconnectCheck_;
     QSpinBox *intervalSpin_;
     QPushButton *connectButton_;
     QPushButton *updateButton_;
@@ -64,6 +65,7 @@ private:
     QLabel *statusLabel_;
     QtViewerSurface *surface_;
     QTimer *continuousTimer_;
+    QTimer *reconnectTimer_;
     portable::PersistentViewerSession session_;
 };
 

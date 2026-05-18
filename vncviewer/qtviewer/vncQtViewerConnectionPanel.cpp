@@ -146,6 +146,7 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
       sharedCheck_(new QCheckBox(QStringLiteral("Shared session"))),
       viewOnlyCheck_(new QCheckBox(QStringLiteral("View only"))),
       continuousCheck_(new QCheckBox(QStringLiteral("Continuous updates"))),
+      autoReconnectCheck_(new QCheckBox(QStringLiteral("Auto reconnect"))),
       intervalSpin_(new QSpinBox()),
       connectButton_(new QPushButton(QStringLiteral("Connect"))),
       updateButton_(new QPushButton(QStringLiteral("Update once"))),
@@ -165,6 +166,7 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     sharedCheck_->setObjectName(QStringLiteral("sharedCheck"));
     viewOnlyCheck_->setObjectName(QStringLiteral("viewOnlyCheck"));
     continuousCheck_->setObjectName(QStringLiteral("continuousCheck"));
+    autoReconnectCheck_->setObjectName(QStringLiteral("autoReconnectCheck"));
     intervalSpin_->setObjectName(QStringLiteral("intervalSpin"));
     clipboardEdit_->setObjectName(QStringLiteral("clipboardEdit"));
     sendClipboardButton_->setObjectName(QStringLiteral("sendClipboardButton"));
@@ -181,6 +183,7 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     intervalSpin_->setRange(100, 60000);
     intervalSpin_->setValue(static_cast<int>(initialConfig.UpdateIntervalMs()));
     continuousTimer_->setSingleShot(false);
+    reconnectTimer_->setSingleShot(true);
 
     QFormLayout *form = new QFormLayout();
     form->addRow(QStringLiteral("Host"), hostEdit_);
@@ -192,6 +195,7 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     options->addWidget(sharedCheck_);
     options->addWidget(viewOnlyCheck_);
     options->addWidget(continuousCheck_);
+    options->addWidget(autoReconnectCheck_);
 
     QHBoxLayout *buttons = new QHBoxLayout();
     buttons->addWidget(connectButton_);
@@ -247,6 +251,10 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     QObject::connect(continuousTimer_, &QTimer::timeout, this, [this]() {
         RequestUpdate(false);
     });
+    QObject::connect(reconnectTimer_, &QTimer::timeout, this, [this]() {
+        RequestUpdate(false);
+        StartContinuousUpdatesIfRequested();
+    });
     surface_->SetKeyEventCallback([this](int key, bool down) {
         SendQtKeyEvent(key, down);
     });
@@ -286,6 +294,7 @@ void QtViewerConnectionPanel::LoadProfile()
     sharedCheck_->setChecked(settings.value(QStringLiteral("shared"), sharedCheck_->isChecked()).toBool());
     viewOnlyCheck_->setChecked(settings.value(QStringLiteral("viewOnly"), viewOnlyCheck_->isChecked()).toBool());
     continuousCheck_->setChecked(settings.value(QStringLiteral("continuousUpdates"), continuousCheck_->isChecked()).toBool());
+    autoReconnectCheck_->setChecked(settings.value(QStringLiteral("autoReconnect"), autoReconnectCheck_->isChecked()).toBool());
     intervalSpin_->setValue(settings.value(QStringLiteral("updateIntervalMs"), intervalSpin_->value()).toInt());
     SetStatus(QStringLiteral("Profile loaded"));
 }
@@ -299,6 +308,7 @@ void QtViewerConnectionPanel::SaveProfile()
     settings.setValue(QStringLiteral("shared"), sharedCheck_->isChecked());
     settings.setValue(QStringLiteral("viewOnly"), viewOnlyCheck_->isChecked());
     settings.setValue(QStringLiteral("continuousUpdates"), continuousCheck_->isChecked());
+    settings.setValue(QStringLiteral("autoReconnect"), autoReconnectCheck_->isChecked());
     settings.setValue(QStringLiteral("updateIntervalMs"), intervalSpin_->value());
     settings.sync();
     SetStatus(QStringLiteral("Profile saved"));
@@ -312,11 +322,18 @@ void QtViewerConnectionPanel::RequestUpdate(bool showDialogOnError)
     if (!session_.Connected() && !session_.Connect(config, result, &error)) {
         StopContinuousUpdates();
         ShowError(QString::fromStdString(error), showDialogOnError);
+        if (autoReconnectCheck_->isChecked()) {
+            reconnectTimer_->start(2000);
+        }
         return;
     }
     if (!session_.RequestFramebufferUpdate(false, result, &error)) {
         StopContinuousUpdates();
         ShowError(QString::fromStdString(error), showDialogOnError);
+        if (autoReconnectCheck_->isChecked()) {
+            session_.Disconnect();
+            reconnectTimer_->start(2000);
+        }
         return;
     }
 
@@ -397,6 +414,7 @@ void QtViewerConnectionPanel::StartContinuousUpdatesIfRequested()
 void QtViewerConnectionPanel::StopContinuousUpdates()
 {
     continuousTimer_->stop();
+    reconnectTimer_->stop();
 }
 
 void QtViewerConnectionPanel::SetStatus(const QString& status)
