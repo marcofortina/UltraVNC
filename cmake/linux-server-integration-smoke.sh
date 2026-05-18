@@ -13,6 +13,7 @@ BUILD_DIR="${1:-/tmp/uvnc-linux-server-integration-build}"
 INSTALL_PREFIX="${2:-/tmp/uvnc-linux-server-integration-install}"
 
 cmake -S cmake -B "${BUILD_DIR}" -G Ninja \
+  -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
   -DULTRAVNC_BUILD_PORTABLE_LIBS=ON \
   -DULTRAVNC_BUILD_WINDOWS_APPS=OFF \
   -DULTRAVNC_BUILD_LINUX_CAPTURE_X11=ON \
@@ -33,6 +34,7 @@ test -f "${ENV_FILE}"
 test -f "${CONFIG_FILE}"
 test -f "${INTEGRATION_DOC}"
 grep -q 'uvnc_winvnc_memory_server' "${SERVICE_FILE}"
+grep -q "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" "${SERVICE_FILE}"
 grep -q -- '--log-file %t/uvnc-winvnc-memory-server.log' "${SERVICE_FILE}"
 grep -q '^capture_backend=auto$' "${CONFIG_FILE}"
 grep -q '^input_backend=none$' "${CONFIG_FILE}"

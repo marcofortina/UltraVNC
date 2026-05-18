@@ -15,6 +15,7 @@ INSTALL_PREFIX="${2:-/tmp/uvnc-linux-server-user-service-install}"
 UNIT_NAME="uvnc-winvnc-memory-server.service"
 
 cmake -S "${SCRIPT_DIR}" -B "${BUILD_DIR}" -G Ninja \
+  -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
   -DULTRAVNC_BUILD_PORTABLE_LIBS=ON \
   -DULTRAVNC_BUILD_WINDOWS_APPS=OFF \
   -DULTRAVNC_BUILD_LINUX_CAPTURE_X11=ON \
