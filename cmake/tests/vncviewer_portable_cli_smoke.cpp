@@ -11,6 +11,8 @@
 #include "rfb.h"
 
 #include <cassert>
+#include <cstdlib>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -96,6 +98,30 @@ int main()
     args.push_back("--unknown");
     assert(!ParseViewerCli(args, options, error));
     assert(error == "unknown or incomplete option: --unknown");
+
+
+    {
+        std::ofstream out("/tmp/uvnc-viewer-cli-password.txt");
+        out << "file-secret\n";
+    }
+    args.clear();
+    args.push_back("--password-file");
+    args.push_back("/tmp/uvnc-viewer-cli-password.txt");
+    assert(ParseViewerCli(args, options, error));
+    assert(options.config.Password() == "file-secret");
+
+    setenv("UVNC_VIEWER_CLI_TEST_PASSWORD", "env-secret", 1);
+    args.clear();
+    args.push_back("--password-env");
+    args.push_back("UVNC_VIEWER_CLI_TEST_PASSWORD");
+    assert(ParseViewerCli(args, options, error));
+    assert(options.config.Password() == "env-secret");
+
+    args.clear();
+    args.push_back("--password-file");
+    args.push_back("/tmp/does-not-exist-uvnc-password");
+    assert(!ParseViewerCli(args, options, error));
+    assert(error == "failed to read --password-file");
 
     args.clear();
     args.push_back("--encodings");
