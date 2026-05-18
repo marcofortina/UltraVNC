@@ -71,6 +71,9 @@ void QtViewerSurface::keyPressEvent(QKeyEvent *event)
 {
     inputState_.keyPresses += 1;
     inputState_.lastKey = event->key();
+    if (keyEventCallback_) {
+        keyEventCallback_(event->key(), true);
+    }
     event->accept();
 }
 
@@ -78,6 +81,9 @@ void QtViewerSurface::keyReleaseEvent(QKeyEvent *event)
 {
     inputState_.keyReleases += 1;
     inputState_.lastKey = event->key();
+    if (keyEventCallback_) {
+        keyEventCallback_(event->key(), false);
+    }
     event->accept();
 }
 
@@ -86,6 +92,9 @@ void QtViewerSurface::mousePressEvent(QMouseEvent *event)
     inputState_.mousePresses += 1;
     inputState_.lastPointer = event->position().toPoint();
     inputState_.lastButtons = event->buttons();
+    if (pointerEventCallback_) {
+        pointerEventCallback_(event->buttons(), inputState_.lastPointer);
+    }
     event->accept();
 }
 
@@ -94,6 +103,9 @@ void QtViewerSurface::mouseReleaseEvent(QMouseEvent *event)
     inputState_.mouseReleases += 1;
     inputState_.lastPointer = event->position().toPoint();
     inputState_.lastButtons = event->buttons();
+    if (pointerEventCallback_) {
+        pointerEventCallback_(event->buttons(), inputState_.lastPointer);
+    }
     event->accept();
 }
 
@@ -102,6 +114,9 @@ void QtViewerSurface::mouseMoveEvent(QMouseEvent *event)
     inputState_.mouseMoves += 1;
     inputState_.lastPointer = event->position().toPoint();
     inputState_.lastButtons = event->buttons();
+    if (pointerEventCallback_) {
+        pointerEventCallback_(event->buttons(), inputState_.lastPointer);
+    }
     event->accept();
 }
 

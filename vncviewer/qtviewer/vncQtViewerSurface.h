@@ -13,6 +13,7 @@
 #include <QPoint>
 #include <QWidget>
 
+#include <functional>
 #include <vector>
 
 namespace uvnc {
@@ -40,6 +41,9 @@ public:
     QSize FramebufferSize() const { return framebuffer_.size(); }
     const QtViewerInputState& InputState() const { return inputState_; }
 
+    void SetKeyEventCallback(const std::function<void(int key, bool down)>& callback) { keyEventCallback_ = callback; }
+    void SetPointerEventCallback(const std::function<void(Qt::MouseButtons buttons, const QPoint& position)>& callback) { pointerEventCallback_ = callback; }
+
     bool SetArgbFramebuffer(int width, int height, const std::vector<unsigned int>& pixels);
     void ClearFramebuffer();
 
@@ -54,6 +58,8 @@ protected:
 private:
     QImage framebuffer_;
     QtViewerInputState inputState_;
+    std::function<void(int key, bool down)> keyEventCallback_;
+    std::function<void(Qt::MouseButtons buttons, const QPoint& position)> pointerEventCallback_;
 };
 
 } // namespace qtviewer
