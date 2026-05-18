@@ -8,6 +8,8 @@
 
 #include "vncPortableViewerConfig.h"
 
+#include "rfb.h"
+
 namespace uvnc {
 namespace vncviewer {
 namespace portable {
@@ -20,8 +22,12 @@ ViewerConfig::ViewerConfig()
       viewOnly_(false),
       password_(),
       continuousUpdates_(false),
-      updateIntervalMs_(1000)
+      updateIntervalMs_(1000),
+      encodings_()
 {
+    encodings_.push_back(rfbEncodingRaw);
+    encodings_.push_back(rfbEncodingCopyRect);
+    encodings_.push_back(rfbEncodingNewFBSize);
 }
 
 bool ViewerConfig::Validate(std::string *error) const
@@ -36,6 +42,10 @@ bool ViewerConfig::Validate(std::string *error) const
     }
     if (updateIntervalMs_ == 0) {
         if (error) *error = "viewer update interval must not be zero";
+        return false;
+    }
+    if (encodings_.empty()) {
+        if (error) *error = "viewer encoding list must not be empty";
         return false;
     }
     if (error) error->clear();

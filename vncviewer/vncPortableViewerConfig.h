@@ -10,6 +10,7 @@
 #define UVNC_VNCVIEWER_PORTABLE_VIEWER_CONFIG_H
 
 #include <string>
+#include <vector>
 
 namespace uvnc {
 namespace vncviewer {
@@ -27,6 +28,7 @@ public:
     const std::string& Password() const { return password_; }
     bool ContinuousUpdates() const { return continuousUpdates_; }
     unsigned int UpdateIntervalMs() const { return updateIntervalMs_; }
+    const std::vector<unsigned int>& Encodings() const { return encodings_; }
 
     void SetHost(const std::string& host) { host_ = host; }
     void SetPort(unsigned short port) { port_ = port; }
@@ -36,6 +38,7 @@ public:
     void SetPassword(const std::string& password) { password_ = password; }
     void SetContinuousUpdates(bool continuousUpdates) { continuousUpdates_ = continuousUpdates; }
     void SetUpdateIntervalMs(unsigned int updateIntervalMs) { updateIntervalMs_ = updateIntervalMs; }
+    void SetEncodings(const std::vector<unsigned int>& encodings) { encodings_ = encodings; }
 
     bool Validate(std::string *error = nullptr) const;
 
@@ -48,6 +51,7 @@ private:
     std::string password_;
     bool continuousUpdates_;
     unsigned int updateIntervalMs_;
+    std::vector<unsigned int> encodings_;
 };
 
 } // namespace portable
