@@ -12,6 +12,7 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QLineEdit>
+#include <QPushButton>
 #include <QSpinBox>
 
 #include <cassert>
@@ -43,6 +44,8 @@ int main(int argc, char **argv)
     QCheckBox *viewOnly = panel.findChild<QCheckBox *>("viewOnlyCheck");
     QCheckBox *continuous = panel.findChild<QCheckBox *>("continuousCheck");
     QSpinBox *interval = panel.findChild<QSpinBox *>("intervalSpin");
+    QLineEdit *clipboard = panel.findChild<QLineEdit *>("clipboardEdit");
+    QPushButton *sendClipboard = panel.findChild<QPushButton *>("sendClipboardButton");
 
     assert(host && host->text() == "192.0.2.10");
     assert(port && port->value() == 5902);
@@ -51,6 +54,8 @@ int main(int argc, char **argv)
     assert(viewOnly && viewOnly->isChecked());
     assert(continuous && continuous->isChecked());
     assert(interval && interval->value() == 750);
+    assert(clipboard && clipboard->text().isEmpty());
+    assert(sendClipboard && sendClipboard->text() == "Send clipboard");
 
     ViewerConfig current = panel.CurrentConfig();
     assert(current.Host() == "192.0.2.10");
