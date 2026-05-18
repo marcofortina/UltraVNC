@@ -82,6 +82,9 @@ int main()
     assert(stats.pointerEvents == 1);
     assert(stats.clientCutTextMessages == 1);
     assert(stats.framebufferUpdatesSent == 2);
+    assert(state.Encodings().size() >= 2);
+    assert(state.Encodings()[0] == rfbEncodingRaw);
+    assert(state.Encodings()[1] == rfbEncodingCopyRect);
     assert(state.KeyEventCount() == 2);
     assert(state.LastKeyEvent().keysym == 0xff0d);
     assert(!state.LastKeyEvent().down);
