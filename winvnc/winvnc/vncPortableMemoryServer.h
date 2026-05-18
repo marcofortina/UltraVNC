@@ -9,6 +9,7 @@
 #ifndef UVNC_WINVNC_PORTABLE_MEMORY_SERVER_H
 #define UVNC_WINVNC_PORTABLE_MEMORY_SERVER_H
 
+#include "vncPortableDesktopSource.h"
 #include "vncPortableFramebuffer.h"
 #include "vncPortableRfbSession.h"
 #include "vncPortableServerConfig.h"
@@ -27,6 +28,7 @@ public:
     bool ServeOne();
     bool ServeOneUpdate(RfbInputSink *inputSink = nullptr);
     bool ServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink = nullptr);
+    bool ServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink = nullptr, unsigned int maxMessages = 128);
     void Stop();
     bool Running() const { return listener_.Valid(); }
     unsigned short Port() const { return listener_.Port(); }

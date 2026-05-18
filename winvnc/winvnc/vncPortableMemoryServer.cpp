@@ -86,6 +86,44 @@ bool MemoryServer::ServeOneUpdates(unsigned int updateCount, RfbInputSink *input
            session.ServeFramebufferUpdates(client, framebuffer_, updateCount, 128, nullptr, nullptr, inputSink);
 }
 
+bool MemoryServer::ServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages)
+{
+    if (!listener_.Valid()) {
+        return false;
+    }
+    TcpSocket client;
+    if (!listener_.Accept(client)) {
+        return false;
+    }
+
+    RfbServerSession session;
+    if (!session.RunHandshake(client, config_)) {
+        return false;
+    }
+
+    RfbSessionStats stats;
+    RfbClientState state;
+    unsigned int sent = 0;
+    for (unsigned int i = 0; i < maxMessages && sent < updateCount; ++i) {
+        Framebuffer current;
+        rfb::Region2D changed;
+        if (!source.Snapshot(current, changed) ||
+            current.Width() != config_.Width() ||
+            current.Height() != config_.Height()) {
+            return false;
+        }
+
+        bool updateSent = false;
+        if (!session.ServeNextClientMessage(client, current, updateSent, &stats, &state, inputSink, true)) {
+            return false;
+        }
+        if (updateSent) {
+            sent += 1;
+        }
+    }
+    return sent == updateCount;
+}
+
 void MemoryServer::Stop()
 {
     listener_.Close();

@@ -90,7 +90,7 @@ bool RfbServerSession::ServeFramebufferUpdateRequest(TcpSocket& socket, const Fr
     return socket.WriteAll(update.data(), update.size());
 }
 
-bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink) const
+bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental) const
 {
     updateSent = false;
     CARD8 type = 0;
@@ -113,7 +113,7 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
         if (!DecodeFramebufferUpdateRequest(wire, request)) {
             return false;
         }
-        const std::vector<CARD8> update = request.incremental ?
+        const std::vector<CARD8> update = (request.incremental && !forceRawIncremental) ?
             EmptyFramebufferUpdateBytes() : RawFramebufferUpdateBytes(framebuffer, request);
         updateSent = socket.WriteAll(update.data(), update.size());
         if (updateSent && stats) {
@@ -226,11 +226,11 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
     }
 }
 
-bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink) const
+bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental) const
 {
     for (unsigned int i = 0; i < maxMessages; ++i) {
         bool updateSent = false;
-        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state, inputSink)) {
+        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state, inputSink, forceRawIncremental)) {
             return false;
         }
         if (updateSent) {
@@ -240,7 +240,7 @@ bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Fram
     return false;
 }
 
-bool RfbServerSession::ServeFramebufferUpdates(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink) const
+bool RfbServerSession::ServeFramebufferUpdates(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental) const
 {
     if (updateCount == 0) {
         return true;
@@ -249,7 +249,7 @@ bool RfbServerSession::ServeFramebufferUpdates(TcpSocket& socket, const Framebuf
     unsigned int sent = 0;
     for (unsigned int i = 0; i < maxMessages && sent < updateCount; ++i) {
         bool updateSent = false;
-        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state, inputSink)) {
+        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state, inputSink, forceRawIncremental)) {
             return false;
         }
         if (updateSent) {

@@ -39,6 +39,7 @@ using uvnc::winvnc::linuxinput::InputBackendName;
 using uvnc::winvnc::linuxinput::ParseInputBackendName;
 using uvnc::winvnc::linuxinput::ResolveInputBackend;
 using uvnc::winvnc::linuxinput::XTestInputBackend;
+using uvnc::winvnc::portable::DesktopSource;
 using uvnc::winvnc::portable::Framebuffer;
 using uvnc::winvnc::portable::MemoryServer;
 using uvnc::winvnc::portable::FramebufferUpdateRequest;
@@ -654,6 +655,8 @@ int main(int argc, char **argv)
     RfbInputSink *inputSink = resolvedInputBackend == InputBackend::XTest ? &xtestInputSink : nullptr;
 
     MemoryServer server;
+    X11DesktopSource x11Source;
+    DesktopSource *liveSource = nullptr;
     if (resolvedCaptureBackend == CaptureBackend::RawFile) {
         Framebuffer framebuffer;
         std::string loadError;
@@ -663,11 +666,10 @@ int main(int argc, char **argv)
             return 1;
         }
     } else if (resolvedCaptureBackend == CaptureBackend::X11) {
-        X11DesktopSource source;
         Framebuffer framebuffer;
         rfb::Region2D changed;
-        if (!source.Snapshot(framebuffer, changed)) {
-            std::cerr << "failed to capture X11 framebuffer\n";
+        if (!x11Source.Snapshot(framebuffer, changed)) {
+            std::cerr << "failed to capture X11 framebuffer: " << X11DesktopSource::UnavailableReason() << "\n";
             return 1;
         }
         const ServerConfig capturedConfig = ConfigForCapturedFramebuffer(config, framebuffer);
@@ -675,12 +677,14 @@ int main(int argc, char **argv)
             std::cerr << "failed to start X11 framebuffer server\n";
             return 1;
         }
+        liveSource = &x11Source;
     } else if (!server.Start(config)) {
         std::cerr << "failed to start memory server\n";
         return 1;
     }
     std::cout << "listening on " << config.BindAddress() << ":" << server.Port() << "\n" << std::flush;
-    const bool served = serveUpdates ? server.ServeOneUpdates(maxUpdates, inputSink) : server.ServeOne();
+    const bool served = serveUpdates && liveSource ? server.ServeOneUpdatesFromSource(*liveSource, maxUpdates, inputSink) :
+        (serveUpdates ? server.ServeOneUpdates(maxUpdates, inputSink) : server.ServeOne());
     server.Stop();
     return served ? 0 : 1;
 }
