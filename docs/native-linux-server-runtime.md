@@ -44,7 +44,7 @@ cp /usr/local/share/ultravnc/linux/uvnc-winvnc-linux-server.conf.example \
   ~/.config/ultravnc/uvnc-winvnc-linux-server.conf
 ```
 
-Conservative starting point:
+Conservative loopback/lab starting point:
 
 ```ini
 bind_address=127.0.0.1
@@ -54,10 +54,79 @@ capture_backend=auto
 input_backend=none
 max_updates=1024
 serve_updates=true
+auth=none
+allow_no_auth=true
 ```
 
-Use `capture_backend=x11` only from a real local X11 session. Keep
+No-auth is disabled by default in the binary. `allow_no_auth=true` is an
+explicit lab opt-in and is acceptable only for loopback validation. Use
+`capture_backend=x11` only from a real local X11 session. Keep
 `input_backend=none` until live input injection has been explicitly validated.
+
+
+## Security and authentication policy
+
+The experimental Linux server now fails closed for unsafe no-auth runtime paths:
+
+- `auth=none` requires `allow_no_auth=true`;
+- `auth=none` on a non-loopback bind additionally requires
+  `allow_public_no_auth=true`, which is intended only for controlled lab tests;
+- `password_file` must point to a regular private file that is not accessible by
+  group or other users;
+- VNCAuth passwords are limited to 8 bytes by the RFB legacy VNCAuth design;
+- `--print-config` reports the selected auth mode but never prints the password.
+
+Recommended private password-file setup:
+
+```sh
+mkdir -p ~/.config/ultravnc
+install -m 0600 /dev/null ~/.config/ultravnc/vnc-password
+printf '%s\n' 'secret1' > ~/.config/ultravnc/vnc-password
+```
+
+Then configure:
+
+```ini
+auth=vnc-password
+password_file=/home/USER/.config/ultravnc/vnc-password
+```
+
+For any LAN bind, prefer VNCAuth over no-auth and keep the network trusted or
+wrapped in a tunnel. VNCAuth authenticates the handshake, but it does not encrypt
+framebuffer, clipboard or input traffic.
+
+## Bind-address policy
+
+Recommended stages:
+
+```ini
+# local smoke/lab only
+bind_address=127.0.0.1
+auth=none
+allow_no_auth=true
+```
+
+```ini
+# LAN/lab with legacy VNCAuth
+bind_address=192.0.2.10
+auth=vnc-password
+password_file=/home/USER/.config/ultravnc/vnc-password
+```
+
+Avoid `bind_address=0.0.0.0` unless the host firewall and network exposure are
+understood. The binary prints a warning for all-interface binds because transport
+TLS is not implemented in this milestone.
+
+## TLS/security-type strategy
+
+TLS is not silently claimed by this Linux milestone. The current production-safe
+position is:
+
+1. no-auth is explicit loopback/lab-only;
+2. VNCAuth is supported for interoperability but is legacy and unencrypted;
+3. non-loopback deployments should use a trusted network, firewall and/or tunnel;
+4. a future milestone should add a real transport-security strategy instead of
+   pretending that VNCAuth is strong encryption.
 
 Validate and inspect the resolved runtime config:
 
@@ -197,8 +266,8 @@ Prefer clear failure over silent fallback for explicitly selected backends:
 
 ## Current limits
 
-- The current RFB security path is still no-auth and must remain loopback/lab
-  scoped until the security/config hardening milestone is completed.
+- VNCAuth is available, but transport encryption is not implemented in this
+  milestone.
 - Live X11 capture assumes stable framebuffer geometry during a session; live
   resize/NewFBSize handling belongs to a follow-up server milestone.
 - Wayland input injection is intentionally not implemented here.
