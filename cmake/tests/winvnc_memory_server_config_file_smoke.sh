@@ -55,3 +55,16 @@ if "${server}" --config "${config}" --validate-config >/dev/null 2>&1; then
   echo "invalid config file unexpectedly passed" >&2
   exit 1
 fi
+
+
+cat >"${config}" <<'EOF'
+bind_address=127.0.0.1
+allow_no_auth=true
+EOF
+chmod 0666 "${config}"
+if "${server}" --config "${config}" --validate-config >/dev/null 2>"${config}.err"; then
+  echo "world-writable config file unexpectedly passed" >&2
+  exit 1
+fi
+grep -q 'file must not be group/world writable' "${config}.err"
+chmod 0600 "${config}"
