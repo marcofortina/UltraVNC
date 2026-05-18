@@ -7,6 +7,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2002-2025 UltraVNC Team Members. All Rights Reserved.
 
 #include "vncPortableViewerCli.h"
+#include "vncPortableViewerSession.h"
 #include "vncQtViewerSurface.h"
 
 #include <QApplication>
@@ -22,6 +23,8 @@
 using uvnc::vncviewer::portable::ParseViewerCli;
 using uvnc::vncviewer::portable::ViewerCliOptions;
 using uvnc::vncviewer::portable::ViewerCliUsage;
+using uvnc::vncviewer::portable::ViewerSession;
+using uvnc::vncviewer::portable::ViewerSessionResult;
 using uvnc::vncviewer::qtviewer::QtViewerSurface;
 
 namespace {
@@ -69,6 +72,27 @@ QWidget *CreateViewerWindow(const ViewerCliOptions& options)
     return window;
 }
 
+int RunConnectSmoke(const ViewerCliOptions& options)
+{
+    ViewerSessionResult result;
+    std::string error;
+    const bool ok = options.connectUpdateSmoke ?
+        ViewerSession().RequestOneFramebufferUpdate(options.config, result, &error) :
+        ViewerSession().RunHandshake(options.config, result, &error);
+    if (!ok) {
+        std::cerr << error << "\n";
+        return 1;
+    }
+    std::cout << "connected " << result.width << "x" << result.height
+              << " name="" << result.desktopName << """;
+    if (result.update.received) {
+        std::cout << " update=" << result.update.width << "x" << result.update.height
+                  << " bytes=" << result.update.pixels.size();
+    }
+    std::cout << "\n";
+    return 0;
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -87,6 +111,10 @@ int main(int argc, char **argv)
 
     if (options.validateOnly) {
         return 0;
+    }
+
+    if (options.connectSmoke || options.connectUpdateSmoke) {
+        return RunConnectSmoke(options);
     }
 
     QApplication app(argc, argv);
