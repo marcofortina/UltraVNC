@@ -1222,6 +1222,8 @@ bool PublishCompositedFramebuffer(ViewerSessionResult& result,
 bool ReadFramebufferUpdate(TcpSocket& socket,
                            z_stream& zrleStream,
                            bool& zrleStreamInitialized,
+                           z_stream tightStreams[4],
+                           bool tightStreamsInitialized[4],
                            ViewerSessionResult& result,
                            std::vector<CARD8>& framebuffer,
                            std::string *error)
@@ -1320,6 +1322,10 @@ bool ReadFramebufferUpdate(TcpSocket& socket,
             if (!ReadZrleRectPayload(socket, zrleStream, zrleStreamInitialized, result, framebuffer, rectangle, error)) {
                 return false;
             }
+        } else if (rectangle.encoding == rfbEncodingTight) {
+            if (!ReadTightRectPayload(socket, tightStreams, tightStreamsInitialized, result, framebuffer, rectangle, error)) {
+                return false;
+            }
         } else if (rectangle.encoding == rfbEncodingNewFBSize) {
             result.width = rectangle.width;
             result.height = rectangle.height;
@@ -1412,9 +1418,13 @@ PersistentViewerSession::PersistentViewerSession()
       config_(),
       framebuffer_(),
       zrleStream_(),
-      zrleStreamInitialized_(false)
+      zrleStreamInitialized_(false),
+      tightStreams_(),
+      tightStreamsInitialized_()
 {
     std::memset(&zrleStream_, 0, sizeof(zrleStream_));
+    std::memset(tightStreams_, 0, sizeof(tightStreams_));
+    std::memset(tightStreamsInitialized_, 0, sizeof(tightStreamsInitialized_));
 }
 
 PersistentViewerSession::~PersistentViewerSession()
@@ -1463,6 +1473,13 @@ void PersistentViewerSession::Disconnect()
         std::memset(&zrleStream_, 0, sizeof(zrleStream_));
         zrleStreamInitialized_ = false;
     }
+    for (unsigned int i = 0; i < 4; ++i) {
+        if (tightStreamsInitialized_[i]) {
+            inflateEnd(&tightStreams_[i]);
+            std::memset(&tightStreams_[i], 0, sizeof(tightStreams_[i]));
+            tightStreamsInitialized_[i] = false;
+        }
+    }
     state_ = ViewerSessionResult();
     framebuffer_.clear();
 }
@@ -1487,7 +1504,7 @@ bool PersistentViewerSession::RequestFramebufferUpdate(bool incremental, ViewerS
         return false;
     }
     state_.update = ViewerFramebufferUpdate();
-    if (!ReadFramebufferUpdate(socket_, zrleStream_, zrleStreamInitialized_, state_, framebuffer_, error)) {
+    if (!ReadFramebufferUpdate(socket_, zrleStream_, zrleStreamInitialized_, tightStreams_, tightStreamsInitialized_, state_, framebuffer_, error)) {
         Disconnect();
         return false;
     }
