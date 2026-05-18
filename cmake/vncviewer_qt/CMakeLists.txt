@@ -27,6 +27,21 @@ target_include_directories(uvnc_qt_viewer PRIVATE
 
 target_link_libraries(uvnc_qt_viewer PRIVATE Qt6::Widgets)
 
+add_executable(vncviewer_qt_surface_smoke
+    "${CMAKE_SOURCE_DIR}/tests/vncviewer_qt_surface_smoke.cpp"
+    "${CMAKE_SOURCE_DIR}/../vncviewer/qtviewer/vncQtViewerSurface.cpp"
+)
+target_include_directories(vncviewer_qt_surface_smoke PRIVATE
+    "${CMAKE_SOURCE_DIR}/../vncviewer/qtviewer"
+)
+target_link_libraries(vncviewer_qt_surface_smoke PRIVATE Qt6::Widgets)
+add_test(NAME vncviewer_qt_surface_smoke COMMAND vncviewer_qt_surface_smoke)
+set_tests_properties(vncviewer_qt_surface_smoke PROPERTIES
+    LABELS "native-linux;vncviewer-qt"
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+    TIMEOUT 10
+)
+
 add_test(NAME vncviewer_qt_smoke
     COMMAND uvnc_qt_viewer --smoke-test --host 127.0.0.1 --port 5900 --view-only
 )
