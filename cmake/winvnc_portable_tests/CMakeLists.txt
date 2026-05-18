@@ -31,11 +31,15 @@ function(uvnc_add_viewer_portable_test name source)
         "${CMAKE_SOURCE_DIR}/../vncviewer/vncPortableViewerConfig.cpp"
         "${CMAKE_SOURCE_DIR}/../vncviewer/vncPortableViewerCli.cpp"
         "${CMAKE_SOURCE_DIR}/../vncviewer/vncPortableViewerSession.cpp"
+        "${CMAKE_SOURCE_DIR}/../vncviewer/vncPortableVncAuth.cpp"
+        "${CMAKE_SOURCE_DIR}/../rfb/vncauth.c"
+        "${CMAKE_SOURCE_DIR}/../rfb/d3des.c"
     )
 
     target_include_directories(${name} PRIVATE
         "${CMAKE_SOURCE_DIR}/../vncviewer"
         "${CMAKE_SOURCE_DIR}/../winvnc/winvnc"
+        "${CMAKE_SOURCE_DIR}/.."
     )
     target_link_libraries(${name} PRIVATE libwinvncportablecore)
 
