@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <sstream>
 
 namespace uvnc {
 namespace vncviewer {
@@ -39,6 +40,13 @@ void SetError(std::string *error, const std::string& message)
     if (error) {
         *error = message;
     }
+}
+
+void SetUnsupportedEncodingError(std::string *error, CARD32 encoding)
+{
+    std::ostringstream message;
+    message << "unsupported RFB framebuffer update encoding: " << encoding;
+    SetError(error, message.str());
 }
 
 bool ReadServerInit(TcpSocket& socket, ViewerSessionResult& result, std::string *error)
@@ -370,7 +378,7 @@ bool ReadFramebufferUpdate(TcpSocket& socket,
             result.height = rectangle.height;
             framebuffer.clear();
         } else {
-            SetError(error, "unsupported RFB framebuffer update encoding");
+            SetUnsupportedEncodingError(error, rectangle.encoding);
             return false;
         }
         result.rectangles.push_back(rectangle);
