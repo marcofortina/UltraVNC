@@ -8,9 +8,34 @@
 
 #include "vncLinuxXTestInput.h"
 
+#if defined(UVNC_HAVE_XTEST)
+#include <X11/Xlib.h>
+#include <X11/keysym.h>
+#include <X11/extensions/XTest.h>
+#endif
+
 namespace uvnc {
 namespace winvnc {
 namespace linuxinput {
+namespace {
+
+#if defined(UVNC_HAVE_XTEST)
+
+Display *OpenDisplay(const std::string& displayName)
+{
+    return XOpenDisplay(displayName.empty() ? nullptr : displayName.c_str());
+}
+
+void SetError(std::string *error, const std::string& message)
+{
+    if (error) {
+        *error = message;
+    }
+}
+
+#endif // defined(UVNC_HAVE_XTEST)
+
+} // namespace
 
 XTestInputBackend::XTestInputBackend(const std::string& displayName)
     : displayName_(displayName),
@@ -21,34 +46,110 @@ XTestInputBackend::XTestInputBackend(const std::string& displayName)
 
 XTestInputBackend::~XTestInputBackend()
 {
+#if defined(UVNC_HAVE_XTEST)
+    if (display_ != nullptr) {
+        XCloseDisplay(static_cast<Display *>(display_));
+        display_ = nullptr;
+    }
+#endif
 }
 
-bool XTestInputBackend::InjectKeySym(CARD32, bool, std::string *error)
+bool XTestInputBackend::InjectKeySym(CARD32 keysym, bool down, std::string *error)
 {
+#if defined(UVNC_HAVE_XTEST)
+    if (!Initialize(error)) {
+        return false;
+    }
+    Display *display = static_cast<Display *>(display_);
+    const KeyCode keycode = XKeysymToKeycode(display, static_cast<KeySym>(keysym));
+    if (keycode == 0) {
+        SetError(error, "XTest cannot translate keysym to keycode");
+        return false;
+    }
+    const bool ok = XTestFakeKeyEvent(display, keycode, down ? True : False, CurrentTime) != 0;
+    XFlush(display);
+    if (!ok) {
+        SetError(error, "XTest key injection failed");
+        return false;
+    }
+    if (error) error->clear();
+    return true;
+#else
+    (void)keysym;
+    (void)down;
     if (error) *error = UnavailableReason();
     return false;
+#endif
 }
 
-bool XTestInputBackend::InjectPointer(CARD8, unsigned int, unsigned int, std::string *error)
+bool XTestInputBackend::InjectPointer(CARD8 buttonMask, unsigned int x, unsigned int y, std::string *error)
 {
+#if defined(UVNC_HAVE_XTEST)
+    if (!Initialize(error)) {
+        return false;
+    }
+    Display *display = static_cast<Display *>(display_);
+    const bool moved = XTestFakeMotionEvent(display, DefaultScreen(display), static_cast<int>(x), static_cast<int>(y), CurrentTime) != 0;
+    if (!moved) {
+        SetError(error, "XTest pointer motion injection failed");
+        return false;
+    }
+    const std::vector<ButtonTransition> transitions = ButtonTransitions(buttonMask_, buttonMask);
+    for (std::size_t i = 0; i < transitions.size(); ++i) {
+        if (XTestFakeButtonEvent(display, transitions[i].button, transitions[i].down ? True : False, CurrentTime) == 0) {
+            SetError(error, "XTest pointer button injection failed");
+            return false;
+        }
+    }
+    XFlush(display);
+    buttonMask_ = buttonMask;
+    if (error) error->clear();
+    return true;
+#else
+    (void)buttonMask;
+    (void)x;
+    (void)y;
     if (error) *error = UnavailableReason();
     return false;
+#endif
 }
 
 bool XTestInputBackend::IsBuildAvailable()
 {
+#if defined(UVNC_HAVE_XTEST)
+    return true;
+#else
     return false;
+#endif
 }
 
 bool XTestInputBackend::IsAvailable(const std::string& displayName)
 {
+#if defined(UVNC_HAVE_XTEST)
+    Display *display = OpenDisplay(displayName);
+    if (display == nullptr) {
+        return false;
+    }
+    int eventBase = 0;
+    int errorBase = 0;
+    int major = 0;
+    int minor = 0;
+    const bool available = XTestQueryExtension(display, &eventBase, &errorBase, &major, &minor) != 0;
+    XCloseDisplay(display);
+    return available;
+#else
     (void)displayName;
     return false;
+#endif
 }
 
 const char *XTestInputBackend::UnavailableReason()
 {
+#if defined(UVNC_HAVE_XTEST)
+    return "XTest input backend is built, but no usable XTest DISPLAY is available";
+#else
     return "XTest input backend was not built because XTest development files were not available";
+#endif
 }
 
 std::vector<ButtonTransition> XTestInputBackend::ButtonTransitions(CARD8 previousMask, CARD8 nextMask)
@@ -70,8 +171,31 @@ std::vector<ButtonTransition> XTestInputBackend::ButtonTransitions(CARD8 previou
 
 bool XTestInputBackend::Initialize(std::string *error)
 {
+#if defined(UVNC_HAVE_XTEST)
+    if (display_ != nullptr) {
+        return true;
+    }
+    Display *display = OpenDisplay(displayName_);
+    if (display == nullptr) {
+        SetError(error, UnavailableReason());
+        return false;
+    }
+    int eventBase = 0;
+    int errorBase = 0;
+    int major = 0;
+    int minor = 0;
+    if (XTestQueryExtension(display, &eventBase, &errorBase, &major, &minor) == 0) {
+        XCloseDisplay(display);
+        SetError(error, "XTest extension is not available on this DISPLAY");
+        return false;
+    }
+    display_ = display;
+    if (error) error->clear();
+    return true;
+#else
     if (error) *error = UnavailableReason();
     return false;
+#endif
 }
 
 } // namespace linuxinput
