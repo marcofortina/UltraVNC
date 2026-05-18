@@ -265,8 +265,50 @@ bool ReadCompressedPayload(TcpSocket& socket,
 }
 
 
+unsigned int ZrleBytesPerPixel(const rfbPixelFormat& format)
+{
+    const unsigned int bytesPerPixel = BytesPerPixel(format);
+    if (bytesPerPixel == 4 && format.trueColour && format.depth <= 24) {
+        return 3;
+    }
+    return bytesPerPixel;
+}
+
+std::vector<CARD8> ExpandZrlePixel(const rfbPixelFormat& format, const std::vector<CARD8>& compact)
+{
+    const unsigned int bytesPerPixel = BytesPerPixel(format);
+    if (compact.size() == bytesPerPixel) {
+        return compact;
+    }
+    std::vector<CARD8> pixel(bytesPerPixel, 0);
+    if (bytesPerPixel == 4 && compact.size() == 3) {
+        if (format.bigEndian) {
+            std::copy(compact.begin(), compact.end(), pixel.begin() + 1);
+        } else {
+            std::copy(compact.begin(), compact.end(), pixel.begin());
+        }
+    }
+    return pixel;
+}
+
+bool EnsureZrleInflateStream(z_stream& stream, bool& initialized, std::string *error)
+{
+    if (initialized) {
+        return true;
+    }
+    std::memset(&stream, 0, sizeof(stream));
+    const int rc = inflateInit(&stream);
+    if (rc != Z_OK) {
+        SetError(error, "failed to initialize RFB ZRLE inflater");
+        return false;
+    }
+    initialized = true;
+    return true;
+}
+
 bool ReadZrleCompressedPayload(TcpSocket& socket,
-                               std::size_t initialExpectedSize,
+                               z_stream& stream,
+                               bool& streamInitialized,
                                std::vector<CARD8>& payload,
                                std::string *error)
 {
@@ -281,24 +323,34 @@ bool ReadZrleCompressedPayload(TcpSocket& socket,
         SetError(error, "failed to read RFB ZRLE payload");
         return false;
     }
+    if (!EnsureZrleInflateStream(stream, streamInitialized, error)) {
+        return false;
+    }
 
-    std::size_t capacity = std::max<std::size_t>(initialExpectedSize, 1);
-    for (unsigned int attempt = 0; attempt < 8; ++attempt) {
-        payload.assign(capacity, 0);
-        uLongf outputSize = static_cast<uLongf>(payload.size());
-        const int rc = uncompress(payload.data(), &outputSize, compressed.data(), static_cast<uLong>(compressed.size()));
-        if (rc == Z_OK) {
-            payload.resize(static_cast<std::size_t>(outputSize));
-            return true;
-        }
-        if (rc != Z_BUF_ERROR) {
+    payload.clear();
+    stream.next_in = compressed.empty() ? nullptr : compressed.data();
+    stream.avail_in = static_cast<uInt>(compressed.size());
+
+    std::vector<CARD8> buffer(64 * 1024);
+    do {
+        stream.next_out = buffer.data();
+        stream.avail_out = static_cast<uInt>(buffer.size());
+        const int rc = inflate(&stream, Z_SYNC_FLUSH);
+        if (rc != Z_OK && rc != Z_STREAM_END) {
             SetError(error, "failed to decompress RFB ZRLE payload");
             return false;
         }
-        capacity *= 2;
-    }
-    SetError(error, "RFB ZRLE payload exceeds decoder limit");
-    return false;
+        const std::size_t produced = buffer.size() - stream.avail_out;
+        payload.insert(payload.end(), buffer.begin(), buffer.begin() + produced);
+        if (rc == Z_STREAM_END) {
+            inflateReset(&stream);
+            break;
+        }
+        if (produced == 0 && stream.avail_in == 0) {
+            break;
+        }
+    } while (stream.avail_in > 0 || stream.avail_out == 0);
+    return true;
 }
 
 bool ReadBytesFromPayload(const std::vector<CARD8>& payload, std::size_t& offset, void *out, std::size_t length)
@@ -311,7 +363,117 @@ bool ReadBytesFromPayload(const std::vector<CARD8>& payload, std::size_t& offset
     return true;
 }
 
+bool ReadZrlePixel(const rfbPixelFormat& format,
+                   const std::vector<CARD8>& payload,
+                   std::size_t& offset,
+                   std::vector<CARD8>& pixel)
+{
+    const unsigned int compactBytes = ZrleBytesPerPixel(format);
+    std::vector<CARD8> compact(compactBytes, 0);
+    if (!ReadBytesFromPayload(payload, offset, compact.data(), compact.size())) {
+        return false;
+    }
+    pixel = ExpandZrlePixel(format, compact);
+    return pixel.size() == BytesPerPixel(format);
+}
+
+void WriteZrlePixel(std::vector<CARD8>& pixels,
+                    unsigned int rectangleWidth,
+                    unsigned int bytesPerPixel,
+                    unsigned int x,
+                    unsigned int y,
+                    const std::vector<CARD8>& pixel)
+{
+    const std::size_t dst = (static_cast<std::size_t>(y) * rectangleWidth + x) * bytesPerPixel;
+    std::copy(pixel.begin(), pixel.end(), pixels.begin() + dst);
+}
+
+bool ReadZrleRunLength(const std::vector<CARD8>& payload, std::size_t& offset, unsigned int& runLength)
+{
+    runLength = 1;
+    for (;;) {
+        CARD8 value = 0;
+        if (!ReadBytesFromPayload(payload, offset, &value, sizeof(value))) {
+            return false;
+        }
+        runLength += value;
+        if (value != 255) {
+            return true;
+        }
+    }
+}
+
+bool DecodeZrlePackedPaletteTile(const std::vector<CARD8>& payload,
+                                 std::size_t& offset,
+                                 const std::vector<std::vector<CARD8> >& palette,
+                                 unsigned int tileWidth,
+                                 unsigned int tileHeight,
+                                 unsigned int tileX,
+                                 unsigned int tileY,
+                                 unsigned int rectangleWidth,
+                                 unsigned int bytesPerPixel,
+                                 std::vector<CARD8>& pixels,
+                                 std::string *error)
+{
+    const unsigned int bitsPerPixel = palette.size() <= 2 ? 1 : (palette.size() <= 4 ? 2 : 4);
+    const unsigned int pixelsPerByte = 8 / bitsPerPixel;
+    const unsigned int rowBytes = (tileWidth + pixelsPerByte - 1) / pixelsPerByte;
+    const CARD8 mask = static_cast<CARD8>((1u << bitsPerPixel) - 1u);
+    for (unsigned int row = 0; row < tileHeight; ++row) {
+        for (unsigned int byteIndex = 0; byteIndex < rowBytes; ++byteIndex) {
+            CARD8 packed = 0;
+            if (!ReadBytesFromPayload(payload, offset, &packed, sizeof(packed))) {
+                SetError(error, "failed to read RFB ZRLE packed palette row");
+                return false;
+            }
+            for (unsigned int packedPixel = 0; packedPixel < pixelsPerByte; ++packedPixel) {
+                const unsigned int col = byteIndex * pixelsPerByte + packedPixel;
+                if (col >= tileWidth) {
+                    break;
+                }
+                const unsigned int shift = 8 - bitsPerPixel * (packedPixel + 1);
+                const unsigned int index = (packed >> shift) & mask;
+                if (index >= palette.size()) {
+                    SetError(error, "RFB ZRLE palette index is outside palette bounds");
+                    return false;
+                }
+                WriteZrlePixel(pixels, rectangleWidth, bytesPerPixel, tileX + col, tileY + row, palette[index]);
+            }
+        }
+    }
+    return true;
+}
+
+bool FillZrleRun(unsigned int& pixelIndex,
+                 unsigned int runLength,
+                 const std::vector<CARD8>& color,
+                 unsigned int tileWidth,
+                 unsigned int tileHeight,
+                 unsigned int tileX,
+                 unsigned int tileY,
+                 unsigned int rectangleWidth,
+                 unsigned int bytesPerPixel,
+                 std::vector<CARD8>& pixels,
+                 std::string *error)
+{
+    const unsigned int tilePixels = tileWidth * tileHeight;
+    if (runLength == 0 || pixelIndex + runLength > tilePixels) {
+        SetError(error, "RFB ZRLE RLE run exceeds tile bounds");
+        return false;
+    }
+    for (unsigned int i = 0; i < runLength; ++i) {
+        const unsigned int local = pixelIndex + i;
+        const unsigned int x = tileX + (local % tileWidth);
+        const unsigned int y = tileY + (local / tileWidth);
+        WriteZrlePixel(pixels, rectangleWidth, bytesPerPixel, x, y, color);
+    }
+    pixelIndex += runLength;
+    return true;
+}
+
 bool ReadZrleRectPayload(TcpSocket& socket,
+                         z_stream& stream,
+                         bool& streamInitialized,
                          ViewerSessionResult& result,
                          std::vector<CARD8>& framebuffer,
                          ViewerFramebufferRect& rectangle,
@@ -326,11 +488,9 @@ bool ReadZrleRectPayload(TcpSocket& socket,
         SetError(error, "RFB ZRLE rectangle is outside framebuffer bounds");
         return false;
     }
-    const unsigned int tilesX = (rectangle.width + rfbZRLETileWidth - 1) / rfbZRLETileWidth;
-    const unsigned int tilesY = (rectangle.height + rfbZRLETileHeight - 1) / rfbZRLETileHeight;
     const std::size_t rawBytes = static_cast<std::size_t>(rectangle.width) * rectangle.height * bytesPerPixel;
     std::vector<CARD8> payload;
-    if (!ReadZrleCompressedPayload(socket, rawBytes + static_cast<std::size_t>(tilesX) * tilesY, payload, error)) {
+    if (!ReadZrleCompressedPayload(socket, stream, streamInitialized, payload, error)) {
         return false;
     }
 
@@ -345,34 +505,111 @@ bool ReadZrleRectPayload(TcpSocket& socket,
                 SetError(error, "failed to read RFB ZRLE tile subencoding");
                 return false;
             }
+
             if (subencoding == 0) {
                 for (unsigned int row = 0; row < tileHeight; ++row) {
-                    const std::size_t dst = (static_cast<std::size_t>(tileY + row) * rectangle.width + tileX) * bytesPerPixel;
-                    const std::size_t bytes = static_cast<std::size_t>(tileWidth) * bytesPerPixel;
-                    if (offset + bytes > payload.size()) {
-                        SetError(error, "failed to read RFB ZRLE raw tile");
+                    for (unsigned int col = 0; col < tileWidth; ++col) {
+                        std::vector<CARD8> pixel;
+                        if (!ReadZrlePixel(result.format, payload, offset, pixel)) {
+                            SetError(error, "failed to read RFB ZRLE raw tile pixel");
+                            return false;
+                        }
+                        WriteZrlePixel(rectangle.pixels, rectangle.width, bytesPerPixel, tileX + col, tileY + row, pixel);
+                    }
+                }
+                continue;
+            }
+
+            std::vector<std::vector<CARD8> > palette;
+            if (subencoding >= 1 && subencoding <= 127) {
+                const unsigned int paletteSize = subencoding;
+                for (unsigned int i = 0; i < paletteSize; ++i) {
+                    std::vector<CARD8> pixel;
+                    if (!ReadZrlePixel(result.format, payload, offset, pixel)) {
+                        SetError(error, "failed to read RFB ZRLE palette pixel");
                         return false;
                     }
-                    std::copy(payload.begin() + offset, payload.begin() + offset + bytes, rectangle.pixels.begin() + dst);
-                    offset += bytes;
+                    palette.push_back(pixel);
                 }
-            } else if (subencoding == 1) {
-                std::vector<CARD8> color(bytesPerPixel, 0);
-                if (!ReadBytesFromPayload(payload, offset, color.data(), color.size())) {
-                    SetError(error, "failed to read RFB ZRLE solid tile");
+                if (paletteSize == 1) {
+                    for (unsigned int row = 0; row < tileHeight; ++row) {
+                        for (unsigned int col = 0; col < tileWidth; ++col) {
+                            WriteZrlePixel(rectangle.pixels, rectangle.width, bytesPerPixel, tileX + col, tileY + row, palette[0]);
+                        }
+                    }
+                    continue;
+                }
+                if (!DecodeZrlePackedPaletteTile(payload, offset, palette, tileWidth, tileHeight, tileX, tileY,
+                                                 rectangle.width, bytesPerPixel, rectangle.pixels, error)) {
                     return false;
                 }
-                for (unsigned int row = 0; row < tileHeight; ++row) {
-                    for (unsigned int col = 0; col < tileWidth; ++col) {
-                        const std::size_t dst = (static_cast<std::size_t>(tileY + row) * rectangle.width + tileX + col) * bytesPerPixel;
-                        std::copy(color.begin(), color.end(), rectangle.pixels.begin() + dst);
+                continue;
+            }
+
+            if (subencoding == 128) {
+                unsigned int pixelIndex = 0;
+                while (pixelIndex < tileWidth * tileHeight) {
+                    std::vector<CARD8> color;
+                    unsigned int runLength = 0;
+                    if (!ReadZrlePixel(result.format, payload, offset, color) || !ReadZrleRunLength(payload, offset, runLength)) {
+                        SetError(error, "failed to read RFB ZRLE plain RLE run");
+                        return false;
+                    }
+                    if (!FillZrleRun(pixelIndex, runLength, color, tileWidth, tileHeight, tileX, tileY,
+                                     rectangle.width, bytesPerPixel, rectangle.pixels, error)) {
+                        return false;
                     }
                 }
-            } else {
-                SetError(error, "unsupported RFB ZRLE tile subencoding");
-                return false;
+                continue;
             }
+
+            if (subencoding >= 130) {
+                const unsigned int paletteSize = subencoding - 128;
+                if (paletteSize > 127) {
+                    SetError(error, "unsupported RFB ZRLE palette RLE size");
+                    return false;
+                }
+                for (unsigned int i = 0; i < paletteSize; ++i) {
+                    std::vector<CARD8> pixel;
+                    if (!ReadZrlePixel(result.format, payload, offset, pixel)) {
+                        SetError(error, "failed to read RFB ZRLE RLE palette pixel");
+                        return false;
+                    }
+                    palette.push_back(pixel);
+                }
+                unsigned int pixelIndex = 0;
+                while (pixelIndex < tileWidth * tileHeight) {
+                    CARD8 packedIndex = 0;
+                    if (!ReadBytesFromPayload(payload, offset, &packedIndex, sizeof(packedIndex))) {
+                        SetError(error, "failed to read RFB ZRLE palette RLE index");
+                        return false;
+                    }
+                    const bool hasRunLength = (packedIndex & 0x80) != 0;
+                    const unsigned int paletteIndex = packedIndex & 0x7f;
+                    if (paletteIndex >= palette.size()) {
+                        SetError(error, "RFB ZRLE palette RLE index is outside palette bounds");
+                        return false;
+                    }
+                    unsigned int runLength = 1;
+                    if (hasRunLength && !ReadZrleRunLength(payload, offset, runLength)) {
+                        SetError(error, "failed to read RFB ZRLE palette RLE run length");
+                        return false;
+                    }
+                    if (!FillZrleRun(pixelIndex, runLength, palette[paletteIndex], tileWidth, tileHeight, tileX, tileY,
+                                     rectangle.width, bytesPerPixel, rectangle.pixels, error)) {
+                        return false;
+                    }
+                }
+                continue;
+            }
+
+            SetError(error, "unsupported RFB ZRLE tile subencoding");
+            return false;
         }
+    }
+    if (offset != payload.size()) {
+        SetError(error, "RFB ZRLE payload has trailing bytes");
+        return false;
     }
     if (!EnsureFramebufferStorage(result, framebuffer, error)) {
         return false;
@@ -380,6 +617,7 @@ bool ReadZrleRectPayload(TcpSocket& socket,
     CopyRectToFramebuffer(result, framebuffer, rectangle.x, rectangle.y, rectangle.width, rectangle.height, rectangle.pixels);
     return true;
 }
+
 
 bool ReadRawRectPayload(TcpSocket& socket,
                         ViewerSessionResult& result,
@@ -683,6 +921,8 @@ bool PublishCompositedFramebuffer(ViewerSessionResult& result,
 }
 
 bool ReadFramebufferUpdate(TcpSocket& socket,
+                           z_stream& zrleStream,
+                           bool& zrleStreamInitialized,
                            ViewerSessionResult& result,
                            std::vector<CARD8>& framebuffer,
                            std::string *error)
@@ -778,7 +1018,7 @@ bool ReadFramebufferUpdate(TcpSocket& socket,
                 return false;
             }
         } else if (rectangle.encoding == rfbEncodingZRLE) {
-            if (!ReadZrleRectPayload(socket, result, framebuffer, rectangle, error)) {
+            if (!ReadZrleRectPayload(socket, zrleStream, zrleStreamInitialized, result, framebuffer, rectangle, error)) {
                 return false;
             }
         } else if (rectangle.encoding == rfbEncodingNewFBSize) {
@@ -869,8 +1109,13 @@ bool ViewerSession::RequestOneFramebufferUpdate(const ViewerConfig& config, View
 
 PersistentViewerSession::PersistentViewerSession()
     : socket_(),
-      state_()
+      state_(),
+      config_(),
+      framebuffer_(),
+      zrleStream_(),
+      zrleStreamInitialized_(false)
 {
+    std::memset(&zrleStream_, 0, sizeof(zrleStream_));
 }
 
 PersistentViewerSession::~PersistentViewerSession()
@@ -914,6 +1159,11 @@ bool PersistentViewerSession::Connected() const
 void PersistentViewerSession::Disconnect()
 {
     socket_.Close();
+    if (zrleStreamInitialized_) {
+        inflateEnd(&zrleStream_);
+        std::memset(&zrleStream_, 0, sizeof(zrleStream_));
+        zrleStreamInitialized_ = false;
+    }
     state_ = ViewerSessionResult();
     framebuffer_.clear();
 }
@@ -938,7 +1188,7 @@ bool PersistentViewerSession::RequestFramebufferUpdate(bool incremental, ViewerS
         return false;
     }
     state_.update = ViewerFramebufferUpdate();
-    if (!ReadFramebufferUpdate(socket_, state_, framebuffer_, error)) {
+    if (!ReadFramebufferUpdate(socket_, zrleStream_, zrleStreamInitialized_, state_, framebuffer_, error)) {
         Disconnect();
         return false;
     }
