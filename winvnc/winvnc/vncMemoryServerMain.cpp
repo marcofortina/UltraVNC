@@ -42,12 +42,31 @@ using uvnc::winvnc::linuxinput::XTestInputBackend;
 using uvnc::winvnc::portable::Framebuffer;
 using uvnc::winvnc::portable::MemoryServer;
 using uvnc::winvnc::portable::FramebufferUpdateRequest;
+using uvnc::winvnc::portable::KeyEvent;
+using uvnc::winvnc::portable::PointerEvent;
+using uvnc::winvnc::portable::RfbInputSink;
 using uvnc::winvnc::portable::TcpSocket;
 using uvnc::winvnc::portable::FramebufferPattern;
 using uvnc::winvnc::portable::FramebufferPatternName;
 using uvnc::winvnc::portable::ParseFramebufferPattern;
 
 namespace {
+
+class XTestRfbInputSink : public RfbInputSink {
+public:
+    bool InjectKey(const KeyEvent& event, std::string *error) override
+    {
+        return input_.InjectKeySym(event.keysym, event.down, error);
+    }
+
+    bool InjectPointer(const PointerEvent& event, std::string *error) override
+    {
+        return input_.InjectPointer(event.buttonMask, event.x, event.y, error);
+    }
+
+private:
+    XTestInputBackend input_;
+};
 
 void PrintUsage(const char *name)
 {
@@ -631,6 +650,9 @@ int main(int argc, char **argv)
         return RunSmokeX11UpdateTest(config) ? 0 : 1;
     }
 
+    XTestRfbInputSink xtestInputSink;
+    RfbInputSink *inputSink = resolvedInputBackend == InputBackend::XTest ? &xtestInputSink : nullptr;
+
     MemoryServer server;
     if (resolvedCaptureBackend == CaptureBackend::RawFile) {
         Framebuffer framebuffer;
@@ -658,7 +680,7 @@ int main(int argc, char **argv)
         return 1;
     }
     std::cout << "listening on " << config.BindAddress() << ":" << server.Port() << "\n" << std::flush;
-    const bool served = serveUpdates ? server.ServeOneUpdates(maxUpdates) : server.ServeOne();
+    const bool served = serveUpdates ? server.ServeOneUpdates(maxUpdates, inputSink) : server.ServeOne();
     server.Stop();
     return served ? 0 : 1;
 }
