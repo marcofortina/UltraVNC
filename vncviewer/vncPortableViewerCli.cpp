@@ -75,6 +75,8 @@ bool ParseEncodingList(const std::string& text, std::vector<unsigned int>& encod
             encodings.push_back(rfbEncodingZlib);
         } else if (token == "zrle") {
             encodings.push_back(rfbEncodingZRLE);
+        } else if (token == "tight") {
+            encodings.push_back(rfbEncodingTight);
         } else if (token == "rre") {
             encodings.push_back(rfbEncodingRRE);
         } else if (token == "corre") {
@@ -215,7 +217,7 @@ std::string ViewerCliUsage(const char *programName)
         << "  --password-file <path> Read VNCAuth password from a file\n"
         << "  --password-env <name>  Read VNCAuth password from an environment variable\n"
         << "  --clipboard-text <text> Clipboard text sent by persistent input smoke\n"
-        << "  --encodings <list>     Comma-separated encodings: raw,copyrect,hextile,zlib,zrle,rre,corre,newfbsize\n"
+        << "  --encodings <list>     Comma-separated encodings: raw,copyrect,hextile,zlib,zrle,tight,rre,corre,newfbsize\n"
         << "  --continuous-updates   Repeatedly request updates in the interactive Qt shell\n"
         << "  --socket-timeout-ms <ms> Socket read/write timeout, default 15000\n"
         << "  --update-interval-ms <ms> Continuous-update interval, default 1000\n";
