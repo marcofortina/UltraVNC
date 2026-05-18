@@ -5,8 +5,9 @@ native Linux server path.
 
 The native Linux server work is still incremental. The available binary is
 `uvnc_winvnc_memory_server`, which exercises the portable WinVNC/RFB server core
-with selectable Linux capture and input backends. It is not yet a production
-replacement for the Windows WinVNC service.
+with selectable Linux capture and input backends. The X11 path now serves live
+source snapshots through the portable framebuffer/update path, but this is still
+not a production replacement for the Windows WinVNC service.
 
 ## Build and smoke
 
@@ -22,7 +23,8 @@ The helper validates:
 - capture backend selection is wired through `--capture-backend`;
 - input backend selection is wired through `--input-backend`;
 - X11/PipeWire/input smoke helpers remain CI-safe when the runtime is missing;
-- installed `uvnc_winvnc_memory_server` can validate/print selected backend config.
+- installed `uvnc_winvnc_memory_server` can validate/print selected backend config;
+- installed config, env and systemd user-service examples are present.
 
 ## Runtime backend selection
 
@@ -44,8 +46,9 @@ uvnc_winvnc_memory_server --input-backend none
 uvnc_winvnc_memory_server --input-backend xtest
 ```
 
-The safe default for service templates is `--input-backend none`. Live input
-injection must remain opt-in.
+The safe default for service templates is `input_backend=none`. Live input
+injection must remain opt-in and should only be enabled after XTest live smoke
+validation passes in the target user session.
 
 ## Systemd user-service template
 
@@ -64,6 +67,8 @@ Example setup after installation:
 
 ```sh
 mkdir -p ~/.config/ultravnc
+cp /usr/local/share/ultravnc/linux/uvnc-winvnc-linux-server.conf.example \
+  ~/.config/ultravnc/uvnc-winvnc-linux-server.conf
 cp /usr/local/share/ultravnc/linux/uvnc-winvnc-memory-server.env.example \
   ~/.config/ultravnc/uvnc-winvnc-memory-server.env
 
@@ -126,3 +131,9 @@ UVNC_RUN_XTEST_LIVE=1 cmake/linux-input-smoke.sh \
 ```
 
 Live injection requires explicit opt-in and must not be enabled by default in CI.
+
+## Runtime operator notes
+
+See `native-linux-server-runtime.md` for the current config file format,
+systemd user-service flow, status/pid files, X11 validation, XTest validation,
+failure modes and current production limitations.

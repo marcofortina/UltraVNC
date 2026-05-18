@@ -10,6 +10,11 @@ incremental #348 Linux support work.
   active X11 display.
 - `auto`: selects `xtest` when available, otherwise falls back to `none`.
 
+When `input_backend=xtest` is selected in the native Linux server runtime, RFB
+key and pointer events are routed through the XTest backend instead of being only
+recorded in the portable session state. Explicit `xtest` selection fails when
+XTest is unavailable; use `none` when input injection must be disabled.
+
 Wayland/PipeWire input injection is not implemented in this milestone. It needs
 a separate design because Wayland compositors intentionally restrict synthetic
 input and the correct path depends on compositor/portal policy.
@@ -43,3 +48,11 @@ UVNC_RUN_XTEST_LIVE=1 cmake/linux-input-smoke.sh /tmp/uvnc-linux-input-build /tm
 
 The helper skips live injection when `DISPLAY` is missing, when the session is
 not X11, or when `DISPLAY` looks like SSH X forwarding.
+
+## Runtime failure modes
+
+- Missing `DISPLAY`: explicit `xtest` fails; `auto` falls back to `none`.
+- Wayland session: explicit `xtest` fails unless an X11/XTest display is actually
+  available. Wayland-native injection is intentionally out of scope here.
+- SSH X forwarding: live injection helpers skip it because it is not a safe local
+  desktop validation target.
