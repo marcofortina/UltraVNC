@@ -55,6 +55,7 @@ cat > "${BAD_CONFIG}" <<'EOF_CONFIG'
 bind_address=127.0.0.1
 unknown_key=value
 EOF_CONFIG
+chmod 600 "${BAD_CONFIG}"
 expect_fail "unknown config key" "${BIN}" --config "${BAD_CONFIG}" --validate-config
 grep -q 'unknown config key' /tmp/uvnc-negative-runtime.err
 
@@ -62,6 +63,7 @@ EMPTY_CONFIG="${WORK_DIR}/empty-value.conf"
 cat > "${EMPTY_CONFIG}" <<'EOF_CONFIG'
 name=
 EOF_CONFIG
+chmod 600 "${EMPTY_CONFIG}"
 expect_fail "empty config value" "${BIN}" --config "${EMPTY_CONFIG}" --validate-config
 grep -q 'empty value for config key' /tmp/uvnc-negative-runtime.err
 
