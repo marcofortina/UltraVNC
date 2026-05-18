@@ -320,4 +320,5 @@ cmake/qt-viewer-smoke.sh \
 ```
 
 The Qt viewer shell is optional and requires Qt6 Widgets development files. The
-smoke uses `QT_QPA_PLATFORM=offscreen` for CI-safe event-loop validation.
+smoke uses `QT_QPA_PLATFORM=offscreen` for CI-safe event-loop, framebuffer
+surface and local keyboard/pointer event validation.
