@@ -118,8 +118,18 @@ bool ReadOneRawUpdate(TcpSocket& socket, ViewerSessionResult& result, std::strin
         SetError(error, "failed to read RFB framebuffer update header");
         return false;
     }
-    if (update.type != rfbFramebufferUpdate || Swap16IfLE(update.nRects) != 1) {
+    if (update.type != rfbFramebufferUpdate) {
         SetError(error, "unexpected RFB framebuffer update header");
+        return false;
+    }
+    const CARD16 rects = Swap16IfLE(update.nRects);
+    if (rects == 0) {
+        result.update = ViewerFramebufferUpdate();
+        result.update.received = true;
+        return true;
+    }
+    if (rects != 1) {
+        SetError(error, "unsupported RFB framebuffer update rectangle count");
         return false;
     }
 
