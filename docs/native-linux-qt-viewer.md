@@ -124,15 +124,16 @@ Implemented in the portable Qt viewer session path:
 
 - RFB 3.8 no-auth handshake.
 - RFB VNCAuth challenge/response when a password is provided.
-- SetEncodings negotiation for raw, CopyRect and NewFBSize.
+- SetEncodings negotiation for raw, CopyRect, RRE, CoRRE, Hextile, Zlib and NewFBSize.
 - Raw framebuffer update handling.
+- RRE/CoRRE/Hextile/Zlib framebuffer update decoding.
 - CopyRect/NewFBSize metadata handling.
 - ClientCutText clipboard send path.
 - Keyboard and pointer event forwarding over the persistent RFB session.
 
 Still follow-up work:
 
-- Full decoders for compressed encodings such as Hextile/Zlib/ZRLE/Tight.
+- Full decoders for ZRLE/Tight/ZlibHex/vendor-specific compressed encodings.
 - ServerCutText/extended clipboard receive UI.
 - Real-server interoperability matrix across multiple VNC servers.
 

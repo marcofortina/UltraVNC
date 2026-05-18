@@ -21,6 +21,7 @@ build_dir="${3:-/tmp/uvnc-qt-viewer-real-server-build}"
 install_prefix="${4:-/tmp/uvnc-qt-viewer-real-server-install}"
 password="${5:-}"
 allow_input="${UVNC_VIEWER_REAL_SERVER_ALLOW_INPUT:-0}"
+encodings="${UVNC_VIEWER_REAL_SERVER_ENCODINGS:-raw,copyrect,hextile,zlib,rre,corre,newfbsize}"
 
 cmake -S cmake -B "$build_dir" -G Ninja \
   -DULTRAVNC_BUILD_PORTABLE_LIBS=ON \
@@ -38,12 +39,12 @@ cmake --build "$build_dir" --target uvnc_qt_viewer -j"$(nproc)"
 cmake --install "$build_dir" --prefix "$install_prefix"
 
 viewer_bin="$install_prefix/bin/uvnc_qt_viewer"
-args=(--host "$host" --port "$port" --view-only --encodings raw,copyrect,newfbsize)
+args=(--host "$host" --port "$port" --view-only --encodings "$encodings")
 if [[ -n "$password" ]]; then
   args+=(--password "$password")
 fi
 
-echo "==> RFB handshake/update smoke"
+echo "==> RFB handshake/update smoke ($encodings)"
 timeout 15s "$viewer_bin" "${args[@]}" --connect-update-smoke
 
 echo "==> Qt offscreen display smoke"
