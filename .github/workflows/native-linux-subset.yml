@@ -92,3 +92,8 @@ jobs:
           cmake/qt-viewer-persistent-input-smoke.sh \
             /tmp/uvnc-qt-viewer-persistent-input-build \
             /tmp/uvnc-linux-closure-install
+
+      - name: Native Linux Qt viewer compressed encoding smoke
+        run: |
+          cmake/qt-viewer-compressed-encoding-smoke.sh \
+            /tmp/uvnc-qt-viewer-compressed-encoding-build
