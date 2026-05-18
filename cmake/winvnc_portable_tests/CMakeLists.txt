@@ -15,7 +15,7 @@ function(uvnc_add_winvnc_portable_test name source)
         "${CMAKE_SOURCE_DIR}/tests/${source}"
     )
 
-    target_link_libraries(${name} PRIVATE libwinvncportablecore)
+    target_link_libraries(${name} PRIVATE libwinvncportablecore ZLIB::ZLIB)
 
     add_test(NAME ${name} COMMAND ${name})
     set_tests_properties(${name}
@@ -42,7 +42,7 @@ function(uvnc_add_viewer_portable_test name source)
         "${CMAKE_SOURCE_DIR}/.."
         "${CMAKE_SOURCE_DIR}/../common"
     )
-    target_link_libraries(${name} PRIVATE libwinvncportablecore)
+    target_link_libraries(${name} PRIVATE libwinvncportablecore ZLIB::ZLIB)
 
     add_test(NAME ${name} COMMAND ${name})
     set_tests_properties(${name}
