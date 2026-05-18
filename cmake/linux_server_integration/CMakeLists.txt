@@ -19,3 +19,12 @@ install(FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/uvnc-winvnc-memory-server.env.example"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/ultravnc/linux"
 )
+
+
+if(BUILD_TESTING)
+    add_test(NAME linux_server_integration_templates_smoke
+        COMMAND "${CMAKE_SOURCE_DIR}/tests/linux_server_integration_templates_smoke.sh"
+                "${CMAKE_CURRENT_BINARY_DIR}/uvnc-winvnc-memory-server.service"
+                "${CMAKE_CURRENT_SOURCE_DIR}/uvnc-winvnc-memory-server.env.example")
+    set_tests_properties(linux_server_integration_templates_smoke PROPERTIES LABELS "native-linux;linux-server-integration" TIMEOUT 5)
+endif()
