@@ -77,11 +77,26 @@ harness for the future real Linux framebuffer and input backends.
 cmake/native-linux-closure-smoke.sh \
   /tmp/uvnc-repeater-linux-build \
   /tmp/uvnc-winvnc-portable-core-build \
-  /tmp/uvnc-linux-closure-install
+  /tmp/uvnc-linux-closure-install \
+  /tmp/uvnc-qt-closure-builds
 ```
 
 ## CI coverage
 
-The `.github/workflows/native-linux-subset.yml` workflow runs the closure helpers
-on `main`/`master` pushes and pull requests. Feature branches can still run the
-same helpers locally before opening a PR.
+The `.github/workflows/native-linux-subset.yml` workflow runs the aggregate
+CI-safe gate:
+
+```sh
+cmake/native-linux-ci-gate-smoke.sh \
+  /tmp/uvnc-native-linux-ci-gate-build \
+  /tmp/uvnc-native-linux-ci-gate-install
+```
+
+The gate includes the closure helpers plus Linux server real-runtime checks in
+CI-safe mode, negative runtime checks, non-invasive user-service checks and the
+Qt viewer compressed-encoding smoke.
+
+Live X11 server runtime validation, live systemd user-service validation and the
+external VNC client/server compatibility matrix remain explicit manual gates.
+PR creation and GitHub check inspection are intentionally deferred until the end
+of the current native Linux hardening pass.

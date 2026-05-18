@@ -105,6 +105,19 @@ Native Linux server backend integration progress:
 - The integration smoke verifies installed templates, installed docs and backend CLI wiring.
 
 
+Native Linux CI gate progress:
+
+- The aggregate `cmake/native-linux-ci-gate-smoke.sh` helper is the local source
+  of truth for CI-safe native Linux validation.
+- The GitHub Actions `Native Linux subset` workflow runs that aggregate helper
+  instead of hand-maintaining a long list of duplicate smoke steps.
+- The gate is intentionally headless/CI-safe and documents live checks that must
+  still be run manually.
+- PR creation and GitHub check inspection are deferred until the final review
+  stage; do not claim GitHub CI is green until a real workflow run has been
+  inspected.
+
+
 Native Linux Qt viewer progress:
 
 - Qt is the selected frontend toolkit for the native Linux viewer path.
