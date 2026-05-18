@@ -7,6 +7,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2002-2025 UltraVNC Team Members. All Rights Reserved.
 
 #include "vncPortableViewerCli.h"
+#include "vncQtViewerSurface.h"
 
 #include <QApplication>
 #include <QLabel>
@@ -15,12 +16,14 @@
 #include <QWidget>
 
 #include <iostream>
+#include <vector>
 #include <string>
 #include <vector>
 
 using uvnc::vncviewer::portable::ParseViewerCli;
 using uvnc::vncviewer::portable::ViewerCliOptions;
 using uvnc::vncviewer::portable::ViewerCliUsage;
+using uvnc::vncviewer::qtviewer::QtViewerSurface;
 
 namespace {
 
@@ -47,13 +50,23 @@ QWidget *CreateViewerWindow(const ViewerCliOptions& options)
     QLabel *mode = new QLabel(options.config.ViewOnly()
         ? QStringLiteral("Mode: view-only")
         : QStringLiteral("Mode: input-capable shell"));
+    QtViewerSurface *surface = new QtViewerSurface();
+    std::vector<unsigned int> pixels(160 * 90, 0xff1f2937u);
+    for (int y = 0; y < 90; ++y) {
+        for (int x = 0; x < 160; ++x) {
+            const unsigned int shade = static_cast<unsigned int>((x * 255) / 159);
+            pixels[static_cast<std::size_t>(y * 160 + x)] = 0xff000000u | (shade << 16) | (0x66u << 8) | 0xccu;
+        }
+    }
+    surface->SetArgbFramebuffer(160, 90, pixels);
 
     layout->addWidget(title);
     layout->addWidget(status);
     layout->addWidget(target);
     layout->addWidget(mode);
+    layout->addWidget(surface, 1);
     window->setLayout(layout);
-    window->resize(480, 180);
+    window->resize(640, 360);
     return window;
 }
 
