@@ -46,6 +46,7 @@ server_log="$(mktemp)"
   --width 64 \
   --height 48 \
   --name qt-viewer-rfb-smoke \
+  --capture-backend memory \
   --fill-byte 90 \
   --serve-updates \
   --max-updates 1 >"$server_log" 2>&1 &
@@ -76,11 +77,75 @@ if [[ "$server_ready" != "1" ]]; then
   exit 1
 fi
 
-if ! timeout 10s "$viewer_bin" --host 127.0.0.1 --port "$port" --view-only --connect-update-smoke; then
+viewer_output="$(mktemp)"
+if ! timeout 10s "$viewer_bin" --host 127.0.0.1 --port "$port" --view-only --connect-update-smoke >"$viewer_output" 2>&1; then
   echo "Qt viewer failed to complete the RFB update smoke." >&2
+  cat "$viewer_output" >&2
+  cat "$server_log" >&2
+  rm -f "$viewer_output"
+  exit 1
+fi
+cat "$viewer_output"
+grep -q 'connected 64x48 name="qt-viewer-rfb-smoke" update=64x48 bytes=12288' "$viewer_output" || {
+  echo "Qt viewer RFB update smoke output did not match expectations." >&2
+  cat "$viewer_output" >&2
+  cat "$server_log" >&2
+  rm -f "$viewer_output"
+  exit 1
+}
+rm -f "$viewer_output"
+
+# Run a second server for the Qt display smoke, because the memory server above
+# exits after serving one update.
+"$server_bin" \
+  --bind-address 127.0.0.1 \
+  --port "$port" \
+  --width 64 \
+  --height 48 \
+  --name qt-viewer-rfb-smoke \
+  --capture-backend memory \
+  --fill-byte 90 \
+  --serve-updates \
+  --max-updates 1 >"$server_log" 2>&1 &
+server_pid="$!"
+
+server_ready=0
+for _ in $(seq 1 100); do
+  if grep -q "listening on 127.0.0.1:$port" "$server_log"; then
+    server_ready=1
+    break
+  fi
+  if ! kill -0 "$server_pid" 2>/dev/null; then
+    echo "Qt viewer RFB display smoke server exited before listening." >&2
+    cat "$server_log" >&2
+    exit 1
+  fi
+  sleep 0.05
+done
+
+if [[ "$server_ready" != "1" ]]; then
+  echo "Qt viewer RFB display smoke server did not become ready." >&2
   cat "$server_log" >&2
   exit 1
 fi
+
+display_output="$(mktemp)"
+if ! QT_QPA_PLATFORM=offscreen timeout 10s "$viewer_bin" --host 127.0.0.1 --port "$port" --view-only --connect-display-smoke >"$display_output" 2>&1; then
+  echo "Qt viewer failed to complete the RFB display smoke." >&2
+  cat "$display_output" >&2
+  cat "$server_log" >&2
+  rm -f "$display_output"
+  exit 1
+fi
+cat "$display_output"
+grep -q 'displayed 64x48 name="qt-viewer-rfb-smoke" bytes=12288' "$display_output" || {
+  echo "Qt viewer RFB display smoke output did not match expectations." >&2
+  cat "$display_output" >&2
+  cat "$server_log" >&2
+  rm -f "$display_output"
+  exit 1
+}
+rm -f "$display_output"
 
 server_done=0
 for _ in $(seq 1 100); do
