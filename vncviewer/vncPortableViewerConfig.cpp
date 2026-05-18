@@ -23,7 +23,8 @@ ViewerConfig::ViewerConfig()
       password_(),
       continuousUpdates_(false),
       updateIntervalMs_(1000),
-      encodings_()
+      encodings_(),
+      socketTimeoutMs_(15000)
 {
     encodings_.push_back(rfbEncodingRaw);
     encodings_.push_back(rfbEncodingCopyRect);
@@ -46,6 +47,10 @@ bool ViewerConfig::Validate(std::string *error) const
     }
     if (updateIntervalMs_ == 0) {
         if (error) *error = "viewer update interval must not be zero";
+        return false;
+    }
+    if (socketTimeoutMs_ == 0) {
+        if (error) *error = "viewer socket timeout must not be zero";
         return false;
     }
     if (encodings_.empty()) {

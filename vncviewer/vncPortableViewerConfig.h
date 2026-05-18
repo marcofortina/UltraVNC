@@ -29,6 +29,7 @@ public:
     bool ContinuousUpdates() const { return continuousUpdates_; }
     unsigned int UpdateIntervalMs() const { return updateIntervalMs_; }
     const std::vector<unsigned int>& Encodings() const { return encodings_; }
+    unsigned int SocketTimeoutMs() const { return socketTimeoutMs_; }
 
     void SetHost(const std::string& host) { host_ = host; }
     void SetPort(unsigned short port) { port_ = port; }
@@ -39,6 +40,7 @@ public:
     void SetContinuousUpdates(bool continuousUpdates) { continuousUpdates_ = continuousUpdates; }
     void SetUpdateIntervalMs(unsigned int updateIntervalMs) { updateIntervalMs_ = updateIntervalMs; }
     void SetEncodings(const std::vector<unsigned int>& encodings) { encodings_ = encodings; }
+    void SetSocketTimeoutMs(unsigned int socketTimeoutMs) { socketTimeoutMs_ = socketTimeoutMs; }
 
     bool Validate(std::string *error = nullptr) const;
 
@@ -52,6 +54,7 @@ private:
     bool continuousUpdates_;
     unsigned int updateIntervalMs_;
     std::vector<unsigned int> encodings_;
+    unsigned int socketTimeoutMs_;
 };
 
 } // namespace portable

@@ -770,6 +770,11 @@ bool PersistentViewerSession::Connect(const ViewerConfig& config, ViewerSessionR
         SetError(error, "failed to connect to RFB server");
         return false;
     }
+    if (!socket_.SetTimeoutMs(config.SocketTimeoutMs())) {
+        SetError(error, "failed to configure RFB socket timeout");
+        Disconnect();
+        return false;
+    }
     state_ = ViewerSessionResult();
     config_ = config;
     if (!RunHandshakeOnSocket(socket_, config, state_, error)) {
