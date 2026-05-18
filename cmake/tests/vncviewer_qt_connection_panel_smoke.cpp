@@ -46,6 +46,8 @@ int main(int argc, char **argv)
     QSpinBox *interval = panel.findChild<QSpinBox *>("intervalSpin");
     QLineEdit *clipboard = panel.findChild<QLineEdit *>("clipboardEdit");
     QPushButton *sendClipboard = panel.findChild<QPushButton *>("sendClipboardButton");
+    QPushButton *loadProfile = panel.findChild<QPushButton *>("loadProfileButton");
+    QPushButton *saveProfile = panel.findChild<QPushButton *>("saveProfileButton");
 
     assert(host && host->text() == "192.0.2.10");
     assert(port && port->value() == 5902);
@@ -56,6 +58,8 @@ int main(int argc, char **argv)
     assert(interval && interval->value() == 750);
     assert(clipboard && clipboard->text().isEmpty());
     assert(sendClipboard && sendClipboard->text() == "Send clipboard");
+    assert(loadProfile && loadProfile->text() == "Load profile");
+    assert(saveProfile && saveProfile->text() == "Save profile");
 
     ViewerConfig current = panel.CurrentConfig();
     assert(current.Host() == "192.0.2.10");
