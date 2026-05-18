@@ -131,13 +131,17 @@ int main()
     assert(session.Connect(config, result, &error));
     assert(session.RequestFramebufferUpdate(false, result, &error));
     assert(result.update.received);
-    assert(result.update.encoding == rfbEncodingCopyRect);
-    assert(result.update.x == 4);
-    assert(result.update.y == 5);
-    assert(result.update.width == 8);
-    assert(result.update.height == 9);
-    assert(result.update.sourceX == 1);
-    assert(result.update.sourceY == 2);
+    assert(result.update.encoding == rfbEncodingRaw);
+    assert(result.update.width == 64);
+    assert(result.update.height == 48);
+    assert(result.rectangles.size() == 1);
+    assert(result.rectangles[0].encoding == rfbEncodingCopyRect);
+    assert(result.rectangles[0].x == 4);
+    assert(result.rectangles[0].y == 5);
+    assert(result.rectangles[0].width == 8);
+    assert(result.rectangles[0].height == 9);
+    assert(result.rectangles[0].sourceX == 1);
+    assert(result.rectangles[0].sourceY == 2);
     session.Disconnect();
 
     server.join();
