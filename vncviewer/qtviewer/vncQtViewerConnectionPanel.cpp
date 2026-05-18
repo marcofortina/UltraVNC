@@ -159,7 +159,8 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
       statusLabel_(new QLabel(QStringLiteral("Disconnected"))),
       serverClipboardLabel_(new QLabel(QStringLiteral("Server clipboard: <none>"))),
       surface_(new QtViewerSurface()),
-      continuousTimer_(new QTimer(this))
+      continuousTimer_(new QTimer(this)),
+      reconnectTimer_(new QTimer(this))
 {
     hostEdit_->setObjectName(QStringLiteral("hostEdit"));
     portSpin_->setObjectName(QStringLiteral("portSpin"));
