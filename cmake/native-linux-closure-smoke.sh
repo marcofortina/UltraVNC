@@ -21,3 +21,4 @@ INSTALL_PREFIX="${3:-/tmp/uvnc-linux-closure-install}"
 "${SCRIPT_DIR}/pipewire-capture-smoke.sh" "${WINVNC_BUILD_DIR}" "${INSTALL_PREFIX}"
 
 "${SCRIPT_DIR}/linux-input-smoke.sh" "${WINVNC_BUILD_DIR}" "${INSTALL_PREFIX}"
+"${SCRIPT_DIR}/linux-server-integration-smoke.sh" "${WINVNC_BUILD_DIR}" "${INSTALL_PREFIX}"
