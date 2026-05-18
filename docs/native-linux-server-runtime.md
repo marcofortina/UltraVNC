@@ -71,6 +71,37 @@ uvnc_winvnc_memory_server \
   --print-config
 ```
 
+
+## Real runtime validation helper
+
+Use the repository helper below for the next server milestone validation. By
+default it is CI-safe and stops after build/install/config/availability checks.
+
+```sh
+cmake/linux-server-real-runtime-smoke.sh \
+  /tmp/uvnc-linux-server-real-runtime-build \
+  /tmp/uvnc-linux-server-real-runtime-install
+```
+
+To run the real X11 server runtime path, execute it from the local graphical X11
+session and opt in explicitly:
+
+```sh
+UVNC_RUN_REAL_X11_SERVER=1 cmake/linux-server-real-runtime-smoke.sh \
+  /tmp/uvnc-linux-server-real-runtime-build \
+  /tmp/uvnc-linux-server-real-runtime-install
+```
+
+The opt-in path starts `uvnc_winvnc_memory_server` with `capture_backend=x11`,
+`input_backend=none`, an ephemeral loopback port, pid/status/log files, and
+`--serve-forever`. It then connects as a minimal RFB client, requests one raw
+framebuffer update, sends SIGTERM, and verifies that the pid file is removed and
+the status reaches `stopped`.
+
+This is the first real runtime validation gate for X11 capture, server process
+state and graceful shutdown. It still does not replace the later multi-vendor
+viewer compatibility matrix.
+
 ## Manual X11 validation
 
 Run from the local graphical X11 session, not from SSH X forwarding:

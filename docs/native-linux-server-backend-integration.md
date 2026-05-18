@@ -26,6 +26,49 @@ The helper validates:
 - installed `uvnc_winvnc_memory_server` can validate/print selected backend config;
 - installed config, env and systemd user-service examples are present.
 
+
+## Real runtime and user-service validation
+
+The integration smoke remains CI-safe. For operator-grade validation on a real
+Linux desktop, use the dedicated helpers:
+
+```sh
+cmake/linux-server-real-runtime-smoke.sh \
+  /tmp/uvnc-linux-server-real-runtime-build \
+  /tmp/uvnc-linux-server-real-runtime-install
+
+UVNC_RUN_REAL_X11_SERVER=1 cmake/linux-server-real-runtime-smoke.sh \
+  /tmp/uvnc-linux-server-real-runtime-build \
+  /tmp/uvnc-linux-server-real-runtime-install
+```
+
+The first command performs build/install/config/availability checks. The opt-in
+command requires a real local X11 session and validates live X11 capture through
+a running server process with pid/status/log files and SIGTERM shutdown.
+
+The user-service helper validates the installed unit template without changing
+the user session by default:
+
+```sh
+cmake/linux-server-user-service-smoke.sh \
+  /tmp/uvnc-linux-server-user-service-build \
+  /tmp/uvnc-linux-server-user-service-install
+```
+
+The live systemd user-service path is intentionally opt-in because it writes the
+default `~/.config/ultravnc/` runtime files and starts a user service:
+
+```sh
+UVNC_RUN_SYSTEMD_USER_SERVICE=1 \
+UVNC_OVERWRITE_USER_SERVICE_CONFIG=1 \
+cmake/linux-server-user-service-smoke.sh \
+  /tmp/uvnc-linux-server-user-service-build \
+  /tmp/uvnc-linux-server-user-service-install
+```
+
+Run the live service smoke only on a disposable or explicitly prepared test
+user.
+
 ## Runtime backend selection
 
 Capture backend:
