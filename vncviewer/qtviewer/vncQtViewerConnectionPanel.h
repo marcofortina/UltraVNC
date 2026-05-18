@@ -63,6 +63,7 @@ private:
     QLineEdit *clipboardEdit_;
     QPushButton *sendClipboardButton_;
     QLabel *statusLabel_;
+    QLabel *serverClipboardLabel_;
     QtViewerSurface *surface_;
     QTimer *continuousTimer_;
     QTimer *reconnectTimer_;

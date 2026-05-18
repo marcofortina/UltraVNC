@@ -157,6 +157,7 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
       clipboardEdit_(new QLineEdit()),
       sendClipboardButton_(new QPushButton(QStringLiteral("Send clipboard"))),
       statusLabel_(new QLabel(QStringLiteral("Disconnected"))),
+      serverClipboardLabel_(new QLabel(QStringLiteral("Server clipboard: <none>"))),
       surface_(new QtViewerSurface()),
       continuousTimer_(new QTimer(this))
 {
@@ -173,6 +174,7 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     loadProfileButton_->setObjectName(QStringLiteral("loadProfileButton"));
     saveProfileButton_->setObjectName(QStringLiteral("saveProfileButton"));
     statusLabel_->setObjectName(QStringLiteral("statusLabel"));
+    serverClipboardLabel_->setObjectName(QStringLiteral("serverClipboardLabel"));
 
     portSpin_->setRange(1, 65535);
     portSpin_->setValue(initialConfig.Port());
@@ -218,6 +220,7 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     layout->addLayout(profiles);
     layout->addLayout(clipboard);
     layout->addWidget(statusLabel_);
+    layout->addWidget(serverClipboardLabel_);
     layout->addWidget(surface_, 1);
     setLayout(layout);
 
@@ -345,6 +348,9 @@ void QtViewerConnectionPanel::RequestUpdate(bool showDialogOnError)
         return;
     }
 
+    if (!result.serverCutText.empty()) {
+        serverClipboardLabel_->setText(QStringLiteral("Server clipboard: ") + QString::fromStdString(result.serverCutText));
+    }
     SetStatus(QString("Connected to %1:%2, %3x%4, %5 bytes")
         .arg(QString::fromStdString(config.Host()))
         .arg(config.Port())
