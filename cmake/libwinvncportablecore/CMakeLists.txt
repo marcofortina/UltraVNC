@@ -59,6 +59,8 @@ add_library(${PROJECT_NAME} STATIC
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncLinuxX11FramebufferSource.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncLinuxPipeWirePortalCapture.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncLinuxCaptureBackend.cpp"
+    "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncLinuxInputBackend.cpp"
+    "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncLinuxXTestInput.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/translate.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncencoder.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncencoderre.cpp"
