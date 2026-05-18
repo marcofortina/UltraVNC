@@ -14,12 +14,12 @@ ctest --test-dir "${BUILD_DIR}" --output-on-failure -R 'winvnc_linux_input|winvn
 cmake --install "${BUILD_DIR}" --prefix "${INSTALL_PREFIX}"
 
 "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --smoke-xtest-availability-test
-"${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --smoke-xtest-input-test
 "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --validate-config --input-backend none
 "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --print-config --input-backend none >/dev/null
 
 if [[ "${UVNC_RUN_XTEST_LIVE:-0}" != "1" ]]; then
   echo "Skipping live XTest injection smoke because UVNC_RUN_XTEST_LIVE=1 is not set."
+  echo "Guarded XTest injection behavior is covered by CTest without injecting live input."
   exit 0
 fi
 
@@ -40,4 +40,5 @@ case "${DISPLAY}" in
     ;;
 esac
 
+echo "Running live XTest injection smoke with explicit --allow-input-injection."
 "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --smoke-xtest-input-test --allow-input-injection
