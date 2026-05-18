@@ -53,7 +53,6 @@ set_tests_properties(vncviewer_qt_connection_panel_smoke PROPERTIES
 add_executable(vncviewer_qt_surface_smoke
     "${CMAKE_SOURCE_DIR}/tests/vncviewer_qt_surface_smoke.cpp"
     "${CMAKE_SOURCE_DIR}/../vncviewer/qtviewer/vncQtViewerSurface.cpp"
-    "${CMAKE_SOURCE_DIR}/../vncviewer/qtviewer/vncQtViewerConnectionPanel.cpp"
 )
 target_include_directories(vncviewer_qt_surface_smoke PRIVATE
     "${CMAKE_SOURCE_DIR}/../vncviewer/qtviewer"
