@@ -8,8 +8,11 @@
 
 #include "vncPortableViewerCli.h"
 
+#include "rfb.h"
+
 #include <cstdlib>
 #include <sstream>
+#include <vector>
 
 namespace uvnc {
 namespace vncviewer {
@@ -37,6 +40,25 @@ bool ParseUnsigned(const std::string& text, unsigned int& value)
     }
     value = static_cast<unsigned int>(parsed);
     return true;
+}
+
+bool ParseEncodingList(const std::string& text, std::vector<unsigned int>& encodings)
+{
+    encodings.clear();
+    std::string token;
+    std::istringstream input(text);
+    while (std::getline(input, token, ',')) {
+        if (token == "raw") {
+            encodings.push_back(rfbEncodingRaw);
+        } else if (token == "copyrect") {
+            encodings.push_back(rfbEncodingCopyRect);
+        } else if (token == "newfbsize") {
+            encodings.push_back(rfbEncodingNewFBSize);
+        } else {
+            return false;
+        }
+    }
+    return !encodings.empty();
 }
 
 bool ParsePort(const std::string& text, unsigned short& port)
@@ -97,6 +119,13 @@ bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& opti
             options.config.SetPassword(args[++i]);
         } else if (arg == "--continuous-updates") {
             options.config.SetContinuousUpdates(true);
+        } else if (arg == "--encodings" && i + 1 < args.size()) {
+            std::vector<unsigned int> encodings;
+            if (!ParseEncodingList(args[++i], encodings)) {
+                error = "invalid --encodings";
+                return false;
+            }
+            options.config.SetEncodings(encodings);
         } else if (arg == "--update-interval-ms" && i + 1 < args.size()) {
             unsigned int interval = 0;
             if (!ParseUnsigned(args[++i], interval)) {
@@ -132,7 +161,8 @@ std::string ViewerCliUsage(const char *programName)
         << "  --exclusive            Request exclusive session\n"
         << "  --request-update       Request an initial framebuffer update in future session smoke\n"
         << "  --view-only            Disable local input forwarding in the viewer shell\n"
-        << "  --password <password>  Password for future VNCAuth-capable sessions\n"
+        << "  --password <password>  Password for VNCAuth-capable sessions\n"
+        << "  --encodings <list>     Comma-separated encodings: raw,copyrect,newfbsize\n"
         << "  --continuous-updates   Repeatedly request updates in the interactive Qt shell\n"
         << "  --update-interval-ms <ms> Continuous-update interval, default 1000\n";
     return out.str();
