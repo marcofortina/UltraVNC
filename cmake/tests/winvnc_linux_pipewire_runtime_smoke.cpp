@@ -24,5 +24,6 @@ int main()
     const PipeWirePortalRuntimeState state = PipeWirePortalCaptureBackend::RuntimeState(&reason);
     assert(!reason.empty());
     assert(PipeWirePortalCaptureBackend::RuntimeAvailable() == (state == PipeWirePortalRuntimeState::Built));
+    assert(!PipeWirePortalCaptureBackend::CaptureImplemented());
     return 0;
 }
