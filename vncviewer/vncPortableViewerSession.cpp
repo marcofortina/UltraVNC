@@ -264,6 +264,123 @@ bool ReadCompressedPayload(TcpSocket& socket,
     return true;
 }
 
+
+bool ReadZrleCompressedPayload(TcpSocket& socket,
+                               std::size_t initialExpectedSize,
+                               std::vector<CARD8>& payload,
+                               std::string *error)
+{
+    rfbZRLEHeader header;
+    if (!socket.ReadExact(&header, sz_rfbZRLEHeader)) {
+        SetError(error, "failed to read RFB ZRLE header");
+        return false;
+    }
+    const CARD32 compressedSize = Swap32IfLE(header.length);
+    std::vector<CARD8> compressed(compressedSize);
+    if (compressedSize > 0 && !socket.ReadExact(compressed.data(), compressed.size())) {
+        SetError(error, "failed to read RFB ZRLE payload");
+        return false;
+    }
+
+    std::size_t capacity = std::max<std::size_t>(initialExpectedSize, 1);
+    for (unsigned int attempt = 0; attempt < 8; ++attempt) {
+        payload.assign(capacity, 0);
+        uLongf outputSize = static_cast<uLongf>(payload.size());
+        const int rc = uncompress(payload.data(), &outputSize, compressed.data(), static_cast<uLong>(compressed.size()));
+        if (rc == Z_OK) {
+            payload.resize(static_cast<std::size_t>(outputSize));
+            return true;
+        }
+        if (rc != Z_BUF_ERROR) {
+            SetError(error, "failed to decompress RFB ZRLE payload");
+            return false;
+        }
+        capacity *= 2;
+    }
+    SetError(error, "RFB ZRLE payload exceeds decoder limit");
+    return false;
+}
+
+bool ReadBytesFromPayload(const std::vector<CARD8>& payload, std::size_t& offset, void *out, std::size_t length)
+{
+    if (offset + length > payload.size()) {
+        return false;
+    }
+    std::memcpy(out, payload.data() + offset, length);
+    offset += length;
+    return true;
+}
+
+bool ReadZrleRectPayload(TcpSocket& socket,
+                         ViewerSessionResult& result,
+                         std::vector<CARD8>& framebuffer,
+                         ViewerFramebufferRect& rectangle,
+                         std::string *error)
+{
+    const unsigned int bytesPerPixel = BytesPerPixel(result.format);
+    if (bytesPerPixel == 0 || rectangle.width == 0 || rectangle.height == 0) {
+        SetError(error, "invalid RFB ZRLE rectangle dimensions");
+        return false;
+    }
+    if (rectangle.x + rectangle.width > result.width || rectangle.y + rectangle.height > result.height) {
+        SetError(error, "RFB ZRLE rectangle is outside framebuffer bounds");
+        return false;
+    }
+    const unsigned int tilesX = (rectangle.width + rfbZRLETileWidth - 1) / rfbZRLETileWidth;
+    const unsigned int tilesY = (rectangle.height + rfbZRLETileHeight - 1) / rfbZRLETileHeight;
+    const std::size_t rawBytes = static_cast<std::size_t>(rectangle.width) * rectangle.height * bytesPerPixel;
+    std::vector<CARD8> payload;
+    if (!ReadZrleCompressedPayload(socket, rawBytes + static_cast<std::size_t>(tilesX) * tilesY, payload, error)) {
+        return false;
+    }
+
+    rectangle.pixels.assign(rawBytes, 0);
+    std::size_t offset = 0;
+    for (unsigned int tileY = 0; tileY < rectangle.height; tileY += rfbZRLETileHeight) {
+        const unsigned int tileHeight = std::min<unsigned int>(rfbZRLETileHeight, rectangle.height - tileY);
+        for (unsigned int tileX = 0; tileX < rectangle.width; tileX += rfbZRLETileWidth) {
+            const unsigned int tileWidth = std::min<unsigned int>(rfbZRLETileWidth, rectangle.width - tileX);
+            CARD8 subencoding = 0;
+            if (!ReadBytesFromPayload(payload, offset, &subencoding, sizeof(subencoding))) {
+                SetError(error, "failed to read RFB ZRLE tile subencoding");
+                return false;
+            }
+            if (subencoding == 0) {
+                for (unsigned int row = 0; row < tileHeight; ++row) {
+                    const std::size_t dst = (static_cast<std::size_t>(tileY + row) * rectangle.width + tileX) * bytesPerPixel;
+                    const std::size_t bytes = static_cast<std::size_t>(tileWidth) * bytesPerPixel;
+                    if (offset + bytes > payload.size()) {
+                        SetError(error, "failed to read RFB ZRLE raw tile");
+                        return false;
+                    }
+                    std::copy(payload.begin() + offset, payload.begin() + offset + bytes, rectangle.pixels.begin() + dst);
+                    offset += bytes;
+                }
+            } else if (subencoding == 1) {
+                std::vector<CARD8> color(bytesPerPixel, 0);
+                if (!ReadBytesFromPayload(payload, offset, color.data(), color.size())) {
+                    SetError(error, "failed to read RFB ZRLE solid tile");
+                    return false;
+                }
+                for (unsigned int row = 0; row < tileHeight; ++row) {
+                    for (unsigned int col = 0; col < tileWidth; ++col) {
+                        const std::size_t dst = (static_cast<std::size_t>(tileY + row) * rectangle.width + tileX + col) * bytesPerPixel;
+                        std::copy(color.begin(), color.end(), rectangle.pixels.begin() + dst);
+                    }
+                }
+            } else {
+                SetError(error, "unsupported RFB ZRLE tile subencoding");
+                return false;
+            }
+        }
+    }
+    if (!EnsureFramebufferStorage(result, framebuffer, error)) {
+        return false;
+    }
+    CopyRectToFramebuffer(result, framebuffer, rectangle.x, rectangle.y, rectangle.width, rectangle.height, rectangle.pixels);
+    return true;
+}
+
 bool ReadRawRectPayload(TcpSocket& socket,
                         ViewerSessionResult& result,
                         std::vector<CARD8>& framebuffer,
@@ -658,6 +775,10 @@ bool ReadFramebufferUpdate(TcpSocket& socket,
             }
         } else if (rectangle.encoding == rfbEncodingZlib) {
             if (!ReadZlibRectPayload(socket, result, framebuffer, rectangle, error)) {
+                return false;
+            }
+        } else if (rectangle.encoding == rfbEncodingZRLE) {
+            if (!ReadZrleRectPayload(socket, result, framebuffer, rectangle, error)) {
                 return false;
             }
         } else if (rectangle.encoding == rfbEncodingNewFBSize) {
