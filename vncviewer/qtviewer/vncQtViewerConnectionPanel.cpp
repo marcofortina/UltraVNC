@@ -11,7 +11,9 @@
 #include "vncPortableViewerSession.h"
 
 #include <QCheckBox>
+#include <QClipboard>
 #include <QFormLayout>
+#include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -361,7 +363,11 @@ void QtViewerConnectionPanel::RequestUpdate(bool showDialogOnError)
     }
 
     if (!result.serverCutText.empty()) {
-        serverClipboardLabel_->setText(QStringLiteral("Server clipboard: ") + QString::fromStdString(result.serverCutText));
+        const QString serverText = QString::fromStdString(result.serverCutText);
+        serverClipboardLabel_->setText(QStringLiteral("Server clipboard: ") + serverText);
+        if (QClipboard *clipboard = QGuiApplication::clipboard()) {
+            clipboard->setText(serverText);
+        }
     }
     SetStatus(QString("Connected to %1:%2, %3x%4, %5 bytes")
         .arg(QString::fromStdString(config.Host()))
