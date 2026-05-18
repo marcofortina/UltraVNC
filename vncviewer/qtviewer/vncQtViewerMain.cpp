@@ -16,7 +16,6 @@
 #include <QWidget>
 
 #include <iostream>
-#include <vector>
 #include <string>
 #include <vector>
 
