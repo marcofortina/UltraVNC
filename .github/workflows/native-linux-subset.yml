@@ -80,3 +80,9 @@ jobs:
           cmake/qt-viewer-smoke.sh \
             /tmp/uvnc-qt-viewer-build \
             /tmp/uvnc-linux-closure-install
+
+      - name: Native Linux Qt viewer RFB smoke
+        run: |
+          cmake/qt-viewer-rfb-smoke.sh \
+            /tmp/uvnc-qt-viewer-rfb-build \
+            /tmp/uvnc-linux-closure-install
