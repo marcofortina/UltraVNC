@@ -37,6 +37,21 @@ bool IsWaylandSession()
 
 } // namespace
 
+
+PipeWirePortalSessionRequest::PipeWirePortalSessionRequest()
+    : sessionToken("uvnc_session"),
+      handleToken("uvnc_handle"),
+      requestCursorMetadata(true)
+{
+}
+
+PipeWirePortalSourceRequest::PipeWirePortalSourceRequest()
+    : screens(true),
+      windows(false),
+      virtualMonitors(false)
+{
+}
+
 bool PipeWirePortalCaptureBackend::BuildAvailable()
 {
 #ifdef UVNC_HAVE_PIPEWIRE_PORTAL
@@ -83,6 +98,34 @@ const char *PipeWirePortalCaptureBackend::RuntimeStateName(PipeWirePortalRuntime
         return "missing-portal-bus";
     }
     return "unknown";
+}
+
+PipeWirePortalSessionRequest PipeWirePortalCaptureBackend::DefaultSessionRequest()
+{
+    return PipeWirePortalSessionRequest();
+}
+
+PipeWirePortalSourceRequest PipeWirePortalCaptureBackend::DefaultSourceRequest()
+{
+    return PipeWirePortalSourceRequest();
+}
+
+bool PipeWirePortalCaptureBackend::ValidateSessionRequest(const PipeWirePortalSessionRequest& request, std::string *error)
+{
+    if (request.sessionToken.empty()) {
+        SetReason(error, "PipeWire/XDG portal session token must not be empty");
+        return false;
+    }
+    if (request.handleToken.empty()) {
+        SetReason(error, "PipeWire/XDG portal handle token must not be empty");
+        return false;
+    }
+    if (request.sessionToken.size() > 128 || request.handleToken.size() > 128) {
+        SetReason(error, "PipeWire/XDG portal tokens are too long");
+        return false;
+    }
+    SetReason(error, "");
+    return true;
 }
 
 } // namespace linuxfb

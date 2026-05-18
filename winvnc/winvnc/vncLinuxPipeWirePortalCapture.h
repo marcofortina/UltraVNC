@@ -10,6 +10,7 @@
 #define UVNC_WINVNC_LINUX_PIPEWIRE_PORTAL_CAPTURE_H
 
 #include <string>
+#include <vector>
 
 namespace uvnc {
 namespace winvnc {
@@ -22,12 +23,31 @@ enum class PipeWirePortalRuntimeState {
     MissingPortalBus,
 };
 
+struct PipeWirePortalSessionRequest {
+    std::string sessionToken;
+    std::string handleToken;
+    bool requestCursorMetadata;
+
+    PipeWirePortalSessionRequest();
+};
+
+struct PipeWirePortalSourceRequest {
+    bool screens;
+    bool windows;
+    bool virtualMonitors;
+
+    PipeWirePortalSourceRequest();
+};
+
 class PipeWirePortalCaptureBackend {
 public:
     static bool BuildAvailable();
     static bool RuntimeAvailable(std::string *reason = nullptr);
     static PipeWirePortalRuntimeState RuntimeState(std::string *reason = nullptr);
     static const char *RuntimeStateName(PipeWirePortalRuntimeState state);
+    static PipeWirePortalSessionRequest DefaultSessionRequest();
+    static PipeWirePortalSourceRequest DefaultSourceRequest();
+    static bool ValidateSessionRequest(const PipeWirePortalSessionRequest& request, std::string *error = nullptr);
 };
 
 } // namespace linuxfb
