@@ -504,7 +504,7 @@ bool RfbServerSession::ServeFramebufferUpdateRequest(RfbTransport& socket, const
     return socket.WriteAll(update.data(), update.size());
 }
 
-bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, RfbCursorSource *cursorSource) const
+bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, RfbCursorSource *cursorSource, const rfb::Region2D *changedRegion) const
 {
     updateSent = false;
     if (!MaybeSendClipboardSource(socket, state, clipboardSource)) {
@@ -533,11 +533,23 @@ bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Frameb
         if (!DecodeFramebufferUpdateRequest(wire, request)) {
             return false;
         }
-        const std::vector<CARD8> update = (request.incremental && !forceRawIncremental) ?
-            EmptyFramebufferUpdateBytes() :
-            (state ? EncodedFramebufferUpdateBytes(framebuffer, request, state->PixelFormat(), state->Encodings()) :
-                     RawFramebufferUpdateBytes(framebuffer, request));
-        updateSent = socket.WriteAll(update.data(), update.size());
+        if (state && state->SupportsNewFramebufferSizeUpdates() &&
+            state->FramebufferSizeChanged(framebuffer.Width(), framebuffer.Height())) {
+            const std::vector<CARD8> resize = NewFramebufferSizeUpdateBytes(framebuffer.Width(), framebuffer.Height());
+            updateSent = socket.WriteAll(resize.data(), resize.size());
+            if (updateSent) {
+                state->RecordFramebufferSize(framebuffer.Width(), framebuffer.Height());
+            }
+        } else {
+            const std::vector<CARD8> update = (request.incremental && !forceRawIncremental && changedRegion != nullptr) ?
+                (state ? EncodedFramebufferUpdateBytes(framebuffer, request, *changedRegion, state->PixelFormat(), state->Encodings()) :
+                         RawFramebufferUpdateBytes(framebuffer, request)) :
+                ((request.incremental && !forceRawIncremental) ?
+                    EmptyFramebufferUpdateBytes() :
+                    (state ? EncodedFramebufferUpdateBytes(framebuffer, request, state->PixelFormat(), state->Encodings()) :
+                             RawFramebufferUpdateBytes(framebuffer, request)));
+            updateSent = socket.WriteAll(update.data(), update.size());
+        }
         if (updateSent && stats) {
             stats->framebufferUpdatesSent += 1;
         }
@@ -1022,10 +1034,10 @@ bool RfbServerSession::ServeFramebufferUpdateRequest(TcpSocket& socket, const Fr
     return ServeFramebufferUpdateRequest(transport, framebuffer);
 }
 
-bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, RfbCursorSource *cursorSource) const
+bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, RfbCursorSource *cursorSource, const rfb::Region2D *changedRegion) const
 {
     TcpRfbTransport transport(socket);
-    return ServeNextClientMessage(transport, framebuffer, updateSent, stats, state, inputSink, forceRawIncremental, clipboardSink, clipboardSource, cursorSource);
+    return ServeNextClientMessage(transport, framebuffer, updateSent, stats, state, inputSink, forceRawIncremental, clipboardSink, clipboardSource, cursorSource, changedRegion);
 }
 
 bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, RfbCursorSource *cursorSource) const
