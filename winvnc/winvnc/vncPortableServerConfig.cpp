@@ -98,6 +98,8 @@ ServerConfig::ServerConfig()
       fileTransferPayloadLimit_(DefaultFileTransferPayloadLimit()),
       fileTransferRoot_(),
       fileTransferAllowOverwrite_(false),
+      fileTransferRecursiveMaxDepth_(32),
+      fileTransferRecursiveMaxEntries_(16384),
       transportSecurity_(TransportSecurityMode::None),
       tlsCertificateFile_(),
       tlsPrivateKeyFile_()
@@ -175,6 +177,14 @@ bool ServerConfig::Validate(std::string *error) const
             if (error) *error = "TLS certificate and private key paths must be absolute";
             return false;
         }
+    }
+    if (fileTransferRecursiveMaxDepth_ == 0 || fileTransferRecursiveMaxDepth_ > 256) {
+        if (error) *error = "file-transfer recursive max depth must be between 1 and 256";
+        return false;
+    }
+    if (fileTransferRecursiveMaxEntries_ == 0 || fileTransferRecursiveMaxEntries_ > 1048576) {
+        if (error) *error = "file-transfer recursive max entries must be between 1 and 1048576";
+        return false;
     }
     if ((fileTransferMode_ == FileTransferMode::ReadOnly || fileTransferMode_ == FileTransferMode::ReadWrite) && fileTransferRoot_.empty()) {
         if (error) *error = "file-transfer root is required for read-only/read-write modes";

@@ -45,6 +45,8 @@ public:
     unsigned int FileTransferPayloadLimit() const { return fileTransferPayloadLimit_; }
     const std::string& FileTransferRoot() const { return fileTransferRoot_; }
     bool FileTransferAllowOverwrite() const { return fileTransferAllowOverwrite_; }
+    unsigned int FileTransferRecursiveMaxDepth() const { return fileTransferRecursiveMaxDepth_; }
+    unsigned int FileTransferRecursiveMaxEntries() const { return fileTransferRecursiveMaxEntries_; }
     bool FileUploadActive() const { return fileUploadActive_; }
     const std::string& FileUploadPath() const { return fileUploadPath_; }
     const std::string& FileUploadFinalPath() const { return fileUploadFinalPath_; }
@@ -83,6 +85,8 @@ private:
     unsigned int fileTransferPayloadLimit_;
     std::string fileTransferRoot_;
     bool fileTransferAllowOverwrite_;
+    unsigned int fileTransferRecursiveMaxDepth_;
+    unsigned int fileTransferRecursiveMaxEntries_;
     bool fileUploadActive_;
     std::string fileUploadPath_;
     std::string fileUploadFinalPath_;

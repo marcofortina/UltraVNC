@@ -59,6 +59,8 @@ public:
     unsigned int FileTransferPayloadLimit() const { return fileTransferPayloadLimit_; }
     const std::string& FileTransferRoot() const { return fileTransferRoot_; }
     bool FileTransferAllowOverwrite() const { return fileTransferAllowOverwrite_; }
+    unsigned int FileTransferRecursiveMaxDepth() const { return fileTransferRecursiveMaxDepth_; }
+    unsigned int FileTransferRecursiveMaxEntries() const { return fileTransferRecursiveMaxEntries_; }
     TransportSecurityMode TransportSecurity() const { return transportSecurity_; }
     const std::string& TlsCertificateFile() const { return tlsCertificateFile_; }
     const std::string& TlsPrivateKeyFile() const { return tlsPrivateKeyFile_; }
@@ -83,6 +85,8 @@ public:
     void SetFileTransferPayloadLimit(unsigned int bytes) { fileTransferPayloadLimit_ = bytes; }
     void SetFileTransferRoot(const std::string& root) { fileTransferRoot_ = root; }
     void SetFileTransferAllowOverwrite(bool allow) { fileTransferAllowOverwrite_ = allow; }
+    void SetFileTransferRecursiveMaxDepth(unsigned int depth) { fileTransferRecursiveMaxDepth_ = depth; }
+    void SetFileTransferRecursiveMaxEntries(unsigned int entries) { fileTransferRecursiveMaxEntries_ = entries; }
     void SetTransportSecurity(TransportSecurityMode mode) { transportSecurity_ = mode; }
     void SetTlsCertificateFile(const std::string& path) { tlsCertificateFile_ = path; }
     void SetTlsPrivateKeyFile(const std::string& path) { tlsPrivateKeyFile_ = path; }
@@ -112,6 +116,8 @@ private:
     unsigned int fileTransferPayloadLimit_;
     std::string fileTransferRoot_;
     bool fileTransferAllowOverwrite_;
+    unsigned int fileTransferRecursiveMaxDepth_;
+    unsigned int fileTransferRecursiveMaxEntries_;
     TransportSecurityMode transportSecurity_;
     std::string tlsCertificateFile_;
     std::string tlsPrivateKeyFile_;

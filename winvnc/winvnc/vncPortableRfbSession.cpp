@@ -153,11 +153,13 @@ bool SendLinuxDrivesList(RfbTransport& socket, const std::string& root)
 
 bool SendRecursiveDirectoryListing(RfbTransport& socket,
                                    const std::string& root,
-                                   const std::string& requestedPath)
+                                   const std::string& requestedPath,
+                                   unsigned int maxDepth,
+                                   unsigned int maxEntries)
 {
     std::vector<FileTransferRecursiveEntry> entries;
     std::string reason;
-    if (!ListFileTransferDirectoryRecursive(root, requestedPath, 32, 16384, entries, &reason)) {
+    if (!ListFileTransferDirectoryRecursive(root, requestedPath, maxDepth, maxEntries, entries, &reason)) {
         return SendFileTransferPacketMessage(socket, rfbDirPacket, rfbADirInaccessible, 0, std::vector<CARD8>());
     }
     for (std::vector<FileTransferRecursiveEntry>::const_iterator it = entries.begin(); it != entries.end(); ++it) {
@@ -171,11 +173,13 @@ bool SendRecursiveDirectoryListing(RfbTransport& socket,
 
 bool SendRecursiveDirectorySize(RfbTransport& socket,
                                 const std::string& root,
-                                const std::string& requestedPath)
+                                const std::string& requestedPath,
+                                unsigned int maxDepth,
+                                unsigned int maxEntries)
 {
     FileTransferRecursiveSize size;
     std::string reason;
-    if (!MeasureFileTransferDirectoryRecursive(root, requestedPath, 32, 16384, size, &reason)) {
+    if (!MeasureFileTransferDirectoryRecursive(root, requestedPath, maxDepth, maxEntries, size, &reason)) {
         return SendFileTransferPacketMessage(socket, rfbDirPacket, rfbADirInaccessible, 0, std::vector<CARD8>());
     }
     std::ostringstream payload;
@@ -647,10 +651,10 @@ bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Frameb
                 return SendLinuxDrivesList(socket, state->FileTransferRoot());
             }
             if (message.contentParam == rfbRDirRecursiveList) {
-                return SendRecursiveDirectoryListing(socket, state->FileTransferRoot(), requestedPath);
+                return SendRecursiveDirectoryListing(socket, state->FileTransferRoot(), requestedPath, state->FileTransferRecursiveMaxDepth(), state->FileTransferRecursiveMaxEntries());
             }
             if (message.contentParam == rfbRDirRecursiveSize) {
-                return SendRecursiveDirectorySize(socket, state->FileTransferRoot(), requestedPath);
+                return SendRecursiveDirectorySize(socket, state->FileTransferRoot(), requestedPath, state->FileTransferRecursiveMaxDepth(), state->FileTransferRecursiveMaxEntries());
             }
             return SendDirectoryListing(socket, state->FileTransferRoot(), requestedPath);
         case rfbFileTransferRequest:

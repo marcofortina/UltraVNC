@@ -33,6 +33,8 @@ RfbClientState::RfbClientState(const ServerConfig& config)
       fileTransferPayloadLimit_(config.FileTransferPayloadLimit()),
       fileTransferRoot_(config.FileTransferRoot()),
       fileTransferAllowOverwrite_(config.FileTransferAllowOverwrite()),
+      fileTransferRecursiveMaxDepth_(config.FileTransferRecursiveMaxDepth()),
+      fileTransferRecursiveMaxEntries_(config.FileTransferRecursiveMaxEntries()),
       fileUploadActive_(false),
       fileUploadPath_(),
       fileUploadFinalPath_(),
