@@ -35,6 +35,8 @@ file_transfer_root=/tmp
 file_transfer_allow_overwrite=false
 file_transfer_recursive_max_depth=9
 file_transfer_recursive_max_entries=123
+extended_clipboard=false
+extended_clipboard_text_limit=2048
 EOF
 chmod 0600 "${config}"
 
@@ -59,6 +61,8 @@ grep -q '^file_transfer_root=/tmp$' <<<"${output}"
 grep -q '^file_transfer_allow_overwrite=false$' <<<"${output}"
 grep -q '^file_transfer_recursive_max_depth=9$' <<<"${output}"
 grep -q '^file_transfer_recursive_max_entries=123$' <<<"${output}"
+grep -q '^extended_clipboard=no$' <<<"${output}"
+grep -q '^extended_clipboard_text_limit=2048$' <<<"${output}"
 
 cat >"${config}" <<'EOF'
 unknown_key=value
