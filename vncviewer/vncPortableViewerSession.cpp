@@ -1533,6 +1533,7 @@ bool ReadFramebufferUpdate(TcpSocket& socket,
         return true;
     }
 
+    bool acceptedUpdate = false;
     for (CARD16 i = 0; i < rects; ++i) {
         rfbFramebufferUpdateRectHeader rect;
         if (!socket.ReadExact(&rect, sz_rfbFramebufferUpdateRectHeader)) {
@@ -1548,6 +1549,7 @@ bool ReadFramebufferUpdate(TcpSocket& socket,
         rectangle.encoding = Swap32IfLE(rect.encoding);
 
         if (rectangle.encoding == rfbEncodingLastRect) {
+            acceptedUpdate = true;
             result.rectangles.push_back(rectangle);
             break;
         } else if (rectangle.encoding == rfbEncodingPointerPos) {
@@ -1598,9 +1600,15 @@ bool ReadFramebufferUpdate(TcpSocket& socket,
             result.width = rectangle.width;
             result.height = rectangle.height;
             framebuffer.clear();
+            acceptedUpdate = true;
         } else {
             SetUnsupportedEncodingError(error, rectangle.encoding);
             return false;
+        }
+        if (rectangle.encoding != rfbEncodingPointerPos &&
+            rectangle.encoding != rfbEncodingRichCursor &&
+            rectangle.encoding != rfbEncodingXCursor) {
+            acceptedUpdate = true;
         }
         result.rectangles.push_back(rectangle);
     }
@@ -1609,7 +1617,7 @@ bool ReadFramebufferUpdate(TcpSocket& socket,
         return PublishCompositedFramebuffer(result, framebuffer, error);
     }
     result.update = ViewerFramebufferUpdate();
-    result.update.received = true;
+    result.update.received = acceptedUpdate;
     return true;
 }
 
@@ -1788,7 +1796,16 @@ bool PersistentViewerSession::RequestFramebufferUpdate(bool incremental, ViewerS
         return false;
     }
     state_.update = ViewerFramebufferUpdate();
-    if (!ReadFramebufferUpdate(socket_, zrleStream_, zrleStreamInitialized_, tightStreams_, tightStreamsInitialized_, state_, framebuffer_, error)) {
+    bool gotUpdate = false;
+    for (unsigned int attempts = 0; attempts < 16 && !gotUpdate; ++attempts) {
+        if (!ReadFramebufferUpdate(socket_, zrleStream_, zrleStreamInitialized_, tightStreams_, tightStreamsInitialized_, state_, framebuffer_, error)) {
+            Disconnect();
+            return false;
+        }
+        gotUpdate = state_.update.received;
+    }
+    if (!gotUpdate) {
+        SetError(error, "RFB framebuffer update did not contain a drawable update");
         Disconnect();
         return false;
     }
