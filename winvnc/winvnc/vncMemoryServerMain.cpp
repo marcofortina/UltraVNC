@@ -25,6 +25,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <mutex>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -1245,6 +1246,37 @@ int RunSmokeXTestInputTest(bool allowInputInjection)
 }
 
 
+
+class LockedDesktopSource : public DesktopSource {
+public:
+    explicit LockedDesktopSource(DesktopSource& inner)
+        : inner_(inner)
+    {
+    }
+
+    rfb::Rect Size() const override
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return inner_.Size();
+    }
+
+    rfbPixelFormat Format() const override
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return inner_.Format();
+    }
+
+    bool Snapshot(Framebuffer& destination, rfb::Region2D& changed) override
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return inner_.Snapshot(destination, changed);
+    }
+
+private:
+    DesktopSource& inner_;
+    mutable std::mutex mutex_;
+};
+
 bool RunThreadedStaticServeLoop(MemoryServer& server,
                                 const ServerConfig& config,
                                 unsigned int maxUpdates,
@@ -1268,6 +1300,42 @@ bool RunThreadedStaticServeLoop(MemoryServer& server,
         }
         workers.emplace_back([&server, maxUpdates, inputSink, clipboardSink, clipboardSource, &clientPolicy, client = std::move(client)]() mutable {
             server.ServeConnectedUpdates(std::move(client), maxUpdates, inputSink, clipboardSink, clipboardSource, &clientPolicy);
+        });
+    }
+
+    for (std::size_t i = 0; i < workers.size(); ++i) {
+        if (workers[i].joinable()) {
+            workers[i].join();
+        }
+    }
+    return ok;
+}
+
+bool RunThreadedLiveServeLoop(MemoryServer& server,
+                              DesktopSource& source,
+                              const ServerConfig& config,
+                              unsigned int maxUpdates,
+                              RfbInputSink *inputSink,
+                              RfbClipboardSink *clipboardSink,
+                              RfbClipboardSource *clipboardSource)
+{
+    LockedDesktopSource lockedSource(source);
+    ClientConnectionPolicy clientPolicy(config.MaxSharedClients());
+    std::vector<std::thread> workers;
+    bool ok = true;
+
+    while (!StopRequested()) {
+        bool accepted = false;
+        TcpSocket client;
+        if (!server.TryAccept(client, 250, accepted)) {
+            ok = false;
+            break;
+        }
+        if (!accepted) {
+            continue;
+        }
+        workers.emplace_back([&server, &lockedSource, maxUpdates, inputSink, clipboardSink, clipboardSource, &clientPolicy, client = std::move(client)]() mutable {
+            server.ServeConnectedUpdatesFromSource(std::move(client), lockedSource, maxUpdates, inputSink, 128, clipboardSink, clipboardSource, &clientPolicy);
         });
     }
 
