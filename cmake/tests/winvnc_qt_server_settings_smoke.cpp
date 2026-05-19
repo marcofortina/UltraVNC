@@ -36,6 +36,7 @@ int main(int argc, char **argv)
     QLineEdit *password = panel.findChild<QLineEdit *>("passwordEdit");
     QLineEdit *passwordFile = panel.findChild<QLineEdit *>("passwordFileEdit");
     QLineEdit *authHelper = panel.findChild<QLineEdit *>("authHelperEdit");
+    QLineEdit *dsmProvider = panel.findChild<QLineEdit *>("dsmProviderEdit");
     QComboBox *transport = panel.findChild<QComboBox *>("transportSecurityCombo");
     QComboBox *capture = panel.findChild<QComboBox *>("captureBackendCombo");
     QComboBox *input = panel.findChild<QComboBox *>("inputBackendCombo");
@@ -61,6 +62,7 @@ int main(int argc, char **argv)
     assert(password && password->echoMode() == QLineEdit::Password);
     assert(passwordFile);
     assert(authHelper);
+    assert(dsmProvider && dsmProvider->text().isEmpty());
     assert(transport && transport->currentData().toInt() == static_cast<int>(TransportSecurityMode::None));
     assert(capture && capture->currentText() == "auto");
     assert(input && input->currentText() == "none");
@@ -91,6 +93,10 @@ int main(int argc, char **argv)
     assert(panel.CurrentConfig().Validate());
     assert(panel.GeneratedConfigText().contains("auth=mslogon-ii"));
     assert(panel.GeneratedConfigText().contains("auth_helper=/tmp/uvnc-auth-helper"));
+
+    dsmProvider->setText("/tmp/libuvnc-test-dsm.so");
+    assert(panel.CurrentConfig().DsmProviderPath() == "/tmp/libuvnc-test-dsm.so");
+    assert(panel.GeneratedConfigText().contains("dsm_provider=/tmp/libuvnc-test-dsm.so"));
 
     return 0;
 }
