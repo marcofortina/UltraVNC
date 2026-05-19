@@ -140,19 +140,16 @@ int RunFileTransferOperation(const ViewerCliOptions& options)
     if (options.uploadLocal) {
         std::ifstream input(options.uploadLocalPath.c_str(), std::ios::binary);
         if (!input) {
-            std::cerr << "failed to open upload input path
-";
+            std::cerr << "failed to open upload input path\n";
             return 1;
         }
         std::vector<CARD8> payload((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
         if (!session.UploadRemoteFile(options.remotePath, payload, &error)) {
-            std::cerr << error << "
-";
+            std::cerr << error << "\n";
             return 1;
         }
         std::cout << "uploaded " << payload.size() << " bytes from " << options.uploadLocalPath
-                  << " to " << options.remotePath << "
-";
+                  << " to " << options.remotePath << "\n";
         return 0;
     }
 

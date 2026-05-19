@@ -19,6 +19,7 @@
 #include <cassert>
 
 using uvnc::vncviewer::portable::ViewerConfig;
+using uvnc::vncviewer::portable::ViewerTransportSecurityMode;
 using uvnc::vncviewer::qtviewer::QtViewerConnectionPanel;
 
 int main(int argc, char **argv)
