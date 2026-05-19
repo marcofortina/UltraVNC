@@ -29,6 +29,7 @@ struct RfbSessionStats {
     unsigned int framebufferUpdatesSent;
     unsigned int setPixelFormatMessages;
     unsigned int setEncodingsMessages;
+    unsigned int setScaleMessages;
     unsigned int keyEvents;
     unsigned int pointerEvents;
     unsigned int clientCutTextMessages;

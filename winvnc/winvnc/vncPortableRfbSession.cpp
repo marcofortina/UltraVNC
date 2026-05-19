@@ -436,6 +436,7 @@ RfbSessionStats::RfbSessionStats()
       framebufferUpdatesSent(0),
       setPixelFormatMessages(0),
       setEncodingsMessages(0),
+      setScaleMessages(0),
       keyEvents(0),
       pointerEvents(0),
       clientCutTextMessages(0),
@@ -608,6 +609,23 @@ bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Frameb
             stats->setEncodingsMessages += 1;
         }
         return ok;
+    }
+
+    case rfbSetScale:
+    case rfbPalmVNCSetScaleFactor: {
+        rfbSetScaleMsg wire;
+        wire.type = type;
+        if (!socket.ReadExact(reinterpret_cast<char *>(&wire) + 1, sz_rfbSetScaleMsg - 1)) {
+            return false;
+        }
+        const unsigned int scale = wire.scale == 0 ? 1 : wire.scale;
+        if (state) {
+            state->SetScaleFactor(scale);
+        }
+        if (stats) {
+            stats->setScaleMessages += 1;
+        }
+        return true;
     }
     case rfbKeyEvent: {
         rfbKeyEventMsg wire;
