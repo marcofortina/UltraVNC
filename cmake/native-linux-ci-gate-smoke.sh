@@ -36,6 +36,10 @@ UVNC_RUN_REAL_X11_SERVER=0 \
   "${BUILD_ROOT}/linux-server-secure-runtime" \
   "${INSTALL_PREFIX}"
 
+"${SCRIPT_DIR}/linux-server-operator-config-smoke.sh" \
+  "${BUILD_ROOT}/linux-server-operator-config" \
+  "${INSTALL_PREFIX}"
+
 "${SCRIPT_DIR}/linux-server-negative-runtime-smoke.sh" \
   "${BUILD_ROOT}/linux-server-negative-runtime" \
   "${INSTALL_PREFIX}"
