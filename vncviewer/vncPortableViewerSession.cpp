@@ -8,6 +8,7 @@
 
 #include "vncPortableViewerSession.h"
 
+#include "vncPortableViewerSecurity.h"
 #include "vncPortableVncAuth.h"
 
 #include "vncPortableExtendedClipboard.h"
@@ -120,25 +121,12 @@ bool RunHandshakeOnSocket(TcpSocket& socket, const ViewerConfig& config, ViewerS
         return false;
     }
 
-    bool offersNoAuth = false;
-    bool offersVncAuth = false;
-    for (std::size_t i = 0; i < securityTypes.size(); ++i) {
-        offersNoAuth = offersNoAuth || securityTypes[i] == rfbNoAuth;
-        offersVncAuth = offersVncAuth || securityTypes[i] == rfbVncAuth;
-    }
-
-    CARD8 selectedSecurity = 0;
-    if (!config.Password().empty() && offersVncAuth) {
-        selectedSecurity = rfbVncAuth;
-    } else if (offersNoAuth) {
-        selectedSecurity = rfbNoAuth;
-    } else if (offersVncAuth) {
-        SetError(error, "RFB server requires VNCAuth but no password was provided");
-        return false;
-    } else {
-        SetError(error, "RFB server does not offer a supported security type");
+    const ViewerSecurityDecision security = SelectViewerSecurityType(securityTypes, !config.Password().empty());
+    if (security.selection == ViewerSecuritySelection::Unsupported) {
+        SetError(error, security.error);
         return false;
     }
+    const CARD8 selectedSecurity = security.wireType;
 
     if (!socket.WriteAll(&selectedSecurity, sizeof(selectedSecurity))) {
         SetError(error, "failed to select RFB security type");
