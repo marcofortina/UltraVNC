@@ -64,6 +64,12 @@ int main()
     assert(config.ViewOnly());
     assert(!config.AllowNoAuth());
 
+    config.SetTlsServerName("viewer.test");
+    const std::string summary = ViewerConfigSummary(config);
+    assert(summary.find("host=127.0.0.1") != std::string::npos);
+    assert(summary.find("password_configured=no") != std::string::npos);
+    assert(summary.find("tls_server_name=viewer.test") != std::string::npos);
+
     config.SetSecurityExtension(ViewerSecurityExtensionMode::DsmPlugin);
     assert(!config.Validate(&error));
     assert(error.find("dsm-plugin") != std::string::npos);

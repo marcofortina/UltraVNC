@@ -83,6 +83,11 @@ int main()
     assert(options.persistentInputSmoke);
 
     args.clear();
+    args.push_back("--print-config");
+    assert(ParseViewerCli(args, options, error));
+    assert(options.printConfig);
+
+    args.clear();
     args.push_back("--connect-display-smoke");
     assert(ParseViewerCli(args, options, error));
     assert(options.connectDisplaySmoke);
@@ -203,5 +208,6 @@ int main()
     assert(usage.find("--list-remote") != std::string::npos);
     assert(usage.find("--download-remote") != std::string::npos);
     assert(usage.find("--security-extension") != std::string::npos);
+    assert(usage.find("--print-config") != std::string::npos);
     return 0;
 }
