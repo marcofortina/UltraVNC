@@ -10,6 +10,9 @@
 
 
 cmake_minimum_required(VERSION 3.10)
+if(POLICY CMP0087)
+  cmake_policy(SET CMP0087 NEW)
+endif()
 
 if(DEFINED ENV{VCPKG_DEFAULT_TRIPLET})
   message(STATUS "Setting default vcpkg target triplet to $ENV{VCPKG_DEFAULT_TRIPLET}")
