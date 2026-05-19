@@ -11,6 +11,7 @@
 #include <dlfcn.h>
 
 #include <algorithm>
+#include <fstream>
 #include <cstring>
 
 namespace uvnc {
@@ -21,6 +22,18 @@ namespace {
 void SetError(std::string *error, const std::string& message)
 {
     if (error) *error = message;
+}
+
+
+bool LooksLikeWindowsPortableExecutable(const std::string& path)
+{
+    std::ifstream input(path.c_str(), std::ios::binary);
+    if (!input) {
+        return false;
+    }
+    unsigned char magic[2] = {0, 0};
+    input.read(reinterpret_cast<char *>(magic), sizeof(magic));
+    return input.gcount() == static_cast<std::streamsize>(sizeof(magic)) && magic[0] == 'M' && magic[1] == 'Z';
 }
 
 std::string DlErrorText()
@@ -71,6 +84,10 @@ bool DsmProvider::Load(const std::string& path, std::string *error)
 {
     Reset();
     if (!ValidateDsmProviderPath(path, error)) {
+        return false;
+    }
+    if (LooksLikeWindowsPortableExecutable(path)) {
+        SetError(error, "Windows DSM plugins are PE/COFF DLLs and cannot be loaded by the native Linux DSM provider ABI; use a Linux provider .so/.dsm or a separately reviewed Wine bridge");
         return false;
     }
 

@@ -10,6 +10,8 @@
 #include "vncPortableServerConfig.h"
 
 #include <cassert>
+#include <fstream>
+#include <unistd.h>
 #include <string>
 #include <vector>
 
@@ -24,6 +26,16 @@ int main()
     std::string error;
     assert(!ValidateDsmProviderPath("relative-provider.so", &error));
     assert(error.find("absolute") != std::string::npos);
+
+    const std::string windowsDsm = std::string("/tmp/uvnc-windows-dsm-") + std::to_string(getpid()) + ".dsm";
+    {
+        std::ofstream out(windowsDsm.c_str(), std::ios::binary | std::ios::trunc);
+        out << "MZ";
+    }
+    DsmProvider windowsProvider;
+    assert(!windowsProvider.Load(windowsDsm, &error));
+    assert(error.find("Windows DSM plugins") != std::string::npos);
+    unlink(windowsDsm.c_str());
 
     DsmProvider provider;
     assert(provider.Load(UVNC_TEST_DSM_PROVIDER_PATH, &error));
