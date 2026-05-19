@@ -10,6 +10,7 @@
 
 #include "vncPortableRfb.h"
 #include "vncPortableCursor.h"
+#include "vncPortableFileTransfer.h"
 #include "vncPortableRfbMessages.h"
 #include "vncPortableRfbUpdate.h"
 
@@ -322,15 +323,24 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
         if (!DecodeFileTransferHeader(wire, message)) {
             return false;
         }
-        std::vector<CARD8> payload(message.length);
+        const FileTransferMode mode = state ? state->FileTransferModeValue() : FileTransferMode::Disabled;
+        const CARD32 limit = state ? state->FileTransferPayloadLimit() : DefaultFileTransferPayloadLimit();
+        const FileTransferDecision decision = EvaluateFileTransferMessage(message, mode, limit);
+        if (!decision.readPayload) {
+            if (stats) {
+                stats->fileTransferMessages += 1;
+            }
+            return SendFileTransferAbort(socket, decision.abortReason);
+        }
+        std::vector<CARD8> payload(decision.payloadBytes);
         if (!payload.empty() && !socket.ReadExact(payload.data(), payload.size())) {
             return false;
         }
         if (stats) {
             stats->fileTransferMessages += 1;
-            stats->fileTransferBytesDiscarded += message.length;
+            stats->fileTransferBytesDiscarded += decision.payloadBytes;
         }
-        return SendFileTransferAbort(socket);
+        return SendFileTransferAbort(socket, decision.abortReason);
     }
     default:
         return false;
@@ -404,9 +414,9 @@ bool RfbServerSession::SendCursorShape(TcpSocket& socket, RfbClientState& state)
     return true;
 }
 
-bool RfbServerSession::SendFileTransferAbort(TcpSocket& socket) const
+bool RfbServerSession::SendFileTransferAbort(TcpSocket& socket, CARD16 contentParam) const
 {
-    const std::vector<CARD8> bytes = EncodeFileTransferAbort();
+    const std::vector<CARD8> bytes = EncodeFileTransferAbort(contentParam);
     return socket.WriteAll(bytes.data(), bytes.size());
 }
 
