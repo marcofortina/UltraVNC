@@ -37,6 +37,7 @@ function(uvnc_add_viewer_portable_test name source)
         "${CMAKE_SOURCE_DIR}/../vncviewer/vncPortableViewerSession.cpp"
         "${CMAKE_SOURCE_DIR}/../vncviewer/vncPortableViewerFileTransfer.cpp"
         "${CMAKE_SOURCE_DIR}/../vncviewer/vncPortableViewerSecurity.cpp"
+        "${CMAKE_SOURCE_DIR}/../vncviewer/vncPortableMsLogon.cpp"
         "${CMAKE_SOURCE_DIR}/../vncviewer/vncPortableVncAuth.cpp"
         "${CMAKE_SOURCE_DIR}/../rfb/vncauth.c"
         "${CMAKE_SOURCE_DIR}/../common/d3des.c"
