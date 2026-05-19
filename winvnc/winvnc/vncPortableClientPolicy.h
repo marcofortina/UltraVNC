@@ -9,6 +9,7 @@
 #ifndef UVNC_WINVNC_PORTABLE_CLIENT_POLICY_H
 #define UVNC_WINVNC_PORTABLE_CLIENT_POLICY_H
 
+#include <mutex>
 #include <string>
 
 namespace uvnc {
@@ -23,11 +24,12 @@ public:
     bool RegisterClient(bool sharedClientRequested, std::string *reason = nullptr);
     void UnregisterClient(bool sharedClientRequested);
 
-    unsigned int ActiveClients() const { return activeClients_; }
-    bool HasExclusiveClient() const { return exclusiveClientActive_; }
+    unsigned int ActiveClients() const;
+    bool HasExclusiveClient() const;
 
 private:
     unsigned int maxSharedClients_;
+    mutable std::mutex mutex_;
     unsigned int activeClients_;
     bool exclusiveClientActive_;
 };

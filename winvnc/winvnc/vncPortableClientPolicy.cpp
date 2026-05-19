@@ -21,6 +21,7 @@ ClientConnectionPolicy::ClientConnectionPolicy(unsigned int maxSharedClients)
 
 bool ClientConnectionPolicy::CanAccept(bool sharedClientRequested, std::string *reason) const
 {
+    std::lock_guard<std::mutex> lock(mutex_);
     if (exclusiveClientActive_) {
         if (reason) *reason = "exclusive client is already connected";
         return false;
@@ -39,7 +40,17 @@ bool ClientConnectionPolicy::CanAccept(bool sharedClientRequested, std::string *
 
 bool ClientConnectionPolicy::RegisterClient(bool sharedClientRequested, std::string *reason)
 {
-    if (!CanAccept(sharedClientRequested, reason)) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (exclusiveClientActive_) {
+        if (reason) *reason = "exclusive client is already connected";
+        return false;
+    }
+    if (!sharedClientRequested && activeClients_ != 0) {
+        if (reason) *reason = "exclusive client requested while shared clients are connected";
+        return false;
+    }
+    if (sharedClientRequested && activeClients_ >= maxSharedClients_) {
+        if (reason) *reason = "maximum shared clients reached";
         return false;
     }
     activeClients_ += 1;
@@ -50,12 +61,25 @@ bool ClientConnectionPolicy::RegisterClient(bool sharedClientRequested, std::str
 
 void ClientConnectionPolicy::UnregisterClient(bool)
 {
+    std::lock_guard<std::mutex> lock(mutex_);
     if (activeClients_ > 0) {
         activeClients_ -= 1;
     }
     if (activeClients_ == 0) {
         exclusiveClientActive_ = false;
     }
+}
+
+unsigned int ClientConnectionPolicy::ActiveClients() const
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    return activeClients_;
+}
+
+bool ClientConnectionPolicy::HasExclusiveClient() const
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    return exclusiveClientActive_;
 }
 
 } // namespace portable
