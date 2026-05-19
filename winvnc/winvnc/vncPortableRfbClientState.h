@@ -40,6 +40,7 @@ public:
     unsigned int ClientCutTextMessages() const { return clientCutTextMessages_; }
     unsigned int ClientCutTextBytes() const { return clientCutTextBytes_; }
     const std::string& LastClientCutText() const { return lastClientCutText_; }
+    const std::string& LastServerCutText() const { return lastServerCutText_; }
     FileTransferMode FileTransferModeValue() const { return fileTransferMode_; }
     unsigned int FileTransferPayloadLimit() const { return fileTransferPayloadLimit_; }
 
@@ -51,6 +52,7 @@ public:
     void RecordPointerEvent(const PointerEvent& event);
     void RecordClientCutText(unsigned int bytes);
     void RecordClientCutText(const std::string& text);
+    void RecordServerCutTextSent(const std::string& text);
 
 private:
     rfbPixelFormat pixelFormat_;
@@ -62,6 +64,7 @@ private:
     unsigned int clientCutTextMessages_;
     unsigned int clientCutTextBytes_;
     std::string lastClientCutText_;
+    std::string lastServerCutText_;
     bool cursorShapeSent_;
     bool sharedClientRequested_;
     bool clientInitReceived_;

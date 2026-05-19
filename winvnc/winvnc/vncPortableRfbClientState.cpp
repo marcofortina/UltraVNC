@@ -25,6 +25,7 @@ RfbClientState::RfbClientState(const ServerConfig& config)
       clientCutTextMessages_(0),
       clientCutTextBytes_(0),
       lastClientCutText_(),
+      lastServerCutText_(),
       cursorShapeSent_(false),
       sharedClientRequested_(true),
       clientInitReceived_(false),
@@ -106,6 +107,11 @@ void RfbClientState::RecordClientCutText(const std::string& text)
     clientCutTextMessages_ += 1;
     clientCutTextBytes_ += static_cast<unsigned int>(text.size());
     lastClientCutText_ = text;
+}
+
+void RfbClientState::RecordServerCutTextSent(const std::string& text)
+{
+    lastServerCutText_ = text;
 }
 
 } // namespace portable
