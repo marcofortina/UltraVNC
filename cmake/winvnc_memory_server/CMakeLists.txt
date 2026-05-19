@@ -34,7 +34,7 @@ if(BUILD_TESTING)
     set_tests_properties(winvnc_memory_server_print_config PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
 
     add_test(NAME winvnc_memory_server_print_admin_summary COMMAND uvnc_winvnc_memory_server --allow-no-auth --print-admin-summary --capture-backend memory --input-backend none --client-mode threaded --pid-file /tmp/uvnc.pid --status-file /tmp/uvnc.status --log-file /tmp/uvnc.log)
-    set_tests_properties(winvnc_memory_server_print_admin_summary PROPERTIES LABELS "native-linux;winvnc-memory-server;linux-server-integration" TIMEOUT 5 PASS_REGULAR_EXPRESSION "linux_admin_equivalent=systemd-user-service.*windows_service_equivalent=uvnc-winvnc-memory-server.service.*windows_tray_ui_equivalent=not-ported-linux-use-status-files-and-journal.*http_java_viewer=legacy-disabled.*dsm_mslogon_security_plugins=unsupported-fail-closed")
+    set_tests_properties(winvnc_memory_server_print_admin_summary PROPERTIES LABELS "native-linux;winvnc-memory-server;linux-server-integration" TIMEOUT 5 PASS_REGULAR_EXPRESSION "linux_admin_equivalent=systemd-user-service.*windows_service_equivalent=uvnc-winvnc-memory-server.service.*windows_tray_ui_equivalent=qt-server-settings-live-admin.*http_java_viewer=legacy-disabled.*dsm_plugin=native-provider-abi-available.*securevnc_plugin=native-dsm-provider-required.*mslogon_ii=server-external-helper-viewer-supported")
 
     add_test(NAME winvnc_memory_server_config_file COMMAND "${CMAKE_SOURCE_DIR}/tests/winvnc_memory_server_config_file_smoke.sh" $<TARGET_FILE:uvnc_winvnc_memory_server>)
     set_tests_properties(winvnc_memory_server_config_file PROPERTIES LABELS "native-linux;winvnc-memory-server;linux-server-integration" TIMEOUT 5)
