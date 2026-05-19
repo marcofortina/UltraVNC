@@ -10,6 +10,8 @@
 
 #include "rfb.h"
 
+#include <sstream>
+
 #include <sys/stat.h>
 
 namespace uvnc {
@@ -165,6 +167,27 @@ bool ViewerConfig::Validate(std::string *error) const
     }
     if (error) error->clear();
     return true;
+}
+
+std::string ViewerConfigSummary(const ViewerConfig& config)
+{
+    std::ostringstream out;
+    out << "host=" << config.Host() << "\n"
+        << "port=" << config.Port() << "\n"
+        << "shared=" << (config.Shared() ? "yes" : "no") << "\n"
+        << "view_only=" << (config.ViewOnly() ? "yes" : "no") << "\n"
+        << "allow_no_auth=" << (config.AllowNoAuth() ? "yes" : "no") << "\n"
+        << "password_configured=" << (!config.Password().empty() ? "yes" : "no") << "\n"
+        << "transport_security=" << ViewerTransportSecurityModeName(config.TransportSecurity()) << "\n"
+        << "tls_verify_peer=" << (config.TlsVerifyPeer() ? "yes" : "no") << "\n"
+        << "tls_server_name=" << config.TlsServerName() << "\n"
+        << "security_extension=" << ViewerSecurityExtensionModeName(config.SecurityExtension()) << "\n"
+        << "security_extension_name=" << config.SecurityExtensionName() << "\n"
+        << "continuous_updates=" << (config.ContinuousUpdates() ? "yes" : "no") << "\n"
+        << "update_interval_ms=" << config.UpdateIntervalMs() << "\n"
+        << "socket_timeout_ms=" << config.SocketTimeoutMs() << "\n"
+        << "encodings=" << config.Encodings().size() << "\n";
+    return out.str();
 }
 
 } // namespace portable
