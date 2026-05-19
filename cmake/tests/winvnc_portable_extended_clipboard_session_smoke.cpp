@@ -104,7 +104,7 @@ int main()
     StaticClipboardSource source("server extended text");
     serverOk = false;
     std::thread requestWorker([&]() {
-        serverOk = session.ServeNextClientMessage(serverSocket, framebuffer, updateSent, &stats, &state, nullptr, false, nullptr, &source);
+        serverOk = session.ServeNextClientMessage(serverSocket, framebuffer, updateSent, &stats, &state, nullptr, false, nullptr, nullptr);
     });
     const std::vector<CARD8> combinedCaps = EncodeExtendedClientCutText(EncodeExtendedClipboardCaps(clipCaps | clipRequest | clipProvide | clipText, 4096));
     serverOk = false;
