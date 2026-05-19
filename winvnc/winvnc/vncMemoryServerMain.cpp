@@ -1379,15 +1379,15 @@ int main(int argc, char **argv)
         while (!StopRequested()) {
             bool accepted = false;
             const bool ok = liveSource ?
-                server.TryServeOneUpdatesFromSource(*liveSource, maxUpdates, inputSink, 128, 250, accepted, clipboardSink) :
-                server.TryServeOneUpdates(maxUpdates, inputSink, 250, accepted, clipboardSink);
+                server.TryServeOneUpdatesFromSource(*liveSource, maxUpdates, inputSink, 128, 250, accepted, clipboardSink, clipboardSink ? &x11Clipboard : nullptr) :
+                server.TryServeOneUpdates(maxUpdates, inputSink, 250, accepted, clipboardSink, clipboardSink ? &x11Clipboard : nullptr);
             if (!ok) {
                 served = false;
                 break;
             }
         }
     } else {
-        served = serveUpdates && liveSource ? server.ServeOneUpdatesFromSource(*liveSource, maxUpdates, inputSink, 128, clipboardSink) :
+        served = serveUpdates && liveSource ? server.ServeOneUpdatesFromSource(*liveSource, maxUpdates, inputSink, 128, clipboardSink, clipboardSink ? &x11Clipboard : nullptr) :
             (serveUpdates ? server.ServeOneUpdates(maxUpdates, inputSink) : server.ServeOne());
     }
 
