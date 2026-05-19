@@ -30,7 +30,7 @@ Production-ready scope currently covered:
 Known limits still outside the current production baseline:
 
 - compressed encoding decoders not yet implemented for Tight JPEG/gradient, ZlibHex and vendor-specific extensions;
-- encrypted transport/TLS security types;
+- DSM/MSLogon/SecureVNC plugin security types;
 - broad vendor interoperability matrix beyond the real servers explicitly tested by the helper scripts.
 
 Recommended release validation before promoting beyond technical preview:
@@ -71,3 +71,12 @@ cmake/qt-viewer-production-gate-smoke.sh \
 
 Only enable labels for servers that are actually available in the lab; the gate
 checks the matrix inputs and then executes the real-server smoke entries.
+
+### VeNCrypt/TLS portable viewer smoke
+
+The portable viewer path includes a local VeNCrypt/X509Vnc smoke test against the native memory server. It verifies the VeNCrypt negotiation, TLS transport, VNCAuth over TLS and framebuffer update path:
+
+```bash
+cmake --build /tmp/uvnc-viewer-tls-build --target vncviewer_portable_vencrypt_tls_session_smoke
+ctest --test-dir /tmp/uvnc-viewer-tls-build --output-on-failure -R vncviewer_portable_vencrypt_tls_session_smoke
+```

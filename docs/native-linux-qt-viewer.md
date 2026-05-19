@@ -265,9 +265,24 @@ The portable viewer security selection is also explicit:
 
 - VNCAuth is preferred when a password is configured and the server offers it;
 - no-auth is accepted only when the viewer policy allows it;
-- VeNCrypt, DSM/SecureVNC plugin and MSLogon-style UltraVNC extensions fail
-  closed in the portable viewer path until a Linux-native TLS/plugin/provider
-  implementation is wired into that viewer path.
+- VeNCrypt/X509Vnc is implemented in the portable viewer path when OpenSSL is available.
+- DSM/SecureVNC plugin and MSLogon-style UltraVNC extensions still fail closed until a Linux-native plugin/provider implementation is designed.
 
 Use `--disable-no-auth` for production smoke runs that must reject accidental
 no-auth servers.
+
+## VeNCrypt/X509Vnc viewer transport
+
+The portable Linux viewer path now supports real VeNCrypt/X509Vnc transport when the build has OpenSSL. Use it with VNCAuth and explicit CA verification:
+
+```bash
+uvnc_qt_viewer \
+  --host SERVER_NAME \
+  --port 5900 \
+  --transport-security vencrypt-x509-vnc \
+  --tls-ca-file /path/to/ca-or-server-cert.pem \
+  --tls-server-name SERVER_NAME \
+  --password-file /path/to/vnc-password
+```
+
+`--tls-insecure` exists only for throwaway lab tests with intentionally untrusted certificates. Production validation should use `--tls-ca-file` and a name that matches the server certificate.
