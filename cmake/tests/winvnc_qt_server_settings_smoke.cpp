@@ -13,6 +13,7 @@
 #include <QComboBox>
 #include <QLineEdit>
 #include <QSpinBox>
+#include <QPushButton>
 #include <QTextEdit>
 
 #include <cassert>
@@ -42,7 +43,14 @@ int main(int argc, char **argv)
     QLineEdit *logFile = panel.findChild<QLineEdit *>("logFileEdit");
     QLineEdit *pidFile = panel.findChild<QLineEdit *>("pidFileEdit");
     QLineEdit *statusFile = panel.findChild<QLineEdit *>("statusFileEdit");
+    QLineEdit *serverExecutable = panel.findChild<QLineEdit *>("serverExecutableEdit");
+    QLineEdit *runtimeConfigPath = panel.findChild<QLineEdit *>("runtimeConfigPathEdit");
+    QPushButton *startButton = panel.findChild<QPushButton *>("startButton");
+    QPushButton *stopButton = panel.findChild<QPushButton *>("stopButton");
+    QPushButton *runtimeStatusButton = panel.findChild<QPushButton *>("runtimeStatusButton");
+    QPushButton *runtimeLogButton = panel.findChild<QPushButton *>("runtimeLogButton");
     QTextEdit *preview = panel.findChild<QTextEdit *>("previewEdit");
+    QTextEdit *runtimeOutput = panel.findChild<QTextEdit *>("runtimeOutputEdit");
 
     assert(bind && bind->text() == "127.0.0.1");
     assert(port && port->value() == 5900);
@@ -58,7 +66,15 @@ int main(int argc, char **argv)
     assert(input && input->currentText() == "none");
     assert(clipboard && clipboard->currentText() == "memory");
     assert(logFile && pidFile && statusFile);
+    assert(serverExecutable && serverExecutable->text() == "uvnc_winvnc_memory_server");
+    assert(runtimeConfigPath && runtimeConfigPath->text().isEmpty());
+    assert(startButton && startButton->text() == "Start user server");
+    assert(stopButton && stopButton->text() == "Stop");
+    assert(runtimeStatusButton && runtimeStatusButton->text() == "Refresh status");
+    assert(runtimeLogButton && runtimeLogButton->text() == "Refresh log");
     assert(preview && preview->toPlainText().contains("auth=vnc-password"));
+    assert(runtimeOutput && runtimeOutput->toPlainText().isEmpty());
+    assert(!panel.ServerRunning());
 
     password->setText("secret");
     passwordFile->setText("/etc/ultravnc/vnc-password");
