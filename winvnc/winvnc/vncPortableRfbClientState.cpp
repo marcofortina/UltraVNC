@@ -27,6 +27,9 @@ RfbClientState::RfbClientState(const ServerConfig& config)
       lastClientCutText_(),
       lastServerCutText_(),
       cursorShapeSent_(false),
+      extendedClipboardCapsSent_(false),
+      extendedClipboardRemoteCaps_(0),
+      extendedClipboardTextAvailable_(false),
       sharedClientRequested_(true),
       clientInitReceived_(false),
       fileTransferMode_(config.FileTransferModeValue()),
@@ -70,6 +73,11 @@ bool RfbClientState::SupportsCursorShapeUpdates() const
     return SupportsRichCursorUpdates() || SupportsXCursorUpdates();
 }
 
+bool RfbClientState::SupportsExtendedClipboard() const
+{
+    return SupportsEncoding(rfbEncodingExtendedClipboard);
+}
+
 void RfbClientState::SetPixelFormat(const rfbPixelFormat& format)
 {
     pixelFormat_ = format;
@@ -79,11 +87,27 @@ void RfbClientState::SetEncodings(const std::vector<CARD32>& encodings)
 {
     encodings_ = encodings;
     cursorShapeSent_ = false;
+    extendedClipboardCapsSent_ = false;
 }
 
 void RfbClientState::MarkCursorShapeSent()
 {
     cursorShapeSent_ = true;
+}
+
+void RfbClientState::MarkExtendedClipboardCapsSent()
+{
+    extendedClipboardCapsSent_ = true;
+}
+
+void RfbClientState::RecordExtendedClipboardRemoteCaps(CARD32 caps)
+{
+    extendedClipboardRemoteCaps_ = caps;
+}
+
+void RfbClientState::RecordExtendedClipboardNotify(CARD32 flags)
+{
+    extendedClipboardTextAvailable_ = (flags & clipText) != 0;
 }
 
 void RfbClientState::RecordClientInit(bool shared)

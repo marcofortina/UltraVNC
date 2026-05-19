@@ -30,6 +30,10 @@ public:
     bool SupportsRichCursorUpdates() const;
     bool SupportsXCursorUpdates() const;
     bool SupportsCursorShapeUpdates() const;
+    bool SupportsExtendedClipboard() const;
+    bool ExtendedClipboardCapsSent() const { return extendedClipboardCapsSent_; }
+    CARD32 ExtendedClipboardRemoteCaps() const { return extendedClipboardRemoteCaps_; }
+    bool ExtendedClipboardTextAvailable() const { return extendedClipboardTextAvailable_; }
     bool CursorShapeSent() const { return cursorShapeSent_; }
     bool SharedClientRequested() const { return sharedClientRequested_; }
     bool ClientInitReceived() const { return clientInitReceived_; }
@@ -56,6 +60,9 @@ public:
     void SetPixelFormat(const rfbPixelFormat& format);
     void SetEncodings(const std::vector<CARD32>& encodings);
     void MarkCursorShapeSent();
+    void MarkExtendedClipboardCapsSent();
+    void RecordExtendedClipboardRemoteCaps(CARD32 caps);
+    void RecordExtendedClipboardNotify(CARD32 flags);
     void RecordClientInit(bool shared);
     void RecordKeyEvent(const KeyEvent& event);
     void RecordPointerEvent(const PointerEvent& event);
@@ -79,6 +86,9 @@ private:
     std::string lastClientCutText_;
     std::string lastServerCutText_;
     bool cursorShapeSent_;
+    bool extendedClipboardCapsSent_;
+    CARD32 extendedClipboardRemoteCaps_;
+    bool extendedClipboardTextAvailable_;
     bool sharedClientRequested_;
     bool clientInitReceived_;
     FileTransferMode fileTransferMode_;
