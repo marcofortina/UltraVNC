@@ -428,6 +428,7 @@ void PrintUsage(const char *name)
               << "  --allow-unencrypted-public Explicitly allow non-loopback VNCAuth without transport encryption\n"
               << "  --validate-config       Validate options and exit\n"
               << "  --print-config          Print resolved configuration and exit\n"
+              << "  --print-admin-summary   Print Linux service/admin equivalence summary and exit\n"
               << "  --smoke-test            Start on loopback, complete one RFB handshake, and exit\n"
               << "  --smoke-update-test     Start on loopback, request one raw framebuffer update, and exit\n"
               << "  --smoke-multi-update-test Start on loopback, request multiple raw framebuffer updates, and exit\n"
@@ -698,10 +699,11 @@ bool ParseUnsigned(const char *value, unsigned int min, unsigned int max, unsign
     return true;
 }
 
-bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& captureBackend, InputBackend& inputBackend, ClipboardBackend& clipboardBackend, ClientServiceMode& clientMode, std::string& rawFramebufferFile, std::string& passwordFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& smokeX11UpdateTest, bool& smokeX11AvailabilityTest, bool& smokePipeWireAvailabilityTest, bool& smokeXTestAvailabilityTest, bool& smokeXTestInputTest, bool& allowInputInjection, bool& serveUpdates, bool& serveForever, unsigned int& maxUpdates, std::string& pidFile, std::string& statusFile, std::string& logFile)
+bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& captureBackend, InputBackend& inputBackend, ClipboardBackend& clipboardBackend, ClientServiceMode& clientMode, std::string& rawFramebufferFile, std::string& passwordFile, bool& validateOnly, bool& printConfig, bool& printAdminSummary, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& smokeX11UpdateTest, bool& smokeX11AvailabilityTest, bool& smokePipeWireAvailabilityTest, bool& smokeXTestAvailabilityTest, bool& smokeXTestInputTest, bool& allowInputInjection, bool& serveUpdates, bool& serveForever, unsigned int& maxUpdates, std::string& pidFile, std::string& statusFile, std::string& logFile)
 {
     validateOnly = false;
     printConfig = false;
+    printAdminSummary = false;
     smokeTest = false;
     smokeUpdateTest = false;
     smokeMultiUpdateTest = false;
@@ -733,6 +735,8 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
             validateOnly = true;
         } else if (arg == "--print-config") {
             printConfig = true;
+        } else if (arg == "--print-admin-summary") {
+            printAdminSummary = true;
         } else if (arg == "--smoke-test") {
             smokeTest = true;
             config.SetBindAddress("127.0.0.1");
@@ -1169,6 +1173,36 @@ void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBac
               << "log_file=" << logFile << "\n";
 }
 
+void PrintLinuxAdminSummary(const ServerConfig& config,
+                            CaptureBackend requestedBackend,
+                            CaptureBackend resolvedBackend,
+                            InputBackend requestedInputBackend,
+                            InputBackend resolvedInputBackend,
+                            ClipboardBackend clipboardBackend,
+                            ClientServiceMode clientMode,
+                            const std::string& pidFile,
+                            const std::string& statusFile,
+                            const std::string& logFile)
+{
+    std::cout << "linux_admin_equivalent=systemd-user-service\n"
+              << "windows_service_equivalent=uvnc-winvnc-memory-server.service\n"
+              << "windows_tray_ui_equivalent=not-ported-linux-use-status-files-and-journal\n"
+              << "windows_settings_ui_equivalent=config-file-plus-validate-config\n"
+              << "http_java_viewer=legacy-disabled\n"
+              << "dsm_mslogon_security_plugins=unsupported-fail-closed\n"
+              << "capture_backend=" << CaptureBackendName(requestedBackend) << "\n"
+              << "resolved_capture_backend=" << CaptureBackendName(resolvedBackend) << "\n"
+              << "input_backend=" << InputBackendName(requestedInputBackend) << "\n"
+              << "resolved_input_backend=" << InputBackendName(resolvedInputBackend) << "\n"
+              << "clipboard_backend=" << ClipboardBackendName(clipboardBackend) << "\n"
+              << "auth=" << ServerAuthModeName(config.AuthMode()) << "\n"
+              << "transport_security=" << TransportSecurityModeName(config.TransportSecurity()) << "\n"
+              << "client_mode=" << ClientServiceModeName(clientMode) << "\n"
+              << "pid_file=" << pidFile << "\n"
+              << "status_file=" << statusFile << "\n"
+              << "log_file=" << logFile << "\n";
+}
+
 ServerConfig ConfigForCapturedFramebuffer(const ServerConfig& base, const Framebuffer& framebuffer)
 {
     ServerConfig config = base;
@@ -1471,6 +1505,7 @@ int main(int argc, char **argv)
     std::string passwordFile;
     bool validateOnly = false;
     bool printConfig = false;
+    bool printAdminSummary = false;
     bool smokeTest = false;
     bool smokeUpdateTest = false;
     bool smokeMultiUpdateTest = false;
@@ -1498,7 +1533,7 @@ int main(int argc, char **argv)
         mergedArgv.push_back(&mergedArgs[i][0]);
     }
 
-    if (!ParseArgs(static_cast<int>(mergedArgv.size()), mergedArgv.data(), config, captureBackend, inputBackend, clipboardBackend, clientMode, rawFramebufferFile, passwordFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, smokeX11AvailabilityTest, smokePipeWireAvailabilityTest, smokeXTestAvailabilityTest, smokeXTestInputTest, allowInputInjection, serveUpdates, serveForever, maxUpdates, pidFile, statusFile, logFile)) {
+    if (!ParseArgs(static_cast<int>(mergedArgv.size()), mergedArgv.data(), config, captureBackend, inputBackend, clipboardBackend, clientMode, rawFramebufferFile, passwordFile, validateOnly, printConfig, printAdminSummary, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, smokeX11AvailabilityTest, smokePipeWireAvailabilityTest, smokeXTestAvailabilityTest, smokeXTestInputTest, allowInputInjection, serveUpdates, serveForever, maxUpdates, pidFile, statusFile, logFile)) {
         return 2;
     }
 
@@ -1546,7 +1581,7 @@ int main(int argc, char **argv)
         std::cerr << "invalid config: " << error << "\n";
         return 2;
     }
-    if (validateOnly || printConfig) {
+    if (validateOnly || printConfig || printAdminSummary) {
         PrintSecurityWarnings(config);
     }
     if (!ResolveCaptureBackend(captureBackend, !rawFramebufferFile.empty(), resolvedCaptureBackend, &error)) {
@@ -1566,6 +1601,10 @@ int main(int argc, char **argv)
     }
     if (printConfig) {
         PrintResolvedConfig(config, captureBackend, resolvedCaptureBackend, inputBackend, resolvedInputBackend, clipboardBackend, clientMode, serveUpdates, serveForever, maxUpdates, pidFile, statusFile, logFile);
+        return 0;
+    }
+    if (printAdminSummary) {
+        PrintLinuxAdminSummary(config, captureBackend, resolvedCaptureBackend, inputBackend, resolvedInputBackend, clipboardBackend, clientMode, pidFile, statusFile, logFile);
         return 0;
     }
     if (smokeTest) {
