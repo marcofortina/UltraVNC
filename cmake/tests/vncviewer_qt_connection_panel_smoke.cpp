@@ -63,9 +63,11 @@ int main(int argc, char **argv)
     QPushButton *sendClipboard = panel.findChild<QPushButton *>("sendClipboardButton");
     QLineEdit *remotePath = panel.findChild<QLineEdit *>("remotePathEdit");
     QLineEdit *downloadOutput = panel.findChild<QLineEdit *>("downloadOutputEdit");
+    QLineEdit *uploadInput = panel.findChild<QLineEdit *>("uploadInputEdit");
     QPushButton *remoteList = panel.findChild<QPushButton *>("remoteListButton");
     QPushButton *remoteDrives = panel.findChild<QPushButton *>("remoteDrivesButton");
     QPushButton *remoteDownload = panel.findChild<QPushButton *>("remoteDownloadButton");
+    QPushButton *remoteUpload = panel.findChild<QPushButton *>("remoteUploadButton");
     QPushButton *loadProfile = panel.findChild<QPushButton *>("loadProfileButton");
     QPushButton *saveProfile = panel.findChild<QPushButton *>("saveProfileButton");
 
@@ -86,9 +88,11 @@ int main(int argc, char **argv)
     assert(sendClipboard && sendClipboard->text() == "Send clipboard");
     assert(remotePath && remotePath->text() == "/");
     assert(downloadOutput && downloadOutput->text().isEmpty());
+    assert(uploadInput && uploadInput->text().isEmpty());
     assert(remoteList && remoteList->text() == "List remote");
     assert(remoteDrives && remoteDrives->text() == "List roots");
     assert(remoteDownload && remoteDownload->text() == "Download");
+    assert(remoteUpload && remoteUpload->text() == "Upload");
     assert(loadProfile && loadProfile->text() == "Load profile");
     assert(saveProfile && saveProfile->text() == "Save profile");
 
