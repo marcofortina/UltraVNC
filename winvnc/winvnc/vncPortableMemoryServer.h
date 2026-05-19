@@ -11,6 +11,7 @@
 
 #include "vncPortableDesktopSource.h"
 #include "vncPortableFramebuffer.h"
+#include "vncPortableClientPolicy.h"
 #include "vncPortableRfbSession.h"
 #include "vncPortableServerConfig.h"
 #include "vncPortableTcp.h"
@@ -28,9 +29,9 @@ public:
     bool ServeOne();
     bool ServeOneUpdate(RfbInputSink *inputSink = nullptr);
     bool ServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink = nullptr);
-    bool TryServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink = nullptr, RfbClipboardSource *clipboardSource = nullptr);
-    bool ServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink = nullptr, unsigned int maxMessages = 128, RfbClipboardSink *clipboardSink = nullptr, RfbClipboardSource *clipboardSource = nullptr);
-    bool TryServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink = nullptr, RfbClipboardSource *clipboardSource = nullptr);
+    bool TryServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink = nullptr, RfbClipboardSource *clipboardSource = nullptr, ClientConnectionPolicy *clientPolicy = nullptr);
+    bool ServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink = nullptr, unsigned int maxMessages = 128, RfbClipboardSink *clipboardSink = nullptr, RfbClipboardSource *clipboardSource = nullptr, ClientConnectionPolicy *clientPolicy = nullptr);
+    bool TryServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink = nullptr, RfbClipboardSource *clipboardSource = nullptr, ClientConnectionPolicy *clientPolicy = nullptr);
     void Stop();
     bool Running() const { return listener_.Valid(); }
     unsigned short Port() const { return listener_.Port(); }

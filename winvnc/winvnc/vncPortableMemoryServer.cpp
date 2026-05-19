@@ -108,7 +108,7 @@ bool MemoryServer::ServeOneUpdates(unsigned int updateCount, RfbInputSink *input
     return TryServeOneUpdates(updateCount, inputSink, 0, accepted) && accepted;
 }
 
-bool MemoryServer::TryServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource)
+bool MemoryServer::TryServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy)
 {
     accepted = false;
     if (!listener_.Valid()) {
@@ -121,18 +121,27 @@ bool MemoryServer::TryServeOneUpdates(unsigned int updateCount, RfbInputSink *in
     accepted = true;
     RfbServerSession session;
     RfbClientState state(config_);
-    return session.RunHandshake(client, config_, &state) &&
-           SendInitialServerMessages(session, client, config_, clipboardSource) &&
-           session.ServeFramebufferUpdates(client, framebuffer_, updateCount, 128, nullptr, &state, inputSink, false, clipboardSink);
+    if (!session.RunHandshake(client, config_, &state)) {
+        return false;
+    }
+    if (clientPolicy && !clientPolicy->RegisterClient(state.SharedClientRequested())) {
+        return false;
+    }
+    const bool ok = SendInitialServerMessages(session, client, config_, clipboardSource) &&
+        session.ServeFramebufferUpdates(client, framebuffer_, updateCount, 128, nullptr, &state, inputSink, false, clipboardSink);
+    if (clientPolicy) {
+        clientPolicy->UnregisterClient(state.SharedClientRequested());
+    }
+    return ok;
 }
 
-bool MemoryServer::ServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource)
+bool MemoryServer::ServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy)
 {
     bool accepted = false;
-    return TryServeOneUpdatesFromSource(source, updateCount, inputSink, maxMessages, 0, accepted, clipboardSink, clipboardSource) && accepted;
+    return TryServeOneUpdatesFromSource(source, updateCount, inputSink, maxMessages, 0, accepted, clipboardSink, clipboardSource, clientPolicy) && accepted;
 }
 
-bool MemoryServer::TryServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource)
+bool MemoryServer::TryServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy)
 {
     accepted = false;
     if (!listener_.Valid()) {
@@ -146,8 +155,16 @@ bool MemoryServer::TryServeOneUpdatesFromSource(DesktopSource& source, unsigned 
 
     RfbServerSession session;
     RfbClientState state(config_);
-    if (!session.RunHandshake(client, config_, &state) ||
-        !SendInitialServerMessages(session, client, config_, clipboardSource)) {
+    if (!session.RunHandshake(client, config_, &state)) {
+        return false;
+    }
+    if (clientPolicy && !clientPolicy->RegisterClient(state.SharedClientRequested())) {
+        return false;
+    }
+    if (!SendInitialServerMessages(session, client, config_, clipboardSource)) {
+        if (clientPolicy) {
+            clientPolicy->UnregisterClient(state.SharedClientRequested());
+        }
         return false;
     }
 
@@ -169,6 +186,9 @@ bool MemoryServer::TryServeOneUpdatesFromSource(DesktopSource& source, unsigned 
         if (updateSent) {
             sent += 1;
         }
+    }
+    if (clientPolicy) {
+        clientPolicy->UnregisterClient(state.SharedClientRequested());
     }
     return sent == updateCount;
 }
