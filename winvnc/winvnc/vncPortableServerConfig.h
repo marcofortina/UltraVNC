@@ -66,6 +66,7 @@ public:
     TransportSecurityMode TransportSecurity() const { return transportSecurity_; }
     const std::string& TlsCertificateFile() const { return tlsCertificateFile_; }
     const std::string& TlsPrivateKeyFile() const { return tlsPrivateKeyFile_; }
+    unsigned int UpdatePacingMs() const { return updatePacingMs_; }
 
     void SetBindAddress(const std::string& bindAddress) { bindAddress_ = bindAddress; }
     void SetPort(unsigned short port) { port_ = port; }
@@ -94,6 +95,7 @@ public:
     void SetTransportSecurity(TransportSecurityMode mode) { transportSecurity_ = mode; }
     void SetTlsCertificateFile(const std::string& path) { tlsCertificateFile_ = path; }
     void SetTlsPrivateKeyFile(const std::string& path) { tlsPrivateKeyFile_ = path; }
+    void SetUpdatePacingMs(unsigned int milliseconds) { updatePacingMs_ = milliseconds; }
 
     bool Validate(std::string *error = nullptr) const;
 
@@ -127,6 +129,7 @@ private:
     TransportSecurityMode transportSecurity_;
     std::string tlsCertificateFile_;
     std::string tlsPrivateKeyFile_;
+    unsigned int updatePacingMs_;
 };
 
 } // namespace portable

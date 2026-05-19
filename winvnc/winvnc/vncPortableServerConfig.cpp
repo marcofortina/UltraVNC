@@ -104,7 +104,8 @@ ServerConfig::ServerConfig()
       fileTransferRecursiveMaxEntries_(16384),
       transportSecurity_(TransportSecurityMode::None),
       tlsCertificateFile_(),
-      tlsPrivateKeyFile_()
+      tlsPrivateKeyFile_(),
+      updatePacingMs_(0)
 {
 }
 
@@ -186,6 +187,10 @@ bool ServerConfig::Validate(std::string *error) const
     }
     if (fileTransferRecursiveMaxDepth_ == 0 || fileTransferRecursiveMaxDepth_ > 256) {
         if (error) *error = "file-transfer recursive max depth must be between 1 and 256";
+        return false;
+    }
+    if (updatePacingMs_ > 5000) {
+        if (error) *error = "update pacing must be between 0 and 5000 milliseconds";
         return false;
     }
     if (fileTransferRecursiveMaxEntries_ == 0 || fileTransferRecursiveMaxEntries_ > 1048576) {
