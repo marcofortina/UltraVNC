@@ -26,6 +26,7 @@ struct ExtendedClipboardPayload {
     std::string text;
     bool textPresent;
     bool malformed;
+    CARD32 textLimit;
 
     ExtendedClipboardPayload();
 };

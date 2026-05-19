@@ -33,6 +33,7 @@ public:
     bool SupportsExtendedClipboard() const;
     bool ExtendedClipboardCapsSent() const { return extendedClipboardCapsSent_; }
     CARD32 ExtendedClipboardRemoteCaps() const { return extendedClipboardRemoteCaps_; }
+    unsigned int ExtendedClipboardRemoteTextLimit() const { return extendedClipboardRemoteTextLimit_; }
     bool ExtendedClipboardTextAvailable() const { return extendedClipboardTextAvailable_; }
     bool ExtendedClipboardEnabled() const { return extendedClipboardEnabled_; }
     unsigned int ExtendedClipboardTextLimit() const { return extendedClipboardTextLimit_; }
@@ -63,7 +64,7 @@ public:
     void SetEncodings(const std::vector<CARD32>& encodings);
     void MarkCursorShapeSent();
     void MarkExtendedClipboardCapsSent();
-    void RecordExtendedClipboardRemoteCaps(CARD32 caps);
+    void RecordExtendedClipboardRemoteCaps(CARD32 caps, unsigned int textLimit = 0);
     void RecordExtendedClipboardNotify(CARD32 flags);
     void RecordClientInit(bool shared);
     void RecordKeyEvent(const KeyEvent& event);
@@ -92,6 +93,7 @@ private:
     unsigned int extendedClipboardTextLimit_;
     bool extendedClipboardCapsSent_;
     CARD32 extendedClipboardRemoteCaps_;
+    unsigned int extendedClipboardRemoteTextLimit_;
     bool extendedClipboardTextAvailable_;
     bool sharedClientRequested_;
     bool clientInitReceived_;

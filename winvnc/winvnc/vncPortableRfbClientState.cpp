@@ -31,6 +31,7 @@ RfbClientState::RfbClientState(const ServerConfig& config)
       extendedClipboardTextLimit_(config.ExtendedClipboardTextLimit()),
       extendedClipboardCapsSent_(false),
       extendedClipboardRemoteCaps_(0),
+      extendedClipboardRemoteTextLimit_(0),
       extendedClipboardTextAvailable_(false),
       sharedClientRequested_(true),
       clientInitReceived_(false),
@@ -102,9 +103,10 @@ void RfbClientState::MarkExtendedClipboardCapsSent()
     extendedClipboardCapsSent_ = true;
 }
 
-void RfbClientState::RecordExtendedClipboardRemoteCaps(CARD32 caps)
+void RfbClientState::RecordExtendedClipboardRemoteCaps(CARD32 caps, unsigned int textLimit)
 {
     extendedClipboardRemoteCaps_ = caps;
+    extendedClipboardRemoteTextLimit_ = textLimit;
 }
 
 void RfbClientState::RecordExtendedClipboardNotify(CARD32 flags)

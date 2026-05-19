@@ -641,7 +641,7 @@ bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Frameb
             const CARD32 action = extended.flags & clipActionMask;
             if (state) {
                 if (action == clipCaps || (extended.flags & clipCaps)) {
-                    state->RecordExtendedClipboardRemoteCaps(extended.flags);
+                    state->RecordExtendedClipboardRemoteCaps(extended.flags, extended.textLimit);
                 } else if (action == clipNotify) {
                     state->RecordExtendedClipboardNotify(extended.flags);
                 }

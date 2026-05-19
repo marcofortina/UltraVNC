@@ -111,7 +111,7 @@ std::vector<CARD8> EncodeCutTextMessage(CARD8 type, const std::vector<CARD8>& pa
 } // namespace
 
 ExtendedClipboardPayload::ExtendedClipboardPayload()
-    : flags(0), text(), textPresent(false), malformed(false)
+    : flags(0), text(), textPresent(false), malformed(false), textLimit(0)
 {
 }
 
@@ -174,6 +174,9 @@ bool DecodeExtendedClipboardPayload(const std::vector<CARD8>& payload, ExtendedC
     }
     out.flags = ReadU32(payload.data());
     const CARD32 action = out.flags & clipActionMask;
+    if ((out.flags & clipCaps) != 0 && (out.flags & clipText) != 0 && payload.size() >= sz_rfbExtendedClipboardData + sizeof(CARD32)) {
+        out.textLimit = ReadU32(payload.data() + sz_rfbExtendedClipboardData);
+    }
     if (action == clipProvide) {
         return DecodeExtendedClipboardProvidedText(payload, out.text) ? (out.textPresent = true, true) : (out.malformed = true, false);
     }
