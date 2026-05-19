@@ -9,6 +9,7 @@
 [Unit]
 Description=UltraVNC experimental native Linux WinVNC memory server
 Documentation=file:@CMAKE_INSTALL_FULL_DATADIR@/ultravnc/linux/native-linux-server-backend-integration.md
+Documentation=file:@CMAKE_INSTALL_FULL_DATADIR@/ultravnc/linux/native-linux-service-admin-equivalents.md
 After=graphical-session.target
 PartOf=graphical-session.target
 
@@ -21,9 +22,12 @@ LockPersonality=true
 RestrictSUIDSGID=true
 EnvironmentFile=-%h/.config/ultravnc/uvnc-winvnc-memory-server.env
 ExecStart=@CMAKE_INSTALL_FULL_BINDIR@/uvnc_winvnc_memory_server --config %h/.config/ultravnc/uvnc-winvnc-linux-server.conf --serve-forever --max-updates ${UVNC_MAX_UPDATES} --pid-file %t/uvnc-winvnc-memory-server.pid --status-file %t/uvnc-winvnc-memory-server.status --log-file %t/uvnc-winvnc-memory-server.log
+ExecReload=@CMAKE_INSTALL_FULL_BINDIR@/uvnc_winvnc_memory_server --config %h/.config/ultravnc/uvnc-winvnc-linux-server.conf --validate-config
 Restart=on-failure
 RestartPreventExitStatus=2
 RestartSec=2s
+KillSignal=SIGTERM
+TimeoutStopSec=10s
 
 [Install]
 WantedBy=default.target
