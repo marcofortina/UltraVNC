@@ -79,3 +79,7 @@ Those are not silently missing features: they are documented platform boundaries
 ## Qt server settings
 
 `uvnc_qt_server_settings` provides the native Linux Qt configuration GUI for `uvnc_winvnc_memory_server`. It is not a Win32 dialog shim; it writes the Linux server config model directly. See `docs/native-linux-qt-server-settings.md`.
+
+## Password file helper
+
+`uvnc_winvnc_password_file` is the native Linux helper for creating/validating the private password file used by `uvnc_winvnc_memory_server --auth vnc-password --password-file`.

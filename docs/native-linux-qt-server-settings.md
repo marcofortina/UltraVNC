@@ -22,3 +22,12 @@ uvnc_qt_server_settings --print-default-config > /tmp/uvnc-winvnc-linux-server.c
 ```
 
 The generated preview deliberately does not embed production VNC passwords.  Use a private `password_file` or MSLogonII `auth_helper` for real deployments.
+
+## Password file helper
+
+Use `uvnc_winvnc_password_file` to create or validate private VNCAuth password files consumed by `password_file=`. The helper enforces the 8-byte VNCAuth limit and writes files with mode `0600`.
+
+```sh
+uvnc_winvnc_password_file --output /etc/ultravnc/vnc-password --password secret
+uvnc_winvnc_password_file --validate --output /etc/ultravnc/vnc-password
+```
