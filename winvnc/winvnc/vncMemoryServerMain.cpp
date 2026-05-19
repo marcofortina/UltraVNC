@@ -50,6 +50,7 @@ using uvnc::winvnc::portable::TransportSecurityModeName;
 using uvnc::winvnc::portable::EvaluateSecurityExtension;
 using uvnc::winvnc::portable::ParseSecurityExtensionOption;
 using uvnc::winvnc::portable::SecurityExtensionDecision;
+using uvnc::winvnc::portable::SecurityExtensionKindName;
 using uvnc::winvnc::portable::ParseTransportSecurityMode;
 using uvnc::winvnc::linuxfb::CaptureBackend;
 using uvnc::winvnc::linuxfb::CaptureBackendName;
@@ -901,10 +902,11 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
                 return false;
             }
             config.SetFileTransferRecursiveMaxEntries(entries);
-        } else if (arg == "--security-plugin" || arg == "--dsm-plugin" || arg == "--mslogon" || arg == "--http-java-viewer") {
+        } else if (arg == "--security-plugin" || arg == "--dsm-plugin" || arg == "--securevnc-plugin" || arg == "--mslogon" || arg == "--mslogon-i" || arg == "--mslogon-ii" || arg == "--http-java-viewer") {
             const SecurityExtensionDecision decision = EvaluateSecurityExtension(ParseSecurityExtensionOption(arg));
             std::cerr << arg << " is not supported by the native Linux server runtime: "
-                      << decision.reason << "; " << decision.replacement << "\n";
+                      << decision.reason << "; " << decision.replacement
+                      << "; original=" << decision.originalImplementation << "\n";
             return false;
         } else if (arg == "--pattern" && i + 1 < argc) {
             FramebufferPattern pattern = FramebufferPattern::Solid;
@@ -1189,7 +1191,10 @@ void PrintLinuxAdminSummary(const ServerConfig& config,
               << "windows_tray_ui_equivalent=not-ported-linux-use-status-files-and-journal\n"
               << "windows_settings_ui_equivalent=config-file-plus-validate-config\n"
               << "http_java_viewer=legacy-disabled\n"
-              << "dsm_mslogon_security_plugins=unsupported-fail-closed\n"
+              << "dsm_plugin=legacy-windows-abi-disabled\n"
+              << "securevnc_plugin=legacy-dsm-plugin-disabled\n"
+              << "mslogon_i=legacy-windows-auth-disabled\n"
+              << "mslogon_ii=server-disabled-viewer-supported\n"
               << "capture_backend=" << CaptureBackendName(requestedBackend) << "\n"
               << "resolved_capture_backend=" << CaptureBackendName(resolvedBackend) << "\n"
               << "input_backend=" << InputBackendName(requestedInputBackend) << "\n"
