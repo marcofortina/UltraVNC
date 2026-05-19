@@ -191,6 +191,8 @@ bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& opti
             options.config.SetTlsServerName(args[++i]);
         } else if (arg == "--tls-insecure") {
             options.config.SetTlsVerifyPeer(false);
+        } else if (arg == "--username" && i + 1 < args.size()) {
+            options.config.SetUsername(args[++i]);
         } else if (arg == "--password" && i + 1 < args.size()) {
             options.config.SetPassword(args[++i]);
         } else if (arg == "--password-file" && i + 1 < args.size()) {
@@ -305,7 +307,8 @@ std::string ViewerCliUsage(const char *programName)
         << "  --tls-ca-file <path> CA file for VeNCrypt TLS peer verification\n"
         << "  --tls-server-name <name> Name used for TLS SNI and hostname verification\n"
         << "  --tls-insecure         Disable TLS peer verification for throwaway lab tests only\n"
-        << "  --password <password>  Password for VNCAuth-capable sessions\n"
+        << "  --username <name>      Username for MSLogon-capable sessions\n"
+        << "  --password <password>  Password for VNCAuth/MSLogon-capable sessions\n"
         << "  --password-file <path> Read VNCAuth password from a file\n"
         << "  --password-env <name>  Read VNCAuth password from an environment variable\n"
         << "  --clipboard-text <text> Clipboard text sent by persistent input smoke\n"
