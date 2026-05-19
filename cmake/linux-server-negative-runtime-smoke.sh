@@ -67,13 +67,13 @@ chmod 600 "${EMPTY_CONFIG}"
 expect_fail "empty config value" "${BIN}" --config "${EMPTY_CONFIG}" --validate-config
 grep -q 'empty value for config key' /tmp/uvnc-negative-runtime.err
 
-expect_fail "invalid capture backend" "${BIN}" --capture-backend definitely-not-a-backend --validate-config
+expect_fail "invalid capture backend" "${BIN}" --allow-no-auth --capture-backend definitely-not-a-backend --validate-config
 grep -q 'invalid --capture-backend' /tmp/uvnc-negative-runtime.err
 
-expect_fail "invalid input backend" "${BIN}" --input-backend definitely-not-a-backend --validate-config
+expect_fail "invalid input backend" "${BIN}" --allow-no-auth --input-backend definitely-not-a-backend --validate-config
 grep -q 'invalid --input-backend' /tmp/uvnc-negative-runtime.err
 
-expect_fail "unwritable log path serving" "${BIN}" --log-file "${WORK_DIR}/missing-dir/server.log" --serve-updates --max-updates 1
+expect_fail "unwritable log path serving" "${BIN}" --allow-no-auth --log-file "${WORK_DIR}/missing-dir/server.log" --serve-updates --max-updates 1
 grep -q 'cannot open log file' /tmp/uvnc-negative-runtime.err
 
 PORT_HOLDER=""
@@ -101,7 +101,7 @@ for _ in $(seq 1 50); do
   sleep 0.1
 done
 HELD_PORT="$(cat "${PORT_FILE}")"
-expect_fail "occupied TCP port" "${BIN}" --bind-address 127.0.0.1 --port "${HELD_PORT}" --serve-updates --max-updates 1
+expect_fail "occupied TCP port" "${BIN}" --allow-no-auth --bind-address 127.0.0.1 --port "${HELD_PORT}" --serve-updates --max-updates 1
 kill "${PORT_HOLDER}" 2>/dev/null || true
 wait "${PORT_HOLDER}" 2>/dev/null || true
 PORT_HOLDER=""

@@ -52,22 +52,26 @@ if "${BIN}" --password-file "${BAD_PASSWORD_FILE}" --validate-config >"${WORK_DI
 fi
 grep -q 'password file must not be accessible by group/other' "${WORK_DIR}/bad.err"
 
+VNCAUTH_VALIDATE_ERR="${WORK_DIR}/vncauth-validate.err"
 "${BIN}" \
   --auth vnc-password \
   --password-file "${PASSWORD_FILE}" \
   --bind-address 127.0.0.1 \
   --capture-backend memory \
   --input-backend none \
-  --validate-config
+  --validate-config 2>"${VNCAUTH_VALIDATE_ERR}"
+grep -q 'VNCAuth protects the handshake' "${VNCAUTH_VALIDATE_ERR}"
 
 CONFIG_OUT="${WORK_DIR}/print-config.out"
+CONFIG_ERR="${WORK_DIR}/print-config.err"
 "${BIN}" \
   --password-file "${PASSWORD_FILE}" \
   --bind-address 127.0.0.1 \
   --capture-backend memory \
   --input-backend none \
-  --print-config >"${CONFIG_OUT}"
+  --print-config >"${CONFIG_OUT}" 2>"${CONFIG_ERR}"
 grep -q '^auth=vnc-password$' "${CONFIG_OUT}"
+grep -q 'VNCAuth protects the handshake' "${CONFIG_ERR}"
 if grep -qi 'secret1\|password_file=' "${CONFIG_OUT}"; then
   echo "print-config must not expose password material or password-file paths" >&2
   cat "${CONFIG_OUT}" >&2
@@ -79,14 +83,14 @@ fi
   --smoke-test \
   --width 64 \
   --height 32 \
-  --name secure-vncauth-handshake-smoke
+  --name secure-vncauth-handshake-smoke 2>"${WORK_DIR}/vncauth-handshake.err"
 
 "${BIN}" \
   --password-file "${PASSWORD_FILE}" \
   --smoke-update-test \
   --width 64 \
   --height 32 \
-  --name secure-vncauth-update-smoke
+  --name secure-vncauth-update-smoke 2>"${WORK_DIR}/vncauth-update.err"
 
 "${BIN}" \
   --password-file "${PASSWORD_FILE}" \
@@ -94,7 +98,7 @@ fi
   --max-updates 3 \
   --width 64 \
   --height 32 \
-  --name secure-vncauth-multi-update-smoke
+  --name secure-vncauth-multi-update-smoke 2>"${WORK_DIR}/vncauth-multi-update.err"
 
 if [[ "${UVNC_RUN_SECURE_X11_SERVER:-0}" != "1" ]]; then
   echo "Skipping secure live X11 VNCAuth smoke because UVNC_RUN_SECURE_X11_SERVER=1 is not set."
@@ -123,6 +127,6 @@ esac
   --capture-backend x11 \
   --input-backend none \
   --smoke-x11-update-test \
-  --name secure-x11-vncauth-smoke
+  --name secure-x11-vncauth-smoke 2>"${WORK_DIR}/secure-x11-vncauth.err"
 
 echo "Secure Linux server runtime smoke passed."
