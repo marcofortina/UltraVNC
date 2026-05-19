@@ -412,8 +412,9 @@ void PrintUsage(const char *name)
               << "  --clipboard-backend <name> Clipboard backend: none, x11\n"
               << "  --raw-framebuffer-file <path> Serve exact-size raw framebuffer file instead of synthetic pattern\n"
               << "  --config <path>         Load key=value server runtime config before CLI overrides\n"
-              << "  --auth <mode>           Auth mode: none or vnc-password\n"
+              << "  --auth <mode>           Auth mode: none, vnc-password, mslogon-ii\n"
               << "  --password-file <path>  Read VNCAuth password from a private file, max 8 bytes\n"
+              << "  --auth-helper <path>   External auth helper for MSLogonII/PAM-style validation\n"
               << "  --bell-on-connect     Send an RFB Bell message after client handshake\n"
               << "  --server-cut-text <text> Send initial ServerCutText clipboard text after handshake\n"
               << "  --file-transfer-mode <mode> File transfer policy: disabled, reject-only\n"
@@ -489,6 +490,8 @@ bool AddConfigOption(const std::string& key, const std::string& value, std::vect
         args.push_back("--auth");
     } else if (key == "password_file") {
         args.push_back("--password-file");
+    } else if (key == "auth_helper") {
+        args.push_back("--auth-helper");
     } else if (key == "allow_no_auth") {
         if (value == "true" || value == "1" || value == "yes") {
             args.push_back("--allow-no-auth");
@@ -788,6 +791,8 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
             config.SetAuthMode(mode);
         } else if (arg == "--password-file" && i + 1 < argc) {
             passwordFile = argv[++i];
+        } else if (arg == "--auth-helper" && i + 1 < argc) {
+            config.SetAuthHelperPath(argv[++i]);
         } else if (arg == "--transport-security" && i + 1 < argc) {
             TransportSecurityMode mode = TransportSecurityMode::None;
             if (!ParseTransportSecurityMode(argv[++i], mode)) {
@@ -1148,6 +1153,7 @@ void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBac
               << "resolved_input_backend=" << InputBackendName(resolvedInputBackend) << "\n"
               << "clipboard_backend=" << ClipboardBackendName(clipboardBackend) << "\n"
               << "auth=" << ServerAuthModeName(config.AuthMode()) << "\n"
+              << "auth_helper=" << (config.AuthHelperPath().empty() ? "" : "<configured>") << "\n"
               << "allow_no_auth=" << (config.AllowNoAuth() ? "yes" : "no") << "\n"
               << "allow_public_no_auth=" << (config.AllowPublicNoAuth() ? "yes" : "no") << "\n"
               << "allow_unencrypted_public=" << (config.AllowUnencryptedPublic() ? "yes" : "no") << "\n"
@@ -1201,6 +1207,7 @@ void PrintLinuxAdminSummary(const ServerConfig& config,
               << "resolved_input_backend=" << InputBackendName(resolvedInputBackend) << "\n"
               << "clipboard_backend=" << ClipboardBackendName(clipboardBackend) << "\n"
               << "auth=" << ServerAuthModeName(config.AuthMode()) << "\n"
+              << "auth_helper=" << (config.AuthHelperPath().empty() ? "" : "<configured>") << "\n"
               << "transport_security=" << TransportSecurityModeName(config.TransportSecurity()) << "\n"
               << "client_mode=" << ClientServiceModeName(clientMode) << "\n"
               << "pid_file=" << pidFile << "\n"
