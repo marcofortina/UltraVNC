@@ -82,6 +82,7 @@ int main()
         std::cerr << "invalid max shared clients accepted\n";
         return 1;
     }
+    config.SetMaxSharedClients(4);
     config.SetFileTransferRoot("/tmp");
     assert(config.Validate());
     config.SetFileTransferRoot("relative");
