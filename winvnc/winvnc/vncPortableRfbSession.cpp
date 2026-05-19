@@ -85,7 +85,7 @@ bool SendExtendedClipboardCaps(RfbTransport& socket, RfbClientState& state, RfbS
     if (!state.SupportsExtendedClipboard() || state.ExtendedClipboardCapsSent()) {
         return true;
     }
-    const std::vector<CARD8> payload = EncodeExtendedClipboardCaps();
+    const std::vector<CARD8> payload = EncodeExtendedClipboardCaps(kExtendedClipboardServerCaps, state.ExtendedClipboardTextLimit());
     const std::vector<CARD8> message = EncodeExtendedServerCutText(payload);
     if (!socket.WriteAll(message.data(), message.size())) {
         return false;
