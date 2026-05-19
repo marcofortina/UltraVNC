@@ -41,6 +41,8 @@ int main()
     args.push_back("secret");
     args.push_back("--transport-security");
     args.push_back("vencrypt-x509-vnc");
+    args.push_back("--tls-server-name");
+    args.push_back("example.test");
     args.push_back("--tls-insecure");
     args.push_back("--continuous-updates");
     args.push_back("--clipboard-text");
@@ -70,6 +72,7 @@ int main()
     assert(options.config.Encodings()[5] == rfbEncodingTight);
     assert(options.config.Password() == "secret");
     assert(options.config.TransportSecurity() == ViewerTransportSecurityMode::VeNCryptX509Vnc);
+    assert(options.config.TlsServerName() == "example.test");
     assert(!options.config.TlsVerifyPeer());
     assert(options.config.ContinuousUpdates());
     assert(options.clipboardText == "hello clipboard");

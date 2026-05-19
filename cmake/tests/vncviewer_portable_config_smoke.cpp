@@ -51,8 +51,10 @@ int main()
     config.SetTransportSecurity(ViewerTransportSecurityMode::VeNCryptX509Vnc);
     config.SetPassword("secret");
     config.SetTlsVerifyPeer(false);
+    config.SetTlsServerName("localhost");
     assert(config.Validate(&error));
     assert(config.TransportSecurity() == ViewerTransportSecurityMode::VeNCryptX509Vnc);
+    assert(config.TlsServerName() == "localhost");
 
     config.SetRequestUpdate(true);
     config.SetViewOnly(true);

@@ -111,15 +111,16 @@ int main()
     std::thread worker([&]() { assert(server.ServeOne()); });
 
     ViewerConfig viewerConfig;
-    viewerConfig.SetHost("localhost");
+    viewerConfig.SetHost("127.0.0.1");
     viewerConfig.SetPort(server.Port());
     viewerConfig.SetPassword("secret");
     viewerConfig.SetTransportSecurity(ViewerTransportSecurityMode::VeNCryptX509Vnc);
     viewerConfig.SetTlsCaFile(certPath);
+    viewerConfig.SetTlsServerName("localhost");
 
     ViewerSessionResult result;
     std::string error;
-    assert(ViewerSession().RunHandshake(viewerConfig, result, &error));
+assert(ViewerSession().RunHandshake(viewerConfig, result, &error));
     assert(error.empty());
     assert(result.width == 64);
     assert(result.height == 32);
