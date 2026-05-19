@@ -24,9 +24,12 @@ if ! cmake --build "$build_dir" --target help | grep -q '^uvnc_qt_viewer:'; then
   exit 0
 fi
 
-cmake --build "$build_dir" --target uvnc_qt_viewer vncviewer_qt_surface_smoke vncviewer_qt_connection_panel_smoke -j"$(nproc)"
-ctest --test-dir "$build_dir" --output-on-failure -R '^vncviewer_qt_(smoke|surface_smoke|connection_panel_smoke)$'
+cmake --build "$build_dir" --target uvnc_qt_viewer uvnc_qt_server_settings vncviewer_qt_surface_smoke vncviewer_qt_connection_panel_smoke winvnc_qt_server_settings_smoke -j"$(nproc)"
+ctest --test-dir "$build_dir" --output-on-failure -R '^(vncviewer_qt_(smoke|surface_smoke|connection_panel_smoke)|winvnc_qt_server_settings_(smoke|cli_smoke))$'
 cmake --install "$build_dir" --prefix "$install_prefix"
 
 QT_QPA_PLATFORM=offscreen "$install_prefix/bin/uvnc_qt_viewer" --validate-config --host 127.0.0.1 --port 5900 --view-only
 QT_QPA_PLATFORM=offscreen "$install_prefix/bin/uvnc_qt_viewer" --smoke-test --host 127.0.0.1 --port 5900 --view-only
+QT_QPA_PLATFORM=offscreen "$install_prefix/bin/uvnc_qt_server_settings" --smoke-test
+QT_QPA_PLATFORM=offscreen "$install_prefix/bin/uvnc_qt_server_settings" --print-default-config >/tmp/uvnc_qt_server_settings_default.conf
+grep -q "auth=vnc-password" /tmp/uvnc_qt_server_settings_default.conf
