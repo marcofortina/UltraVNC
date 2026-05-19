@@ -134,6 +134,10 @@ bool ServerConfig::Validate(std::string *error) const
         if (error) *error = "file-transfer payload guard limit must be between 1 and 16777216 bytes";
         return false;
     }
+    if ((fileTransferMode_ == FileTransferMode::ReadOnly || fileTransferMode_ == FileTransferMode::ReadWrite) && fileTransferRoot_.empty()) {
+        if (error) *error = "file-transfer root is required for read-only/read-write modes";
+        return false;
+    }
     if (!fileTransferRoot_.empty() && fileTransferRoot_[0] != '/') {
         if (error) *error = "file-transfer root must be an absolute path";
         return false;
