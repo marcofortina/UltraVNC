@@ -32,6 +32,7 @@ public:
 
     bool ReadExact(void *buffer, std::size_t length) override;
     bool WriteAll(const void *buffer, std::size_t length) override;
+    TcpSocket& Socket() { return socket_; }
 
 private:
     TcpSocket& socket_;

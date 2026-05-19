@@ -17,6 +17,7 @@
 #include "vncPortableRfb.h"
 #include "vncPortableRfbMessages.h"
 #include "vncPortableTcp.h"
+#include "vncPortableRfbTransport.h"
 
 #include <algorithm>
 #include <cstring>
@@ -47,9 +48,14 @@ using uvnc::winvnc::portable::ExtendedClipboardPayloadLength;
 using uvnc::winvnc::portable::IsExtendedClipboardWireLength;
 using uvnc::winvnc::portable::IsProtocolVersionMessage;
 using uvnc::winvnc::portable::ProtocolVersion38;
+using uvnc::winvnc::portable::kVeNCryptVersion;
+using uvnc::winvnc::portable::kVeNCryptSubTypeX509Vnc;
 using uvnc::winvnc::portable::KeyEvent;
 using uvnc::winvnc::portable::PointerEvent;
 using uvnc::winvnc::portable::TcpSocket;
+using uvnc::winvnc::portable::RfbTransport;
+using uvnc::winvnc::portable::TcpRfbTransport;
+using uvnc::winvnc::portable::CreateOpenSslClientTransport;
 
 void SetError(std::string *error, const std::string& message)
 {
@@ -65,7 +71,7 @@ void SetUnsupportedEncodingError(std::string *error, CARD32 encoding)
     SetError(error, message.str());
 }
 
-bool ReadServerInit(TcpSocket& socket, ViewerSessionResult& result, std::string *error)
+bool ReadServerInit(RfbTransport& socket, ViewerSessionResult& result, std::string *error)
 {
     rfbServerInitMsg init;
     if (!socket.ReadExact(&init, sz_rfbServerInitMsg)) {
@@ -89,7 +95,98 @@ bool ReadServerInit(TcpSocket& socket, ViewerSessionResult& result, std::string 
     return true;
 }
 
-bool RunHandshakeOnSocket(TcpSocket& socket, const ViewerConfig& config, ViewerSessionResult& result, std::string *error)
+bool RunViewerVeNCryptX509VncNegotiation(RfbTransport& transport, std::string *error)
+{
+    CARD16 serverVersion = 0;
+    if (!transport.ReadExact(&serverVersion, sizeof(serverVersion)) || Swap16IfLE(serverVersion) != kVeNCryptVersion) {
+        SetError(error, "failed to negotiate VeNCrypt version");
+        return false;
+    }
+    const CARD16 clientVersion = Swap16IfLE(static_cast<CARD16>(kVeNCryptVersion));
+    if (!transport.WriteAll(&clientVersion, sizeof(clientVersion))) {
+        SetError(error, "failed to write VeNCrypt version");
+        return false;
+    }
+    CARD8 versionStatus = 1;
+    if (!transport.ReadExact(&versionStatus, sizeof(versionStatus)) || versionStatus != 0) {
+        SetError(error, "VeNCrypt version rejected by server");
+        return false;
+    }
+    CARD8 subtypeCount = 0;
+    if (!transport.ReadExact(&subtypeCount, sizeof(subtypeCount)) || subtypeCount == 0) {
+        SetError(error, "VeNCrypt server reported no subtypes");
+        return false;
+    }
+    bool supportsX509Vnc = false;
+    for (CARD8 i = 0; i < subtypeCount; ++i) {
+        CARD32 subtype = 0;
+        if (!transport.ReadExact(&subtype, sizeof(subtype))) {
+            SetError(error, "failed to read VeNCrypt subtype");
+            return false;
+        }
+        if (Swap32IfLE(subtype) == kVeNCryptSubTypeX509Vnc) {
+            supportsX509Vnc = true;
+        }
+    }
+    if (!supportsX509Vnc) {
+        SetError(error, "VeNCrypt server does not offer X509Vnc");
+        return false;
+    }
+    const CARD32 selectedSubtype = Swap32IfLE(kVeNCryptSubTypeX509Vnc);
+    if (!transport.WriteAll(&selectedSubtype, sizeof(selectedSubtype))) {
+        SetError(error, "failed to select VeNCrypt X509Vnc");
+        return false;
+    }
+    CARD8 accepted = 0;
+    if (!transport.ReadExact(&accepted, sizeof(accepted)) || accepted != 1) {
+        SetError(error, "VeNCrypt X509Vnc subtype rejected by server");
+        return false;
+    }
+    return true;
+}
+
+bool RunVncAuthOnTransport(RfbTransport& socket, const ViewerConfig& config, std::string *error)
+{
+    std::vector<unsigned char> challenge(16);
+    if (!socket.ReadExact(challenge.data(), challenge.size())) {
+        SetError(error, "failed to read RFB VNCAuth challenge");
+        return false;
+    }
+    std::vector<unsigned char> response;
+    if (!EncryptVncAuthChallenge(challenge, config.Password(), response, error)) {
+        return false;
+    }
+    if (!socket.WriteAll(response.data(), response.size())) {
+        SetError(error, "failed to write RFB VNCAuth response");
+        return false;
+    }
+    return true;
+}
+
+bool FinishRfbAuthResult(RfbTransport& socket, CARD8 selectedSecurity, std::string *error)
+{
+    CARD32 authResult = 1;
+    if (!socket.ReadExact(&authResult, sizeof(authResult)) || Swap32IfLE(authResult) != rfbVncAuthOK) {
+        SetError(error, selectedSecurity == rfbVncAuth ? "RFB VNCAuth security failed" : "RFB no-auth security failed");
+        return false;
+    }
+    return true;
+}
+
+bool SendClientInitAndReadServerInit(RfbTransport& socket, const ViewerConfig& config, ViewerSessionResult& result, std::string *error)
+{
+    rfbClientInitMsg clientInit;
+    std::memset(&clientInit, 0, sizeof(clientInit));
+    clientInit.flags = config.Shared() ? clientInitShared : clientInitNotShare;
+    if (!socket.WriteAll(&clientInit, sz_rfbClientInitMsg)) {
+        SetError(error, "failed to write RFB ClientInit");
+        return false;
+    }
+    return ReadServerInit(socket, result, error);
+}
+
+
+bool RunHandshakeOnTransport(RfbTransport& socket, const ViewerConfig& config, ViewerSessionResult& result, std::unique_ptr<RfbTransport> *upgradedTransport, std::string *error)
 {
     char serverVersion[sz_rfbProtocolVersionMsg] = {};
     if (!socket.ReadExact(serverVersion, sizeof(serverVersion))) {
@@ -122,7 +219,7 @@ bool RunHandshakeOnSocket(TcpSocket& socket, const ViewerConfig& config, ViewerS
         return false;
     }
 
-    const ViewerSecurityDecision security = SelectViewerSecurityType(securityTypes, !config.Password().empty(), config.AllowNoAuth());
+    const ViewerSecurityDecision security = SelectViewerSecurityType(securityTypes, !config.Password().empty(), config.AllowNoAuth(), config.TransportSecurity() == ViewerTransportSecurityMode::VeNCryptX509Vnc);
     if (security.selection == ViewerSecuritySelection::Unsupported) {
         SetError(error, security.error);
         return false;
@@ -134,37 +231,38 @@ bool RunHandshakeOnSocket(TcpSocket& socket, const ViewerConfig& config, ViewerS
         return false;
     }
 
-    if (selectedSecurity == rfbVncAuth) {
-        std::vector<unsigned char> challenge(16);
-        if (!socket.ReadExact(challenge.data(), challenge.size())) {
-            SetError(error, "failed to read RFB VNCAuth challenge");
+    std::unique_ptr<RfbTransport> tlsTransport;
+    RfbTransport *active = &socket;
+    if (selectedSecurity == rfbVeNCypt) {
+        if (!RunViewerVeNCryptX509VncNegotiation(socket, error)) {
             return false;
         }
-        std::vector<unsigned char> response;
-        if (!EncryptVncAuthChallenge(challenge, config.Password(), response, error)) {
+        TcpRfbTransport *tcp = dynamic_cast<TcpRfbTransport *>(&socket);
+        if (!tcp) {
+            SetError(error, "VeNCrypt requires a TCP-backed clear transport");
             return false;
         }
-        if (!socket.WriteAll(response.data(), response.size())) {
-            SetError(error, "failed to write RFB VNCAuth response");
+        if (!CreateOpenSslClientTransport(tcp->Socket(), config.TlsCaFile(), config.Host(), config.TlsVerifyPeer(), tlsTransport, error)) {
+            return false;
+        }
+        if (upgradedTransport) {
+            *upgradedTransport = std::move(tlsTransport);
+            active = upgradedTransport->get();
+        } else {
+            active = tlsTransport.get();
+        }
+        if (!RunVncAuthOnTransport(*active, config, error)) {
+            return false;
+        }
+    } else if (selectedSecurity == rfbVncAuth) {
+        if (!RunVncAuthOnTransport(*active, config, error)) {
             return false;
         }
     }
-
-    CARD32 authResult = 1;
-    if (!socket.ReadExact(&authResult, sizeof(authResult)) || Swap32IfLE(authResult) != rfbVncAuthOK) {
-        SetError(error, selectedSecurity == rfbVncAuth ? "RFB VNCAuth security failed" : "RFB no-auth security failed");
+    if (!FinishRfbAuthResult(*active, selectedSecurity, error)) {
         return false;
     }
-
-    rfbClientInitMsg clientInit;
-    std::memset(&clientInit, 0, sizeof(clientInit));
-    clientInit.flags = config.Shared() ? clientInitShared : clientInitNotShare;
-    if (!socket.WriteAll(&clientInit, sz_rfbClientInitMsg)) {
-        SetError(error, "failed to write RFB ClientInit");
-        return false;
-    }
-
-    if (!ReadServerInit(socket, result, error)) {
+    if (!SendClientInitAndReadServerInit(*active, config, result, error)) {
         return false;
     }
     std::vector<CARD32> encodings;
@@ -172,13 +270,13 @@ bool RunHandshakeOnSocket(TcpSocket& socket, const ViewerConfig& config, ViewerS
         encodings.push_back(static_cast<CARD32>(config.Encodings()[i]));
     }
     const std::vector<CARD8> setEncodings = EncodeSetEncodings(encodings);
-    if (!socket.WriteAll(setEncodings.data(), setEncodings.size())) {
+    if (!active->WriteAll(setEncodings.data(), setEncodings.size())) {
         SetError(error, "failed to write RFB SetEncodings");
         return false;
     }
     if (std::find(encodings.begin(), encodings.end(), static_cast<CARD32>(rfbEncodingExtendedClipboard)) != encodings.end()) {
         const std::vector<CARD8> caps = EncodeExtendedClientCutText(EncodeExtendedClipboardCaps(clipCaps | clipRequest | clipProvide | clipNotify | clipPeek | clipText));
-        if (!socket.WriteAll(caps.data(), caps.size())) {
+        if (!active->WriteAll(caps.data(), caps.size())) {
             SetError(error, "failed to write RFB extended clipboard caps");
             return false;
         }
@@ -236,7 +334,7 @@ std::vector<CARD8> SolidPixelRect(const std::vector<CARD8>& pixel,
     return pixels;
 }
 
-bool ReadPixel(TcpSocket& socket, unsigned int bytesPerPixel, std::vector<CARD8>& pixel, std::string *error)
+bool ReadPixel(RfbTransport& socket, unsigned int bytesPerPixel, std::vector<CARD8>& pixel, std::string *error)
 {
     pixel.assign(bytesPerPixel, 0);
     if (!socket.ReadExact(pixel.data(), pixel.size())) {
@@ -246,7 +344,7 @@ bool ReadPixel(TcpSocket& socket, unsigned int bytesPerPixel, std::vector<CARD8>
     return true;
 }
 
-bool ReadCompressedPayload(TcpSocket& socket,
+bool ReadCompressedPayload(RfbTransport& socket,
                            std::size_t expectedSize,
                            std::vector<CARD8>& payload,
                            std::string *error)
@@ -314,7 +412,7 @@ bool EnsureZrleInflateStream(z_stream& stream, bool& initialized, std::string *e
     return true;
 }
 
-bool ReadZrleCompressedPayload(TcpSocket& socket,
+bool ReadZrleCompressedPayload(RfbTransport& socket,
                                z_stream& stream,
                                bool& streamInitialized,
                                std::vector<CARD8>& payload,
@@ -479,7 +577,7 @@ bool FillZrleRun(unsigned int& pixelIndex,
     return true;
 }
 
-bool ReadTightCompactLength(TcpSocket& socket, CARD32& length, std::string *error)
+bool ReadTightCompactLength(RfbTransport& socket, CARD32& length, std::string *error)
 {
     CARD8 b = 0;
     if (!socket.ReadExact(&b, sizeof(b))) {
@@ -519,7 +617,7 @@ bool EnsureTightInflateStream(z_stream& stream, bool& initialized, std::string *
     return true;
 }
 
-bool ReadTightData(TcpSocket& socket,
+bool ReadTightData(RfbTransport& socket,
                    z_stream& stream,
                    bool& streamInitialized,
                    unsigned int streamId,
@@ -683,7 +781,7 @@ bool DecodeTightGradientPayload(const rfbPixelFormat& format,
 }
 
 
-bool ReadTightPixel(TcpSocket& socket, const rfbPixelFormat& format, std::vector<CARD8>& pixel, std::string *error)
+bool ReadTightPixel(RfbTransport& socket, const rfbPixelFormat& format, std::vector<CARD8>& pixel, std::string *error)
 {
     const unsigned int compactBytes = TightBytesPerPixel(format);
     std::vector<CARD8> compact(compactBytes, 0);
@@ -780,7 +878,7 @@ bool DecodeTightPalettePayload(const rfbPixelFormat& format,
     return true;
 }
 
-bool ReadTightRectPayload(TcpSocket& socket,
+bool ReadTightRectPayload(RfbTransport& socket,
                           z_stream tightStreams[4],
                           bool tightStreamsInitialized[4],
                           ViewerSessionResult& result,
@@ -909,7 +1007,7 @@ bool ReadTightRectPayload(TcpSocket& socket,
     return true;
 }
 
-bool ReadZrleRectPayload(TcpSocket& socket,
+bool ReadZrleRectPayload(RfbTransport& socket,
                          z_stream& stream,
                          bool& streamInitialized,
                          ViewerSessionResult& result,
@@ -1057,7 +1155,7 @@ bool ReadZrleRectPayload(TcpSocket& socket,
 }
 
 
-bool ReadRawRectPayload(TcpSocket& socket,
+bool ReadRawRectPayload(RfbTransport& socket,
                         ViewerSessionResult& result,
                         std::vector<CARD8>& framebuffer,
                         ViewerFramebufferRect& rectangle,
@@ -1085,7 +1183,7 @@ bool ReadRawRectPayload(TcpSocket& socket,
 }
 
 
-bool ReadZlibRectPayload(TcpSocket& socket,
+bool ReadZlibRectPayload(RfbTransport& socket,
                          ViewerSessionResult& result,
                          std::vector<CARD8>& framebuffer,
                          ViewerFramebufferRect& rectangle,
@@ -1111,7 +1209,7 @@ bool ReadZlibRectPayload(TcpSocket& socket,
     return true;
 }
 
-bool ReadRreRectPayload(TcpSocket& socket,
+bool ReadRreRectPayload(RfbTransport& socket,
                         ViewerSessionResult& result,
                         std::vector<CARD8>& framebuffer,
                         ViewerFramebufferRect& rectangle,
@@ -1186,7 +1284,7 @@ bool ReadRreRectPayload(TcpSocket& socket,
     return true;
 }
 
-bool ReadHextileRectPayload(TcpSocket& socket,
+bool ReadHextileRectPayload(RfbTransport& socket,
                             ViewerSessionResult& result,
                             std::vector<CARD8>& framebuffer,
                             ViewerFramebufferRect& rectangle,
@@ -1315,7 +1413,7 @@ bool ReadHextileRectPayload(TcpSocket& socket,
     return true;
 }
 
-bool ApplyCopyRectPayload(TcpSocket& socket,
+bool ApplyCopyRectPayload(RfbTransport& socket,
                           ViewerSessionResult& result,
                           std::vector<CARD8>& framebuffer,
                           ViewerFramebufferRect& rectangle,
@@ -1382,7 +1480,7 @@ bool PublishCompositedFramebuffer(ViewerSessionResult& result,
 }
 
 
-bool ReadRichCursorPayload(TcpSocket& socket,
+bool ReadRichCursorPayload(RfbTransport& socket,
                            ViewerSessionResult& result,
                            ViewerFramebufferRect& rectangle,
                            std::string *error)
@@ -1409,7 +1507,7 @@ bool ReadRichCursorPayload(TcpSocket& socket,
     return true;
 }
 
-bool ReadXCursorPayload(TcpSocket& socket,
+bool ReadXCursorPayload(RfbTransport& socket,
                         ViewerSessionResult& result,
                         ViewerFramebufferRect& rectangle,
                         std::string *error)
@@ -1443,7 +1541,7 @@ bool ReadXCursorPayload(TcpSocket& socket,
     return true;
 }
 
-bool ReadFramebufferUpdate(TcpSocket& socket,
+bool ReadFramebufferUpdate(RfbTransport& socket,
                            z_stream& zrleStream,
                            bool& zrleStreamInitialized,
                            z_stream tightStreams[4],
@@ -1680,8 +1778,10 @@ bool ViewerSession::RunHandshake(const ViewerConfig& config, ViewerSessionResult
         SetError(error, "failed to connect to RFB server");
         return false;
     }
+    TcpRfbTransport transport(socket);
+    std::unique_ptr<RfbTransport> tlsTransport;
     result = ViewerSessionResult();
-    return RunHandshakeOnSocket(socket, config, result, error);
+    return RunHandshakeOnTransport(transport, config, result, nullptr, error);
 }
 
 bool ViewerSession::RequestOneFramebufferUpdate(const ViewerConfig& config, ViewerSessionResult& result, std::string *error) const
@@ -1695,6 +1795,7 @@ bool ViewerSession::RequestOneFramebufferUpdate(const ViewerConfig& config, View
 
 PersistentViewerSession::PersistentViewerSession()
     : socket_(),
+      transport_(),
       state_(),
       config_(),
       framebuffer_(),
@@ -1731,9 +1832,10 @@ bool PersistentViewerSession::Connect(const ViewerConfig& config, ViewerSessionR
         Disconnect();
         return false;
     }
+    transport_.reset(new TcpRfbTransport(socket_));
     state_ = ViewerSessionResult();
     config_ = config;
-    if (!RunHandshakeOnSocket(socket_, config, state_, error)) {
+    if (!RunHandshakeOnTransport(*transport_, config, state_, &transport_, error)) {
         Disconnect();
         return false;
     }
@@ -1748,6 +1850,7 @@ bool PersistentViewerSession::Connected() const
 
 void PersistentViewerSession::Disconnect()
 {
+    transport_.reset();
     socket_.Close();
     if (zrleStreamInitialized_) {
         inflateEnd(&zrleStream_);
@@ -1779,7 +1882,7 @@ bool PersistentViewerSession::RequestFramebufferUpdate(bool incremental, ViewerS
     request.width = state_.width;
     request.height = state_.height;
     const rfbFramebufferUpdateRequestMsg wire = EncodeFramebufferUpdateRequest(request);
-    if (!socket_.WriteAll(&wire, sz_rfbFramebufferUpdateRequestMsg)) {
+    if (!transport_->WriteAll(&wire, sz_rfbFramebufferUpdateRequestMsg)) {
         SetError(error, "failed to write RFB framebuffer update request");
         Disconnect();
         return false;
@@ -1787,7 +1890,7 @@ bool PersistentViewerSession::RequestFramebufferUpdate(bool incremental, ViewerS
     state_.update = ViewerFramebufferUpdate();
     bool gotUpdate = false;
     for (unsigned int attempts = 0; attempts < 16 && !gotUpdate; ++attempts) {
-        if (!ReadFramebufferUpdate(socket_, zrleStream_, zrleStreamInitialized_, tightStreams_, tightStreamsInitialized_, state_, framebuffer_, error)) {
+        if (!ReadFramebufferUpdate(*transport_, zrleStream_, zrleStreamInitialized_, tightStreams_, tightStreamsInitialized_, state_, framebuffer_, error)) {
             Disconnect();
             return false;
         }
@@ -1810,7 +1913,7 @@ bool PersistentViewerSession::SendKeyEvent(CARD32 keysym, bool down, std::string
     }
     const KeyEvent event{down, keysym};
     const rfbKeyEventMsg wire = EncodeKeyEvent(event);
-    if (!socket_.WriteAll(&wire, sz_rfbKeyEventMsg)) {
+    if (!transport_->WriteAll(&wire, sz_rfbKeyEventMsg)) {
         SetError(error, "failed to write RFB key event");
         Disconnect();
         return false;
@@ -1829,7 +1932,7 @@ bool PersistentViewerSession::SendPointerEvent(CARD8 buttonMask, unsigned int x,
     }
     const PointerEvent event{buttonMask, x, y};
     const rfbPointerEventMsg wire = EncodePointerEvent(event);
-    if (!socket_.WriteAll(&wire, sz_rfbPointerEventMsg)) {
+    if (!transport_->WriteAll(&wire, sz_rfbPointerEventMsg)) {
         SetError(error, "failed to write RFB pointer event");
         Disconnect();
         return false;
@@ -1848,7 +1951,7 @@ bool PersistentViewerSession::SendClientCutText(const std::string& text, std::st
         return false;
     }
     const std::vector<CARD8> bytes = EncodeClientCutText(text);
-    if (!socket_.WriteAll(bytes.data(), bytes.size())) {
+    if (!transport_->WriteAll(bytes.data(), bytes.size())) {
         SetError(error, "failed to write RFB client cut text");
         Disconnect();
         return false;

@@ -14,7 +14,9 @@
 
 #include "rfb.h"
 #include "vncPortableTcp.h"
+#include "vncPortableRfbTransport.h"
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -110,6 +112,7 @@ public:
 
 private:
     uvnc::winvnc::portable::TcpSocket socket_;
+    std::unique_ptr<uvnc::winvnc::portable::RfbTransport> transport_;
     ViewerSessionResult state_;
     ViewerConfig config_;
     std::vector<CARD8> framebuffer_;
