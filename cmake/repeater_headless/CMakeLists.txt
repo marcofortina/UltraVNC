@@ -43,6 +43,9 @@ if(BUILD_TESTING)
     file(WRITE "${UVNC_REPEATER_HEADLESS_BAD_KEY_CONFIG}" "unknown-option=true\n")
     file(WRITE "${UVNC_REPEATER_HEADLESS_BAD_BOOL_CONFIG}" "mode1=maybe\n")
 
+    add_test(NAME uvnc_repeater_headless_legacy_alias_smoke COMMAND "${CMAKE_SOURCE_DIR}/tests/native_linux_legacy_executable_alias_smoke.sh" "$<TARGET_FILE_DIR:uvnc_repeater_headless>/repeater")
+    set_tests_properties(uvnc_repeater_headless_legacy_alias_smoke PROPERTIES LABELS "native-linux;repeater-headless" TIMEOUT 5)
+
     add_test(NAME uvnc_repeater_headless_help COMMAND ${PROJECT_NAME} --help)
     add_test(NAME uvnc_repeater_headless_rejects_bad_viewer_port COMMAND ${PROJECT_NAME} --viewer-port 0)
     set_tests_properties(uvnc_repeater_headless_rejects_bad_viewer_port PROPERTIES WILL_FAIL TRUE)

@@ -84,6 +84,13 @@ set_tests_properties(vncviewer_qt_surface_smoke PROPERTIES
     TIMEOUT 10
 )
 
+add_test(NAME vncviewer_qt_legacy_alias_smoke COMMAND "${CMAKE_SOURCE_DIR}/tests/native_linux_legacy_executable_alias_smoke.sh" "$<TARGET_FILE_DIR:uvnc_qt_viewer>/vncviewer")
+set_tests_properties(vncviewer_qt_legacy_alias_smoke PROPERTIES
+    LABELS "native-linux;vncviewer-qt"
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+    TIMEOUT 10
+)
+
 add_custom_target(vncviewer_qt_smoke
     DEPENDS uvnc_qt_viewer
 )
@@ -126,11 +133,35 @@ set_tests_properties(winvnc_qt_server_settings_smoke PROPERTIES
     TIMEOUT 10
 )
 
+add_test(NAME winvnc_qt_server_settings_legacy_alias_smoke COMMAND "${CMAKE_SOURCE_DIR}/tests/native_linux_legacy_executable_alias_smoke.sh" "$<TARGET_FILE_DIR:uvnc_qt_server_settings>/uvnc_settings")
+set_tests_properties(winvnc_qt_server_settings_legacy_alias_smoke PROPERTIES
+    LABELS "native-linux;winvnc-qt"
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+    TIMEOUT 10
+)
+
 add_custom_target(winvnc_qt_server_settings_cli_smoke
     DEPENDS uvnc_qt_server_settings
 )
 add_test(NAME winvnc_qt_server_settings_cli_smoke
     COMMAND uvnc_qt_server_settings --smoke-test
+)
+add_test(NAME winvnc_qt_server_settings_visual_parity_report_smoke
+    COMMAND uvnc_qt_server_settings --print-visual-parity-report
+)
+set_tests_properties(winvnc_qt_server_settings_visual_parity_report_smoke PROPERTIES
+    LABELS "native-linux;winvnc-qt"
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+    PASS_REGULAR_EXPRESSION "legacy.window=WinVNC settings"
+    TIMEOUT 10
+)
+add_test(NAME winvnc_qt_server_settings_visual_parity_snapshot_smoke
+    COMMAND uvnc_qt_server_settings --save-visual-parity-snapshot "${CMAKE_CURRENT_BINARY_DIR}/winvnc-qt-server-settings-visual-parity.png"
+)
+set_tests_properties(winvnc_qt_server_settings_visual_parity_snapshot_smoke PROPERTIES
+    LABELS "native-linux;winvnc-qt"
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+    TIMEOUT 10
 )
 set_tests_properties(winvnc_qt_server_settings_cli_smoke PROPERTIES
     LABELS "native-linux;winvnc-qt"

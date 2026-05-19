@@ -18,6 +18,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE libwinvncportablecore)
 uvnc_add_legacy_executable_alias(${PROJECT_NAME} winvnc)
 
 if(BUILD_TESTING)
+    add_test(NAME winvnc_memory_server_legacy_alias_smoke COMMAND "${CMAKE_SOURCE_DIR}/tests/native_linux_legacy_executable_alias_smoke.sh" "$<TARGET_FILE_DIR:uvnc_winvnc_memory_server>/winvnc")
+    set_tests_properties(winvnc_memory_server_legacy_alias_smoke PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
+
     add_test(NAME winvnc_memory_server_help COMMAND uvnc_winvnc_memory_server --help)
     set_tests_properties(winvnc_memory_server_help PROPERTIES LABELS "native-linux;winvnc-memory-server" TIMEOUT 5)
 
