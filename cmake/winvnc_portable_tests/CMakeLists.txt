@@ -12,6 +12,7 @@ project(winvnc_portable_tests LANGUAGES CXX C)
 
 find_package(ZLIB REQUIRED)
 find_package(JPEG REQUIRED)
+find_package(OpenSSL QUIET)
 
 function(uvnc_add_winvnc_portable_test name source)
     add_executable(${name}
@@ -71,6 +72,16 @@ uvnc_add_winvnc_portable_test(winvnc_portable_server_config_name_smoke winvnc_po
 uvnc_add_winvnc_portable_test(winvnc_portable_rfb_smoke winvnc_portable_rfb_smoke.cpp)
 uvnc_add_winvnc_portable_test(winvnc_portable_rfb_session_smoke winvnc_portable_rfb_session_smoke.cpp)
 uvnc_add_winvnc_portable_test(winvnc_portable_rfb_vncauth_session_smoke winvnc_portable_rfb_vncauth_session_smoke.cpp)
+
+if(TARGET OpenSSL::SSL)
+    add_executable(winvnc_portable_tls_vencrypt_smoke
+        "${CMAKE_SOURCE_DIR}/tests/winvnc_portable_tls_vencrypt_smoke.cpp"
+        "${CMAKE_SOURCE_DIR}/../common/d3des.c"
+    )
+    target_link_libraries(winvnc_portable_tls_vencrypt_smoke PRIVATE libwinvncportablecore OpenSSL::SSL OpenSSL::Crypto ZLIB::ZLIB JPEG::JPEG)
+    add_test(NAME winvnc_portable_tls_vencrypt_smoke COMMAND winvnc_portable_tls_vencrypt_smoke)
+    set_tests_properties(winvnc_portable_tls_vencrypt_smoke PROPERTIES LABELS "native-linux;winvnc-portable;linux-server-tls" TIMEOUT 10)
+endif()
 uvnc_add_winvnc_portable_test(winvnc_portable_rfb_invalid_protocol_smoke winvnc_portable_rfb_invalid_protocol_smoke.cpp)
 uvnc_add_winvnc_portable_test(winvnc_portable_rfb_invalid_security_smoke winvnc_portable_rfb_invalid_security_smoke.cpp)
 uvnc_add_winvnc_portable_test(winvnc_portable_rfb_unknown_message_smoke winvnc_portable_rfb_unknown_message_smoke.cpp)

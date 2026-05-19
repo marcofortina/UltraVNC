@@ -59,3 +59,50 @@ printf 'toolong-password\n' >"${long_password}"
 chmod 0600 "${long_password}"
 expect_fail "${server}" --password-file "${long_password}" --validate-config
 grep -q 'VNCAuth password file value must be at most 8 bytes' "${tmpdir}/stderr"
+
+if command -v openssl >/dev/null 2>&1; then
+  tls_dir="${tmpdir}/tls"
+  mkdir -p "${tls_dir}"
+  cert_file="${tls_dir}/server.crt"
+  key_file="${tls_dir}/server.key"
+  openssl req -x509 -newkey rsa:2048 -nodes \
+    -keyout "${key_file}" \
+    -out "${cert_file}" \
+    -subj '/CN=localhost' \
+    -days 1 >/dev/null 2>&1
+  chmod 0644 "${cert_file}"
+  chmod 0600 "${key_file}"
+
+  expect_fail "${server}" \
+    --password-file "${password_file}" \
+    --transport-security vencrypt-x509-vnc \
+    --tls-cert-file "${cert_file}" \
+    --validate-config
+  grep -q 'VeNCrypt TLS mode requires tls_certificate_file and tls_private_key_file' "${tmpdir}/stderr"
+
+  "${server}" \
+    --password-file "${password_file}" \
+    --bind-address 0.0.0.0 \
+    --transport-security vencrypt-x509-vnc \
+    --tls-cert-file "${cert_file}" \
+    --tls-key-file "${key_file}" \
+    --validate-config >"${tmpdir}/tls-public.out" 2>"${tmpdir}/tls-public.err"
+
+  if grep -q 'VNCAuth protects the handshake' "${tmpdir}/tls-public.err"; then
+    echo "TLS-enabled VNCAuth still printed unencrypted VNCAuth warning" >&2
+    exit 1
+  fi
+
+  tls_output="$(${server} \
+    --password-file "${password_file}" \
+    --transport-security vencrypt-x509-vnc \
+    --tls-cert-file "${cert_file}" \
+    --tls-key-file "${key_file}" \
+    --print-config)"
+  grep -q '^transport_security=vencrypt-x509-vnc$' <<<"${tls_output}"
+  grep -q '^tls_private_key_file=<configured>$' <<<"${tls_output}"
+  if grep -q "${key_file}" <<<"${tls_output}"; then
+    echo "resolved config leaked TLS private key path" >&2
+    exit 1
+  fi
+fi
