@@ -72,13 +72,13 @@ SecurityExtensionDecision EvaluateSecurityExtension(SecurityExtensionKind kind)
         break;
     case SecurityExtensionKind::MsLogonI:
         decision.reason = "MSLogon I is legacy and depends on Windows/domain account semantics";
-        decision.replacement = "use MSLogonII-capable viewer support only against original servers, or add a future Linux PAM provider";
+        decision.replacement = "use MSLogonII with the Linux external auth helper for native server deployments";
         decision.wireType = rfbUltraVNC_MsLogonIAuth;
         decision.originalImplementation = "vncviewer/ClientConnection.cpp AuthMsLogonI; winvnc/winvnc/vncntlm.cpp";
         break;
     case SecurityExtensionKind::MsLogonII:
         decision.reason = "server-side MSLogonII verification depends on Windows/domain account semantics";
-        decision.replacement = "viewer can speak MSLogonII to original servers; Linux server needs a future PAM/LDAP provider";
+        decision.replacement = "viewer can speak MSLogonII and Linux server supports MSLogonII with an external auth helper";
         decision.wireType = rfbUltraVNC_MsLogonIIAuth;
         decision.originalImplementation = "vncviewer/ClientConnection.cpp AuthMsLogonII; winvnc/winvnc/vncclient.cpp AuthMsLogon";
         break;
