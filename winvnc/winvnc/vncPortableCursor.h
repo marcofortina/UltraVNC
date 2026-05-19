@@ -33,6 +33,7 @@ CursorShape EmptyCursorShape();
 
 std::vector<CARD8> EncodeRichCursorShapeUpdate(const CursorShape& shape);
 std::vector<CARD8> EncodeXCursorShapeUpdate(const CursorShape& shape);
+CARD32 CursorShapeFingerprint(const CursorShape& shape);
 std::vector<CARD8> EncodeEmptyCursorShapeUpdate(CARD32 encoding);
 
 } // namespace portable

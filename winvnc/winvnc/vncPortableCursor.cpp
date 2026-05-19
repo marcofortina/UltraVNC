@@ -114,6 +114,25 @@ CursorShape DefaultArrowCursorShape()
     return shape;
 }
 
+
+CARD32 CursorShapeFingerprint(const CursorShape& shape)
+{
+    CARD32 hash = 2166136261u;
+    const CARD32 fields[] = {shape.width, shape.height, shape.hotspotX, shape.hotspotY};
+    for (std::size_t i = 0; i < sizeof(fields) / sizeof(fields[0]); ++i) {
+        CARD32 value = fields[i];
+        for (unsigned int byte = 0; byte < 4; ++byte) {
+            hash ^= static_cast<CARD8>((value >> (byte * 8)) & 0xffu);
+            hash *= 16777619u;
+        }
+    }
+    for (std::vector<CARD8>::const_iterator it = shape.bgra.begin(); it != shape.bgra.end(); ++it) {
+        hash ^= *it;
+        hash *= 16777619u;
+    }
+    return hash == 0 ? 1 : hash;
+}
+
 std::vector<CARD8> EncodeRichCursorShapeUpdate(const CursorShape& shape)
 {
     if (!shape.Valid() || shape.width > 65535 || shape.height > 65535 || shape.hotspotX > 65535 || shape.hotspotY > 65535) {

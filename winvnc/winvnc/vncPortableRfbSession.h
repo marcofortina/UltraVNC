@@ -14,6 +14,7 @@
 #include "vncPortableRfbClientState.h"
 #include "vncPortableRfbMessages.h"
 #include "vncPortableRfbTransport.h"
+#include "vncPortableCursor.h"
 #include "vncPortableServerConfig.h"
 #include "vncPortableTcp.h"
 
@@ -59,6 +60,12 @@ class RfbClipboardSource {
 public:
     virtual ~RfbClipboardSource() {}
     virtual bool GetText(std::string& text, std::string *error = nullptr) const = 0;
+};
+
+class RfbCursorSource {
+public:
+    virtual ~RfbCursorSource() {}
+    virtual bool GetCursorShape(CursorShape& shape, std::string *error = nullptr) const = 0;
 };
 
 class RfbServerSession {
