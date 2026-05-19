@@ -1282,6 +1282,8 @@ int RunSmokeX11AvailabilityTest()
     std::cout << "x11-runtime-available=" << (runtimeAvailable ? "yes" : "no") << "\n";
     std::cout << "x11-xshm-build-available=" << (X11DesktopSource::IsXShmBuildAvailable() ? "yes" : "no") << "\n";
     std::cout << "x11-xshm-runtime-available=" << (X11DesktopSource::IsXShmRuntimeAvailable() ? "yes" : "no") << "\n";
+    std::cout << "x11-xdamage-build-available=" << (X11DesktopSource::IsXDamageBuildAvailable() ? "yes" : "no") << "\n";
+    std::cout << "x11-xdamage-runtime-available=" << (X11DesktopSource::IsXDamageRuntimeAvailable() ? "yes" : "no") << "\n";
     std::cout << "x11-unavailable-reason=" << (runtimeAvailable ? "" : X11DesktopSource::UnavailableReason()) << "\n";
     return 0;
 }
