@@ -994,6 +994,8 @@ void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBac
               << "allow_unencrypted_public=" << (config.AllowUnencryptedPublic() ? "yes" : "no") << "\n"
               << "bell_on_connect=" << (config.BellOnConnect() ? "yes" : "no") << "\n"
               << "server_cut_text_bytes=" << config.ServerCutText().size() << "\n"
+              << "file_transfer_mode=" << FileTransferModeName(config.FileTransferModeValue()) << "\n"
+              << "file_transfer_payload_limit=" << config.FileTransferPayloadLimit() << "\n"
               << "serve_updates=" << (serveUpdates ? "yes" : "no") << "\n"
               << "serve_forever=" << (serveForever ? "yes" : "no") << "\n"
               << "max_updates=" << maxUpdates << "\n"
