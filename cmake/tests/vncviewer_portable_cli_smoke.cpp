@@ -36,6 +36,7 @@ int main()
     args.push_back("--exclusive");
     args.push_back("--request-update");
     args.push_back("--view-only");
+    args.push_back("--disable-no-auth");
     args.push_back("--password");
     args.push_back("secret");
     args.push_back("--continuous-updates");
@@ -55,6 +56,7 @@ int main()
     assert(!options.config.Shared());
     assert(options.config.RequestUpdate());
     assert(options.config.ViewOnly());
+    assert(!options.config.AllowNoAuth());
     assert(options.smokeTest);
     assert(options.config.Encodings().size() == 14);
     assert(options.config.Encodings()[0] == rfbEncodingRaw);
@@ -133,6 +135,7 @@ int main()
 
     const std::string usage = ViewerCliUsage("uvnc_qt_viewer");
     assert(usage.find("--view-only") != std::string::npos);
+    assert(usage.find("--disable-no-auth") != std::string::npos);
     assert(usage.find("--connect-update-smoke") != std::string::npos);
     assert(usage.find("--persistent-input-smoke") != std::string::npos);
     return 0;

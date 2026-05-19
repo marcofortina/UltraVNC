@@ -25,6 +25,7 @@ int main()
     assert(config.Shared());
     assert(!config.RequestUpdate());
     assert(!config.ViewOnly());
+    assert(config.AllowNoAuth());
     assert(config.Validate(&error));
     assert(error.empty());
     assert(config.Encodings().size() == 14);
@@ -46,8 +47,10 @@ int main()
     config.SetPort(5901);
     config.SetRequestUpdate(true);
     config.SetViewOnly(true);
+    config.SetAllowNoAuth(false);
     assert(config.Validate(&error));
     assert(config.RequestUpdate());
     assert(config.ViewOnly());
+    assert(!config.AllowNoAuth());
     return 0;
 }
