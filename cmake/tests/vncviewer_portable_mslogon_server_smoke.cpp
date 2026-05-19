@@ -12,6 +12,7 @@
 
 #include <cassert>
 #include <fstream>
+#include <iostream>
 #include <string>
 #include <thread>
 #include <sys/stat.h>
@@ -46,7 +47,7 @@ int main()
 
     bool served = false;
     std::thread worker([&]() {
-        served = server.ServeOne();
+        served = server.ServeOneUpdates(1);
     });
 
     ViewerConfig viewerConfig;
@@ -55,12 +56,13 @@ int main()
     viewerConfig.SetSecurityExtension(ViewerSecurityExtensionMode::MsLogon);
     viewerConfig.SetUsername("alice");
     viewerConfig.SetPassword("secret");
-    viewerConfig.SetRequestUpdate(false);
+    viewerConfig.SetRequestUpdate(true);
+    viewerConfig.SetEncodings(std::vector<unsigned int>{rfbEncodingRaw});
 
     ViewerSession viewer;
     ViewerSessionResult result;
     std::string error;
-    assert(viewer.RunHandshake(viewerConfig, result, &error));
+    if (!viewer.RequestOneFramebufferUpdate(viewerConfig, result, &error)) { std::cerr << error << "\n"; return 1; }
     assert(result.width == 8);
     assert(result.height == 6);
 
