@@ -27,3 +27,7 @@ Current portable viewer policy:
 
 The rejection is intentional product behavior. The server must fail closed instead of
 starting with a misleading or no-op security plugin configuration.
+
+## Native Linux MSLogonII server auth
+
+MSLogonII server authentication is available through an explicit external helper. See `docs/native-linux-mslogon-server-auth.md`. DSM and SecureVNC remain fail-closed plugin features.
