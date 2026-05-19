@@ -79,14 +79,18 @@ if [[ -e "${USER_ENV_FILE}" && "${UVNC_OVERWRITE_USER_SERVICE_CONFIG:-0}" != "1"
 fi
 
 mkdir -p "${USER_CONFIG_DIR}"
+USER_PASSWORD_FILE="${USER_CONFIG_DIR}/vnc-password"
+printf '%s\n' 'secret1' > "${USER_PASSWORD_FILE}"
+chmod 600 "${USER_PASSWORD_FILE}"
+
 cat > "${USER_CONFIG_FILE}" <<EOF_CONFIG
 bind_address=127.0.0.1
 port=0
 name=uvnc-linux-user-service-smoke
 capture_backend=memory
 input_backend=none
-auth=none
-allow_no_auth=true
+auth=vnc-password
+password_file=${USER_PASSWORD_FILE}
 max_updates=1
 serve_forever=true
 EOF_CONFIG
@@ -97,7 +101,7 @@ cleanup() {
   systemctl --user stop "${UNIT_NAME}" >/dev/null 2>&1 || true
   systemctl --user disable "${UNIT_NAME}" >/dev/null 2>&1 || true
   systemctl --user reset-failed "${UNIT_NAME}" >/dev/null 2>&1 || true
-  rm -f "${USER_CONFIG_FILE}" "${USER_ENV_FILE}"
+  rm -f "${USER_CONFIG_FILE}" "${USER_ENV_FILE}" "${USER_PASSWORD_FILE:-}"
 }
 trap cleanup EXIT
 
