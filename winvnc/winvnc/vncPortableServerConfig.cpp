@@ -36,6 +36,8 @@ const char *ServerAuthModeName(ServerAuthMode mode)
         return "none";
     case ServerAuthMode::VncPassword:
         return "vnc-password";
+    case ServerAuthMode::MsLogonII:
+        return "mslogon-ii";
     }
     return "unknown";
 }
@@ -48,6 +50,10 @@ bool ParseServerAuthMode(const std::string& value, ServerAuthMode& mode)
     }
     if (value == "vnc-password" || value == "vncauth") {
         mode = ServerAuthMode::VncPassword;
+        return true;
+    }
+    if (value == "mslogon" || value == "mslogon-ii" || value == "mslogon2") {
+        mode = ServerAuthMode::MsLogonII;
         return true;
     }
     return false;
@@ -89,6 +95,7 @@ ServerConfig::ServerConfig()
       authMode_(ServerAuthMode::NoAuth),
       maxSharedClients_(8),
       vncPassword_(),
+      authHelperPath_(),
       allowNoAuth_(false),
       allowPublicNoAuth_(false),
       allowUnencryptedPublic_(false),
@@ -164,6 +171,16 @@ bool ServerConfig::Validate(std::string *error) const
         }
         if (vncPassword_.size() > 8) {
             if (error) *error = "VNCAuth password must be at most 8 bytes";
+            return false;
+        }
+    }
+    if (authMode_ == ServerAuthMode::MsLogonII) {
+        if (authHelperPath_.empty()) {
+            if (error) *error = "MSLogonII requires an external auth helper";
+            return false;
+        }
+        if (authHelperPath_[0] != '/') {
+            if (error) *error = "external auth helper path must be absolute";
             return false;
         }
     }
