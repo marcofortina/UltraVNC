@@ -435,6 +435,7 @@ void PrintUsage(const char *name)
               << "  --smoke-xtest-input-test Inject a minimal XTest key/pointer sequence when explicitly allowed\n"
               << "  --allow-input-injection Allow live input injection smoke tests\n"
               << "  --max-updates <count>  Number of updates for multi-update smoke/serve mode, default 3\n"
+              << "  --update-pacing-ms <ms> Minimum delay between live framebuffer updates, default 0\n"
               << "  --serve-updates        Serve one client through --max-updates framebuffer updates\n"
               << "  --serve-forever        Keep accepting update clients until SIGINT/SIGTERM\n"
               << "  --max-shared-clients <count> Maximum shared clients policy, default 8\n"
@@ -566,6 +567,8 @@ bool AddConfigOption(const std::string& key, const std::string& value, std::vect
         args.push_back("--max-updates");
     } else if (key == "max_shared_clients") {
         args.push_back("--max-shared-clients");
+    } else if (key == "update_pacing_ms") {
+        args.push_back("--update-pacing-ms");
     } else if (key == "client_mode") {
         args.push_back("--client-mode");
     } else if (key == "pid_file") {
@@ -827,6 +830,13 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
                 std::cerr << "invalid --max-updates\n";
                 return false;
             }
+        } else if (arg == "--update-pacing-ms" && i + 1 < argc) {
+            unsigned int pacing = 0;
+            if (!ParseUnsigned(argv[++i], 0, 5000, pacing)) {
+                std::cerr << "invalid --update-pacing-ms\n";
+                return false;
+            }
+            config.SetUpdatePacingMs(pacing);
         } else if (arg == "--bind-address" && i + 1 < argc) {
             config.SetBindAddress(argv[++i]);
         } else if (arg == "--name" && i + 1 < argc) {
@@ -1147,6 +1157,7 @@ void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBac
               << "serve_updates=" << (serveUpdates ? "yes" : "no") << "\n"
               << "serve_forever=" << (serveForever ? "yes" : "no") << "\n"
               << "max_updates=" << maxUpdates << "\n"
+              << "update_pacing_ms=" << config.UpdatePacingMs() << "\n"
               << "pid_file=" << pidFile << "\n"
               << "status_file=" << statusFile << "\n"
               << "log_file=" << logFile << "\n";
