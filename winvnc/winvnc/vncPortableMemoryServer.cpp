@@ -176,11 +176,17 @@ bool MemoryServer::TryServeOneUpdatesFromSource(DesktopSource& source, unsigned 
         if (!source.Snapshot(current, changed) ||
             current.Width() != config_.Width() ||
             current.Height() != config_.Height()) {
+            if (clientPolicy) {
+                clientPolicy->UnregisterClient(state.SharedClientRequested());
+            }
             return false;
         }
 
         bool updateSent = false;
         if (!session.ServeNextClientMessage(client, current, updateSent, &stats, &state, inputSink, true, clipboardSink)) {
+            if (clientPolicy) {
+                clientPolicy->UnregisterClient(state.SharedClientRequested());
+            }
             return false;
         }
         if (updateSent) {
