@@ -48,6 +48,18 @@ int main()
     ViewerConfig viewerConfig;
     viewerConfig.SetHost("127.0.0.1");
     viewerConfig.SetPort(port);
+    std::vector<unsigned int> legacyEncodings;
+    legacyEncodings.push_back(rfbEncodingRaw);
+    legacyEncodings.push_back(rfbEncodingCopyRect);
+    legacyEncodings.push_back(rfbEncodingHextile);
+    legacyEncodings.push_back(rfbEncodingZlib);
+    legacyEncodings.push_back(rfbEncodingZRLE);
+    legacyEncodings.push_back(rfbEncodingTight);
+    legacyEncodings.push_back(rfbEncodingRRE);
+    legacyEncodings.push_back(rfbEncodingCoRRE);
+    legacyEncodings.push_back(rfbEncodingNewFBSize);
+    viewerConfig.SetEncodings(legacyEncodings);
+
 
     PersistentViewerSession session;
     ViewerSessionResult result;
