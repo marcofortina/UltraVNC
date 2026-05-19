@@ -1,0 +1,19 @@
+# Native Linux server external viewer matrix.
+# Columns: label|viewer|status|command|notes
+#
+# status:
+#   ready   - command is executable by linux-server-external-viewer-matrix-smoke.sh
+#   manual  - manual evidence is required; command must be manual:<reason>
+#   missing - viewer is not available yet; command must be manual:<reason>
+#
+# Placeholders available to ready commands:
+#   {host}
+#   {port}
+#   {password_file}
+#
+# Fill these with real client commands before claiming external compatibility.
+
+tigervnc|TigerVNC vncviewer|missing|manual:install-tigervnc-viewer-and-run-again|Required external Linux viewer coverage.
+libvnc|LibVNC vncviewer|missing|manual:install-libvncclient-viewer-and-run-again|Required libvncclient-based viewer coverage.
+realvnc|RealVNC Viewer|manual|manual:run-gui-viewer-and-record-evidence|RealVNC is usually GUI/licensed; attach manual evidence.
+ultravnc-windows|UltraVNC Viewer Windows|manual|manual:run-windows-viewer-against-linux-server|Run from Windows host against this Linux server.
