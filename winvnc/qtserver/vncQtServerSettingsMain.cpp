@@ -67,8 +67,7 @@ int main(int argc, char **argv)
         panel.show();
         QApplication::processEvents();
         if (!panel.grab().save(QString::fromStdString(snapshotPath))) {
-            std::cerr << "failed to save visual parity snapshot
-";
+            std::cerr << "failed to save visual parity snapshot\n";
             return 1;
         }
         return 0;
