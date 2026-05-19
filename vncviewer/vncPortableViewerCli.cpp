@@ -167,6 +167,8 @@ bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& opti
             options.config.SetTransportSecurity(mode);
         } else if (arg == "--tls-ca-file" && i + 1 < args.size()) {
             options.config.SetTlsCaFile(args[++i]);
+        } else if (arg == "--tls-server-name" && i + 1 < args.size()) {
+            options.config.SetTlsServerName(args[++i]);
         } else if (arg == "--tls-insecure") {
             options.config.SetTlsVerifyPeer(false);
         } else if (arg == "--password" && i + 1 < args.size()) {
@@ -242,6 +244,7 @@ std::string ViewerCliUsage(const char *programName)
         << "  --disable-no-auth      Reject no-auth-only servers\n"
         << "  --transport-security <mode> Transport security: none, vencrypt-x509-vnc\n"
         << "  --tls-ca-file <path> CA file for VeNCrypt TLS peer verification\n"
+        << "  --tls-server-name <name> Name used for TLS SNI and hostname verification\n"
         << "  --tls-insecure         Disable TLS peer verification for throwaway lab tests only\n"
         << "  --password <password>  Password for VNCAuth-capable sessions\n"
         << "  --password-file <path> Read VNCAuth password from a file\n"
