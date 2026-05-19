@@ -9,6 +9,7 @@
 #include "vncPortableRfbSession.h"
 
 #include "vncPortableRfb.h"
+#include "vncPortableCursor.h"
 #include "vncPortableRfbMessages.h"
 #include "vncPortableRfbUpdate.h"
 
@@ -214,6 +215,9 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
         const bool ok = payload.empty() || socket.ReadExact(payload.data(), payload.size());
         if (ok && state) {
             state->SetEncodings(DecodeSetEncodingsPayload(payload));
+            if (state->SupportsCursorShapeUpdates() && !SendCursorShape(socket, *state)) {
+                return false;
+            }
         }
         if (ok && stats) {
             stats->setEncodingsMessages += 1;
@@ -344,6 +348,28 @@ bool RfbServerSession::SendServerCutText(TcpSocket& socket, const std::string& t
 {
     const std::vector<CARD8> bytes = EncodeServerCutText(text);
     return socket.WriteAll(bytes.data(), bytes.size());
+}
+
+bool RfbServerSession::SendCursorShape(TcpSocket& socket, RfbClientState& state) const
+{
+    if (!state.SupportsCursorShapeUpdates()) {
+        return true;
+    }
+    const CursorShape cursor = DefaultArrowCursorShape();
+    std::vector<CARD8> bytes;
+    if (state.SupportsRichCursorUpdates()) {
+        bytes = cursor.Valid() ? EncodeRichCursorShapeUpdate(cursor) : EncodeEmptyCursorShapeUpdate(rfbEncodingRichCursor);
+    } else if (state.SupportsXCursorUpdates()) {
+        bytes = cursor.Valid() ? EncodeXCursorShapeUpdate(cursor) : EncodeEmptyCursorShapeUpdate(rfbEncodingXCursor);
+    }
+    if (bytes.empty()) {
+        return false;
+    }
+    if (!socket.WriteAll(bytes.data(), bytes.size())) {
+        return false;
+    }
+    state.MarkCursorShapeSent();
+    return true;
 }
 
 } // namespace portable

@@ -49,6 +49,7 @@ public:
     bool ServeFramebufferUpdates(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages = 128, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr, RfbInputSink *inputSink = nullptr, bool forceRawIncremental = false) const;
     bool SendBell(TcpSocket& socket) const;
     bool SendServerCutText(TcpSocket& socket, const std::string& text) const;
+    bool SendCursorShape(TcpSocket& socket, RfbClientState& state) const;
 };
 
 } // namespace portable

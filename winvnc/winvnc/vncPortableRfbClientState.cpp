@@ -23,7 +23,8 @@ RfbClientState::RfbClientState(const ServerConfig& config)
       keyEventCount_(0),
       pointerEventCount_(0),
       clientCutTextMessages_(0),
-      clientCutTextBytes_(0)
+      clientCutTextBytes_(0),
+      cursorShapeSent_(false)
 {
     std::memset(&lastKeyEvent_, 0, sizeof(lastKeyEvent_));
     std::memset(&lastPointerEvent_, 0, sizeof(lastPointerEvent_));
@@ -39,6 +40,21 @@ bool RfbClientState::SupportsPointerPositionUpdates() const
     return SupportsEncoding(rfbEncodingPointerPos);
 }
 
+bool RfbClientState::SupportsRichCursorUpdates() const
+{
+    return SupportsEncoding(rfbEncodingRichCursor);
+}
+
+bool RfbClientState::SupportsXCursorUpdates() const
+{
+    return SupportsEncoding(rfbEncodingXCursor);
+}
+
+bool RfbClientState::SupportsCursorShapeUpdates() const
+{
+    return SupportsRichCursorUpdates() || SupportsXCursorUpdates();
+}
+
 void RfbClientState::SetPixelFormat(const rfbPixelFormat& format)
 {
     pixelFormat_ = format;
@@ -47,6 +63,12 @@ void RfbClientState::SetPixelFormat(const rfbPixelFormat& format)
 void RfbClientState::SetEncodings(const std::vector<CARD32>& encodings)
 {
     encodings_ = encodings;
+    cursorShapeSent_ = false;
+}
+
+void RfbClientState::MarkCursorShapeSent()
+{
+    cursorShapeSent_ = true;
 }
 
 void RfbClientState::RecordKeyEvent(const KeyEvent& event)
