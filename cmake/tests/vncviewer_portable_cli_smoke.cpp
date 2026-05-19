@@ -56,7 +56,7 @@ int main()
     assert(options.config.RequestUpdate());
     assert(options.config.ViewOnly());
     assert(options.smokeTest);
-    assert(options.config.Encodings().size() == 9);
+    assert(options.config.Encodings().size() == 14);
     assert(options.config.Encodings()[0] == rfbEncodingRaw);
     assert(options.config.Encodings()[1] == rfbEncodingCopyRect);
     assert(options.config.Encodings()[2] == rfbEncodingHextile);

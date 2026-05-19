@@ -70,7 +70,19 @@ bool RunNoAuthHandshake(TcpSocket& socket)
     unsigned int count = 0;
     if (!DecodeSetEncodingsHeader(encodings, count)) return false;
     std::vector<CARD8> payload(count * sizeof(CARD32));
-    return payload.empty() || socket.ReadExact(payload.data(), payload.size());
+    if (!payload.empty() && !socket.ReadExact(payload.data(), payload.size())) {
+        return false;
+    }
+    rfbClientCutTextMsg cutText;
+    if (!socket.ReadExact(&cutText, sz_rfbClientCutTextMsg)) {
+        return false;
+    }
+    const int32_t length = static_cast<int32_t>(Swap32IfLE(cutText.length));
+    if (cutText.type != rfbClientCutText || length >= 0) {
+        return false;
+    }
+    std::vector<CARD8> caps(static_cast<std::size_t>(-length));
+    return caps.empty() || socket.ReadExact(caps.data(), caps.size());
 }
 
 bool WriteServerCutText(TcpSocket& socket, const std::string& text)
