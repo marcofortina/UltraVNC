@@ -43,6 +43,15 @@ CARD32 DefaultFileTransferPayloadLimit()
     return 1024U * 1024U;
 }
 
+
+bool FileTransferMessageMayCarryPath(CARD8 contentType)
+{
+    return contentType == rfbDirContentRequest ||
+           contentType == rfbFileTransferRequest ||
+           contentType == rfbFileTransferOffer ||
+           contentType == rfbCommand;
+}
+
 bool IsSafeFileTransferRelativePath(const std::string& requestedPath, std::string *reason)
 {
     if (requestedPath.empty()) {
