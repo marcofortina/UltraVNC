@@ -52,7 +52,7 @@ int main()
     assert(clientSocket.ReadExact(&abort, sz_rfbFileTransferMsg));
     assert(abort.type == rfbFileTransfer);
     assert(abort.contentType == rfbAbortFileTransfer);
-    assert(Swap16IfLE(abort.contentParam) == static_cast<CARD16>(rfbRErrorCmd));
+    assert(Swap32IfLE(abort.size) == static_cast<CARD32>(rfbRErrorCmd));
 
     worker.join();
     assert(serverOk);

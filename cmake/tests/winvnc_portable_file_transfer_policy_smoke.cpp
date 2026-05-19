@@ -12,6 +12,10 @@ int main()
     assert(mode == FileTransferMode::Disabled);
     assert(ParseFileTransferMode("reject-only", mode));
     assert(mode == FileTransferMode::RejectOnly);
+    assert(ParseFileTransferMode("read-only", mode));
+    assert(mode == FileTransferMode::ReadOnly);
+    assert(ParseFileTransferMode("read-write", mode));
+    assert(mode == FileTransferMode::ReadWrite);
     assert(!ParseFileTransferMode("enabled", mode));
 
     FileTransferMessage message;
@@ -32,6 +36,11 @@ int main()
     assert(decision.readPayload);
     assert(decision.payloadBytes == 128);
     assert(decision.reason.find("reject-only") != std::string::npos);
+
+    decision = EvaluateFileTransferMessage(message, FileTransferMode::ReadOnly, 1024);
+    assert(decision.accepted);
+    assert(decision.readPayload);
+    assert(decision.reason.find("message-specific") != std::string::npos);
 
     message.length = 4096;
     decision = EvaluateFileTransferMessage(message, FileTransferMode::RejectOnly, 1024);
