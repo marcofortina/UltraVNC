@@ -50,6 +50,7 @@ private:
     QLineEdit *desktopNameEdit_;
     QComboBox *authModeCombo_;
     QLineEdit *passwordEdit_;
+    QLineEdit *passwordFileEdit_;
     QLineEdit *authHelperEdit_;
     QCheckBox *allowNoAuthCheck_;
     QCheckBox *allowPublicNoAuthCheck_;
@@ -57,6 +58,12 @@ private:
     QComboBox *transportSecurityCombo_;
     QLineEdit *tlsCertEdit_;
     QLineEdit *tlsKeyEdit_;
+    QComboBox *captureBackendCombo_;
+    QComboBox *inputBackendCombo_;
+    QComboBox *clipboardBackendCombo_;
+    QLineEdit *logFileEdit_;
+    QLineEdit *pidFileEdit_;
+    QLineEdit *statusFileEdit_;
     QComboBox *fileTransferModeCombo_;
     QLineEdit *fileTransferRootEdit_;
     QCheckBox *fileTransferOverwriteCheck_;

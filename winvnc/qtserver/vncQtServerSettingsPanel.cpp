@@ -55,6 +55,7 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
       desktopNameEdit_(new QLineEdit(QStringLiteral("UltraVNC Linux Server"))),
       authModeCombo_(new QComboBox()),
       passwordEdit_(new QLineEdit()),
+      passwordFileEdit_(new QLineEdit()),
       authHelperEdit_(new QLineEdit()),
       allowNoAuthCheck_(new QCheckBox(QStringLiteral("Allow no-auth lab mode"))),
       allowPublicNoAuthCheck_(new QCheckBox(QStringLiteral("Allow public no-auth"))),
@@ -62,6 +63,12 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
       transportSecurityCombo_(new QComboBox()),
       tlsCertEdit_(new QLineEdit()),
       tlsKeyEdit_(new QLineEdit()),
+      captureBackendCombo_(new QComboBox()),
+      inputBackendCombo_(new QComboBox()),
+      clipboardBackendCombo_(new QComboBox()),
+      logFileEdit_(new QLineEdit()),
+      pidFileEdit_(new QLineEdit()),
+      statusFileEdit_(new QLineEdit()),
       fileTransferModeCombo_(new QComboBox()),
       fileTransferRootEdit_(new QLineEdit()),
       fileTransferOverwriteCheck_(new QCheckBox(QStringLiteral("Allow file-transfer overwrite"))),
@@ -83,6 +90,7 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
     desktopNameEdit_->setObjectName(QStringLiteral("desktopNameEdit"));
     authModeCombo_->setObjectName(QStringLiteral("authModeCombo"));
     passwordEdit_->setObjectName(QStringLiteral("passwordEdit"));
+    passwordFileEdit_->setObjectName(QStringLiteral("passwordFileEdit"));
     authHelperEdit_->setObjectName(QStringLiteral("authHelperEdit"));
     allowNoAuthCheck_->setObjectName(QStringLiteral("allowNoAuthCheck"));
     allowPublicNoAuthCheck_->setObjectName(QStringLiteral("allowPublicNoAuthCheck"));
@@ -90,6 +98,12 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
     transportSecurityCombo_->setObjectName(QStringLiteral("transportSecurityCombo"));
     tlsCertEdit_->setObjectName(QStringLiteral("tlsCertEdit"));
     tlsKeyEdit_->setObjectName(QStringLiteral("tlsKeyEdit"));
+    captureBackendCombo_->setObjectName(QStringLiteral("captureBackendCombo"));
+    inputBackendCombo_->setObjectName(QStringLiteral("inputBackendCombo"));
+    clipboardBackendCombo_->setObjectName(QStringLiteral("clipboardBackendCombo"));
+    logFileEdit_->setObjectName(QStringLiteral("logFileEdit"));
+    pidFileEdit_->setObjectName(QStringLiteral("pidFileEdit"));
+    statusFileEdit_->setObjectName(QStringLiteral("statusFileEdit"));
     fileTransferModeCombo_->setObjectName(QStringLiteral("fileTransferModeCombo"));
     fileTransferRootEdit_->setObjectName(QStringLiteral("fileTransferRootEdit"));
     fileTransferOverwriteCheck_->setObjectName(QStringLiteral("fileTransferOverwriteCheck"));
@@ -117,6 +131,11 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
     clipboardLimitSpin_->setValue(1024 * 1024);
 
     passwordEdit_->setEchoMode(QLineEdit::Password);
+    passwordFileEdit_->setPlaceholderText(QStringLiteral("/etc/ultravnc/vnc-password"));
+    authHelperEdit_->setPlaceholderText(QStringLiteral("/usr/local/libexec/uvnc-mslogon-auth"));
+    logFileEdit_->setPlaceholderText(QStringLiteral("/var/log/ultravnc/winvnc.log"));
+    pidFileEdit_->setPlaceholderText(QStringLiteral("/run/ultravnc/winvnc.pid"));
+    statusFileEdit_->setPlaceholderText(QStringLiteral("/run/ultravnc/winvnc.status"));
     previewEdit_->setReadOnly(true);
     previewEdit_->setMinimumHeight(220);
     extendedClipboardCheck_->setChecked(true);
@@ -128,6 +147,15 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
 
     AddComboItem(transportSecurityCombo_, QStringLiteral("None"), static_cast<int>(portable::TransportSecurityMode::None));
     AddComboItem(transportSecurityCombo_, QStringLiteral("VeNCrypt X509Vnc"), static_cast<int>(portable::TransportSecurityMode::VeNCryptX509Vnc));
+
+    captureBackendCombo_->addItem(QStringLiteral("auto"));
+    captureBackendCombo_->addItem(QStringLiteral("x11"));
+    captureBackendCombo_->addItem(QStringLiteral("pipewire"));
+    captureBackendCombo_->addItem(QStringLiteral("none"));
+    inputBackendCombo_->addItem(QStringLiteral("none"));
+    inputBackendCombo_->addItem(QStringLiteral("xtest"));
+    clipboardBackendCombo_->addItem(QStringLiteral("memory"));
+    clipboardBackendCombo_->addItem(QStringLiteral("x11"));
 
     AddComboItem(fileTransferModeCombo_, QStringLiteral("Disabled"), static_cast<int>(portable::FileTransferMode::Disabled));
     AddComboItem(fileTransferModeCombo_, QStringLiteral("Reject only"), static_cast<int>(portable::FileTransferMode::RejectOnly));
@@ -142,10 +170,17 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
     form->addRow(QStringLiteral("Desktop name"), desktopNameEdit_);
     form->addRow(QStringLiteral("Auth mode"), authModeCombo_);
     form->addRow(QStringLiteral("Password"), passwordEdit_);
+    form->addRow(QStringLiteral("Password file"), passwordFileEdit_);
     form->addRow(QStringLiteral("Auth helper"), authHelperEdit_);
     form->addRow(QStringLiteral("Transport security"), transportSecurityCombo_);
     form->addRow(QStringLiteral("TLS certificate"), tlsCertEdit_);
     form->addRow(QStringLiteral("TLS private key"), tlsKeyEdit_);
+    form->addRow(QStringLiteral("Capture backend"), captureBackendCombo_);
+    form->addRow(QStringLiteral("Input backend"), inputBackendCombo_);
+    form->addRow(QStringLiteral("Clipboard backend"), clipboardBackendCombo_);
+    form->addRow(QStringLiteral("Log file"), logFileEdit_);
+    form->addRow(QStringLiteral("PID file"), pidFileEdit_);
+    form->addRow(QStringLiteral("Status file"), statusFileEdit_);
     form->addRow(QStringLiteral("File transfer"), fileTransferModeCombo_);
     form->addRow(QStringLiteral("File-transfer root"), fileTransferRootEdit_);
     form->addRow(QStringLiteral("Max shared clients"), maxSharedClientsSpin_);
@@ -235,7 +270,11 @@ QString QtServerSettingsPanel::GeneratedConfigText() const
     text += QStringLiteral("desktop_name=%1\n").arg(desktopNameEdit_->text());
     text += QStringLiteral("auth=%1\n").arg(QString::fromLatin1(portable::ServerAuthModeName(config.AuthMode())));
     if (config.AuthMode() == portable::ServerAuthMode::VncPassword) {
-        text += QStringLiteral("# Use password_file in production instead of inline secrets.\n");
+        if (!passwordFileEdit_->text().isEmpty()) {
+            text += QStringLiteral("password_file=%1\n").arg(passwordFileEdit_->text());
+        } else {
+            text += QStringLiteral("# Use password_file in production instead of inline secrets.\n");
+        }
     }
     if (config.AuthMode() == portable::ServerAuthMode::MsLogonII) {
         text += QStringLiteral("auth_helper=%1\n").arg(authHelperEdit_->text());
@@ -243,6 +282,12 @@ QString QtServerSettingsPanel::GeneratedConfigText() const
     text += QStringLiteral("allow_no_auth=%1\n").arg(BoolText(allowNoAuthCheck_->isChecked()));
     text += QStringLiteral("allow_public_no_auth=%1\n").arg(BoolText(allowPublicNoAuthCheck_->isChecked()));
     text += QStringLiteral("allow_unencrypted_public=%1\n").arg(BoolText(allowUnencryptedPublicCheck_->isChecked()));
+    text += QStringLiteral("capture_backend=%1\n").arg(captureBackendCombo_->currentText());
+    text += QStringLiteral("input_backend=%1\n").arg(inputBackendCombo_->currentText());
+    text += QStringLiteral("clipboard_backend=%1\n").arg(clipboardBackendCombo_->currentText());
+    if (!logFileEdit_->text().isEmpty()) text += QStringLiteral("log_file=%1\n").arg(logFileEdit_->text());
+    if (!pidFileEdit_->text().isEmpty()) text += QStringLiteral("pid_file=%1\n").arg(pidFileEdit_->text());
+    if (!statusFileEdit_->text().isEmpty()) text += QStringLiteral("status_file=%1\n").arg(statusFileEdit_->text());
     text += QStringLiteral("transport_security=%1\n").arg(QString::fromLatin1(portable::TransportSecurityModeName(config.TransportSecurity())));
     if (config.TransportSecurity() == portable::TransportSecurityMode::VeNCryptX509Vnc) {
         text += QStringLiteral("tls_certificate_file=%1\n").arg(tlsCertEdit_->text());
