@@ -1,0 +1,79 @@
+// This file is part of UltraVNC
+// https://github.com/ultravnc/UltraVNC
+// https://uvnc.com/
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// SPDX-FileCopyrightText: Copyright (C) 2002-2025 UltraVNC Team Members. All Rights Reserved.
+
+#ifndef UVNC_WINVNC_QT_SERVER_SETTINGS_PANEL_H
+#define UVNC_WINVNC_QT_SERVER_SETTINGS_PANEL_H
+
+#include "vncPortableServerConfig.h"
+
+#include <QWidget>
+
+class QCheckBox;
+class QComboBox;
+class QLabel;
+class QLineEdit;
+class QPushButton;
+class QSpinBox;
+class QTextEdit;
+
+namespace uvnc {
+namespace winvnc {
+namespace qtserver {
+
+class QtServerSettingsPanel : public QWidget {
+public:
+    explicit QtServerSettingsPanel(QWidget *parent = nullptr);
+
+    portable::ServerConfig CurrentConfig() const;
+    QString GeneratedConfigText() const;
+    QString StatusText() const;
+
+private:
+    void ValidateConfig(bool showDialog);
+    void SaveConfig();
+    void RefreshPreview();
+    void SetStatus(const QString& status);
+    void ShowError(const QString& message, bool showDialog);
+    portable::ServerAuthMode SelectedAuthMode() const;
+    portable::TransportSecurityMode SelectedTransportSecurity() const;
+    portable::FileTransferMode SelectedFileTransferMode() const;
+
+    QLineEdit *bindAddressEdit_;
+    QSpinBox *portSpin_;
+    QSpinBox *widthSpin_;
+    QSpinBox *heightSpin_;
+    QLineEdit *desktopNameEdit_;
+    QComboBox *authModeCombo_;
+    QLineEdit *passwordEdit_;
+    QLineEdit *authHelperEdit_;
+    QCheckBox *allowNoAuthCheck_;
+    QCheckBox *allowPublicNoAuthCheck_;
+    QCheckBox *allowUnencryptedPublicCheck_;
+    QComboBox *transportSecurityCombo_;
+    QLineEdit *tlsCertEdit_;
+    QLineEdit *tlsKeyEdit_;
+    QComboBox *fileTransferModeCombo_;
+    QLineEdit *fileTransferRootEdit_;
+    QCheckBox *fileTransferOverwriteCheck_;
+    QSpinBox *maxSharedClientsSpin_;
+    QSpinBox *updatePacingSpin_;
+    QLineEdit *serverClipboardEdit_;
+    QCheckBox *extendedClipboardCheck_;
+    QSpinBox *clipboardLimitSpin_;
+    QPushButton *validateButton_;
+    QPushButton *saveButton_;
+    QPushButton *refreshButton_;
+    QLabel *statusLabel_;
+    QTextEdit *previewEdit_;
+};
+
+} // namespace qtserver
+} // namespace winvnc
+} // namespace uvnc
+
+#endif // UVNC_WINVNC_QT_SERVER_SETTINGS_PANEL_H
