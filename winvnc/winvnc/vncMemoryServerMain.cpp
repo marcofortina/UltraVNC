@@ -18,6 +18,7 @@
 #include "vncPortableMemoryServer.h"
 #include "vncPortableRfb.h"
 #include "vncPortableRfbMessages.h"
+#include "vncPortableSecurityExtensions.h"
 #include "vncPortableTcp.h"
 
 #include <algorithm>

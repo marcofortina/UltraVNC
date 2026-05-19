@@ -267,7 +267,7 @@ KeyModifierPlan XTestInputBackend::PortableModifierPlan(CARD32 keysym)
     case '}': plan.keysym = ']'; plan.shift = true; break;
     case '|': plan.keysym = '\\'; plan.shift = true; break;
     case ':': plan.keysym = ';'; plan.shift = true; break;
-    case '"': plan.keysym = '''; plan.shift = true; break;
+    case '"': plan.keysym = '\''; plan.shift = true; break;
     case '<': plan.keysym = ','; plan.shift = true; break;
     case '>': plan.keysym = '.'; plan.shift = true; break;
     case '?': plan.keysym = '/'; plan.shift = true; break;
