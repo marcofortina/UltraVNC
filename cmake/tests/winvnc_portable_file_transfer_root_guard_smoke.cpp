@@ -27,7 +27,7 @@ int main()
 
     ServerConfig config;
     config.SetAllowNoAuth(true);
-    config.SetFileTransferMode(FileTransferMode::RejectOnly);
+    config.SetFileTransferMode(FileTransferMode::ReadOnly);
     config.SetFileTransferRoot("/tmp/uvnc-ft-root");
     RfbClientState state(config);
     RfbServerSession session;
