@@ -17,6 +17,7 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -25,6 +26,8 @@ using uvnc::vncviewer::portable::ParseViewerCli;
 using uvnc::vncviewer::portable::PersistentViewerSession;
 using uvnc::vncviewer::portable::ViewerCliOptions;
 using uvnc::vncviewer::portable::ViewerCliUsage;
+using uvnc::vncviewer::portable::ViewerFileDownload;
+using uvnc::vncviewer::portable::ViewerFileTransferEntry;
 using uvnc::vncviewer::portable::ViewerSession;
 using uvnc::vncviewer::portable::ViewerSessionResult;
 using uvnc::vncviewer::qtviewer::QtViewerConnectionPanel;
@@ -103,6 +106,71 @@ bool RawUpdateToArgbPixels(const ViewerSessionResult& result, std::vector<unsign
         pixels.push_back(0xff000000u | (red << 16) | (green << 8) | blue);
     }
     return true;
+}
+
+
+int RunFileTransferOperation(const ViewerCliOptions& options)
+{
+    PersistentViewerSession session;
+    ViewerSessionResult result;
+    std::string error;
+    if (!session.Connect(options.config, result, &error)) {
+        std::cerr << error << "\n";
+        return 1;
+    }
+
+    if (options.listRemote || options.listRemoteDrives) {
+        std::vector<ViewerFileTransferEntry> entries;
+        const bool ok = options.listRemoteDrives ?
+            session.RequestRemoteDrives(entries, &error) :
+            session.RequestRemoteDirectory(options.remotePath, entries, &error);
+        if (!ok) {
+            std::cerr << error << "\n";
+            return 1;
+        }
+        for (std::vector<ViewerFileTransferEntry>::const_iterator it = entries.begin(); it != entries.end(); ++it) {
+            std::cout << (it->directory ? "dir" : (it->inaccessible ? "inaccessible" : "file"))
+                      << "\t" << it->size << "\t" << it->name << "\n";
+        }
+        return 0;
+    }
+
+    if (options.downloadRemote) {
+        ViewerFileDownload download;
+        if (!session.DownloadRemoteFile(options.remotePath, download, &error)) {
+            std::cerr << error << "\n";
+            return 1;
+        }
+        std::ofstream out(options.downloadOutputPath.c_str(), std::ios::binary | std::ios::trunc);
+        if (!out) {
+            std::cerr << "failed to open download output path\n";
+            return 1;
+        }
+        if (!download.payload.empty()) {
+            out.write(reinterpret_cast<const char *>(download.payload.data()), static_cast<std::streamsize>(download.payload.size()));
+        }
+        if (!out) {
+            std::cerr << "failed to write download output path\n";
+            return 1;
+        }
+        std::cout << "downloaded " << download.payload.size() << " bytes from " << options.remotePath
+                  << " to " << options.downloadOutputPath << "\n";
+        return 0;
+    }
+
+    if (options.remoteChecksums) {
+        std::vector<std::string> checksums;
+        if (!session.RequestRemoteFileChecksums(options.remotePath, checksums, &error)) {
+            std::cerr << error << "\n";
+            return 1;
+        }
+        for (std::vector<std::string>::const_iterator it = checksums.begin(); it != checksums.end(); ++it) {
+            std::cout << *it << "\n";
+        }
+        return 0;
+    }
+
+    return 0;
 }
 
 int RunConnectDisplaySmoke(int argc, char **argv, const ViewerCliOptions& options)
@@ -210,6 +278,10 @@ int main(int argc, char **argv)
 
     if (options.validateOnly) {
         return 0;
+    }
+
+    if (options.listRemote || options.listRemoteDrives || options.downloadRemote || options.remoteChecksums) {
+        return RunFileTransferOperation(options);
     }
 
     if (options.connectDisplaySmoke) {
