@@ -8,6 +8,7 @@
 
 #include "vncPortableViewerFileTransfer.h"
 
+#include <algorithm>
 #include <cstring>
 #include <sstream>
 
