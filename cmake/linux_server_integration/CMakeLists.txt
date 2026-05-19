@@ -55,10 +55,16 @@ install(FILES
     "${CMAKE_SOURCE_DIR}/../docs/native-linux-ci-gate.md"
     "${CMAKE_SOURCE_DIR}/../docs/native-linux-milestone-closure.md"
     "${CMAKE_SOURCE_DIR}/../docs/native-linux-qt-viewer.md"
+    "${CMAKE_SOURCE_DIR}/../docs/native-linux-legacy-parity.md"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/ultravnc/linux"
 )
 
 install(FILES
     "${CMAKE_SOURCE_DIR}/../docs/examples/native-linux-server-external-viewer-matrix.example"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/ultravnc/linux/examples"
+)
+
+install(PROGRAMS
+    "${CMAKE_SOURCE_DIR}/native-linux-legacy-parity-smoke.sh"
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/ultravnc/linux"
 )
