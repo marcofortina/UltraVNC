@@ -247,3 +247,27 @@ encoding, authentication, clipboard and input paths once the local production
 gate and the required real-server matrix pass. Vendor-specific extensions that
 are not covered by the matrix remain outside the claim until reproduced and
 covered by targeted tests.
+
+## Portable viewer file-transfer and security-policy baseline
+
+The native Linux viewer portable session path now has non-UI file-transfer
+helpers for the protocol pieces needed by the native Linux server path:
+
+- remote directory listing requests;
+- remote drives/root listing requests;
+- file download into an in-memory payload;
+- file checksum request parsing.
+
+This is intentionally protocol-level infrastructure. A visible Qt file-transfer
+panel still needs separate UX work before being exposed to operators.
+
+The portable viewer security selection is also explicit:
+
+- VNCAuth is preferred when a password is configured and the server offers it;
+- no-auth is accepted only when the viewer policy allows it;
+- VeNCrypt, DSM/SecureVNC plugin and MSLogon-style UltraVNC extensions fail
+  closed in the portable viewer path until a Linux-native TLS/plugin/provider
+  implementation is wired into that viewer path.
+
+Use `--disable-no-auth` for production smoke runs that must reject accidental
+no-auth servers.
