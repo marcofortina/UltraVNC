@@ -227,6 +227,8 @@ std::string ViewerCliUsage(const char *programName)
         << "  --exclusive            Request exclusive session\n"
         << "  --request-update       Request an initial framebuffer update in future session smoke\n"
         << "  --view-only            Disable local input forwarding in the viewer shell\n"
+        << "  --allow-no-auth        Permit no-auth servers, default\n"
+        << "  --disable-no-auth      Reject no-auth-only servers\n"
         << "  --password <password>  Password for VNCAuth-capable sessions\n"
         << "  --password-file <path> Read VNCAuth password from a file\n"
         << "  --password-env <name>  Read VNCAuth password from an environment variable\n"
