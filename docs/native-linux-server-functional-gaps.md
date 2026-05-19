@@ -35,9 +35,9 @@ A future Linux security design should use explicit Linux-native authentication a
 
 ### HTTP Java viewer
 
-The Windows server ships legacy Java viewer resources and HTTP serving code. The native Linux server does not expose that path. It rejects `--http-java-viewer` so operators do not assume that the Windows-only HTTP viewer is active.
+The Windows server ships legacy Java applet viewer resources and HTTP serving code. The native Linux server treats that path as legacy-only and does not expose it. It rejects `--http-java-viewer` so operators do not assume that the old applet endpoint is active.
 
-The preferred Linux direction is a real native viewer or documented external web gateway, not a silent partial Java viewer port.
+The preferred Linux direction is a real native viewer or a separately reviewed static/web viewer endpoint, not a silent partial Java applet port. See `native-linux-http-java-viewer-legacy.md`.
 
 ## Security extensions
 

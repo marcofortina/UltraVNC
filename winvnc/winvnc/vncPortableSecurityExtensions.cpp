@@ -41,8 +41,8 @@ SecurityExtensionDecision EvaluateSecurityExtension(SecurityExtensionKind kind)
         decision.replacement = "use VNCAuth over VeNCrypt/TLS or add a future PAM-backed Linux authentication provider";
         break;
     case SecurityExtensionKind::HttpJavaViewer:
-        decision.reason = "the legacy Java viewer endpoint is not part of the native Linux server runtime";
-        decision.replacement = "serve viewers out-of-band or add a separately reviewed static web viewer endpoint";
+        decision.reason = "the legacy HTTP Java applet viewer endpoint is not part of the native Linux server runtime";
+        decision.replacement = "use native VNC viewers or add a separately reviewed static/web viewer endpoint instead of the legacy applet";
         break;
     default:
         decision.reason = "unknown security extension";

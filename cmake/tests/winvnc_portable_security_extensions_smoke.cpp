@@ -9,6 +9,7 @@
 #include "vncPortableSecurityExtensions.h"
 
 #include <cassert>
+#include <string>
 
 using namespace uvnc::winvnc::portable;
 
@@ -28,5 +29,7 @@ int main()
     SecurityExtensionDecision javaViewer = EvaluateSecurityExtension(ParseSecurityExtensionOption("--http-java-viewer"));
     assert(javaViewer.kind == SecurityExtensionKind::HttpJavaViewer);
     assert(!javaViewer.supported);
+    assert(javaViewer.reason.find("legacy HTTP Java applet") != std::string::npos);
+    assert(javaViewer.replacement.find("static/web viewer") != std::string::npos);
     return 0;
 }

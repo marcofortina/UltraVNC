@@ -66,6 +66,7 @@ The following areas are not native Linux implementations yet:
 - Native viewer UI and Windows-specific message loop integration.
 - MFC/Win32 dialogs, resources, registry integration and tray UI.
 - Windows socket/window compatibility layers outside the isolated portable subset.
+- The HTTP Java applet viewer is legacy Windows-server behavior and is documented as not supported by the native Linux server path.
 
 ## Porting rule
 

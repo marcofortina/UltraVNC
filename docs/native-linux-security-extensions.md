@@ -8,7 +8,7 @@ Current Linux policy:
 
 - DSM/security plugin command line options are rejected explicitly.
 - MSLogon command line options are rejected explicitly.
-- The legacy HTTP Java viewer endpoint is rejected explicitly.
+- The legacy HTTP Java applet viewer endpoint is rejected explicitly; see `native-linux-http-java-viewer-legacy.md`.
 - VeNCrypt X.509 + VNCAuth is the supported encrypted Linux path for now.
 - Future Linux-native authentication should be designed around explicit providers, for
   example PAM, certificate identity, or a reviewed portable plugin ABI.
