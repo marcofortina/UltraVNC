@@ -1392,6 +1392,68 @@ bool PublishCompositedFramebuffer(ViewerSessionResult& result,
     return true;
 }
 
+
+bool ReadRichCursorPayload(TcpSocket& socket,
+                           ViewerSessionResult& result,
+                           ViewerFramebufferRect& rectangle,
+                           std::string *error)
+{
+    const std::size_t pixelBytes = static_cast<std::size_t>(rectangle.width) * rectangle.height * 4;
+    const std::size_t maskBytes = static_cast<std::size_t>((rectangle.width + 7) / 8) * rectangle.height;
+    rectangle.pixels.assign(pixelBytes, 0);
+    if (pixelBytes > 0 && !socket.ReadExact(rectangle.pixels.data(), rectangle.pixels.size())) {
+        SetError(error, "failed to read RFB RichCursor pixels");
+        return false;
+    }
+    std::vector<CARD8> mask(maskBytes);
+    if (maskBytes > 0 && !socket.ReadExact(mask.data(), mask.size())) {
+        SetError(error, "failed to read RFB RichCursor mask");
+        return false;
+    }
+    result.cursorShape.received = true;
+    result.cursorShape.hotspotX = rectangle.x;
+    result.cursorShape.hotspotY = rectangle.y;
+    result.cursorShape.width = rectangle.width;
+    result.cursorShape.height = rectangle.height;
+    result.cursorShape.encoding = rectangle.encoding;
+    result.cursorShape.pixels = rectangle.pixels;
+    return true;
+}
+
+bool ReadXCursorPayload(TcpSocket& socket,
+                        ViewerSessionResult& result,
+                        ViewerFramebufferRect& rectangle,
+                        std::string *error)
+{
+    if (rectangle.width == 0 || rectangle.height == 0) {
+        result.cursorShape = ViewerCursorShape();
+        result.cursorShape.received = true;
+        result.cursorShape.encoding = rectangle.encoding;
+        return true;
+    }
+    rfbXCursorColors colors;
+    if (!socket.ReadExact(&colors, sz_rfbXCursorColors)) {
+        SetError(error, "failed to read RFB XCursor colors");
+        return false;
+    }
+    const std::size_t bitmapBytes = static_cast<std::size_t>((rectangle.width + 7) / 8) * rectangle.height;
+    std::vector<CARD8> data(bitmapBytes);
+    std::vector<CARD8> mask(bitmapBytes);
+    if ((bitmapBytes > 0 && !socket.ReadExact(data.data(), data.size())) ||
+        (bitmapBytes > 0 && !socket.ReadExact(mask.data(), mask.size()))) {
+        SetError(error, "failed to read RFB XCursor bitmaps");
+        return false;
+    }
+    result.cursorShape.received = true;
+    result.cursorShape.hotspotX = rectangle.x;
+    result.cursorShape.hotspotY = rectangle.y;
+    result.cursorShape.width = rectangle.width;
+    result.cursorShape.height = rectangle.height;
+    result.cursorShape.encoding = rectangle.encoding;
+    result.cursorShape.pixels.clear();
+    return true;
+}
+
 bool ReadFramebufferUpdate(TcpSocket& socket,
                            z_stream& zrleStream,
                            bool& zrleStreamInitialized,
@@ -1485,7 +1547,22 @@ bool ReadFramebufferUpdate(TcpSocket& socket,
         rectangle.height = Swap16IfLE(rect.r.h);
         rectangle.encoding = Swap32IfLE(rect.encoding);
 
-        if (rectangle.encoding == rfbEncodingRaw) {
+        if (rectangle.encoding == rfbEncodingLastRect) {
+            result.rectangles.push_back(rectangle);
+            break;
+        } else if (rectangle.encoding == rfbEncodingPointerPos) {
+            result.pointerPositionReceived = true;
+            result.pointerX = rectangle.x;
+            result.pointerY = rectangle.y;
+        } else if (rectangle.encoding == rfbEncodingRichCursor) {
+            if (!ReadRichCursorPayload(socket, result, rectangle, error)) {
+                return false;
+            }
+        } else if (rectangle.encoding == rfbEncodingXCursor) {
+            if (!ReadXCursorPayload(socket, result, rectangle, error)) {
+                return false;
+            }
+        } else if (rectangle.encoding == rfbEncodingRaw) {
             if (!ReadRawRectPayload(socket, result, framebuffer, rectangle, error)) {
                 return false;
             }
