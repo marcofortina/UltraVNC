@@ -68,6 +68,11 @@ bool MaybeSendClipboardSource(RfbTransport& socket, RfbClientState *state, RfbCl
         if (!socket.WriteAll(bytes.data(), bytes.size())) {
             return false;
         }
+        const unsigned int remoteLimit = state->ExtendedClipboardRemoteTextLimit();
+        if (remoteLimit != 0 && text.size() > remoteLimit) {
+            state->RecordServerCutTextSent(text);
+            return true;
+        }
         bytes = EncodeExtendedServerCutText(EncodeExtendedClipboardProvideText(text));
     } else {
         bytes = EncodeServerCutText(text);
