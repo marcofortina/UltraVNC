@@ -9,6 +9,9 @@
 #include "vncPortableMemoryServer.h"
 #include "vncPortableFramebufferPattern.h"
 
+#include <chrono>
+#include <thread>
+
 namespace uvnc {
 namespace winvnc {
 namespace portable {
@@ -194,6 +197,9 @@ bool MemoryServer::ServeConnectedUpdatesFromSource(TcpSocket client, DesktopSour
         }
         if (updateSent) {
             sent += 1;
+            if (config_.UpdatePacingMs() > 0 && sent < updateCount) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(config_.UpdatePacingMs()));
+            }
         }
     }
     return sent == updateCount;
