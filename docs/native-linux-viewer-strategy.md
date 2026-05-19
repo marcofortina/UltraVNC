@@ -39,3 +39,15 @@ compatibility layer.
 - Hiding Win32 dependencies behind broad fake compatibility headers.
 
 Manual known-server validation now uses the Qt viewer RFB smoke path against an explicit no-auth raw RFB test server. Long-running interactive session ownership remains separate follow-up work.
+
+
+## Current Linux viewer operational baseline
+
+The native Linux viewer path now has portable protocol coverage for framebuffer updates,
+compressed encodings, cursor/pointer pseudo-encodings, extended clipboard, VNCAuth,
+VeNCrypt/X509Vnc TLS and basic UltraVNC file-transfer operations. The Qt shell is
+the Linux-native frontend for these portable pieces; it is not a Win32 dialog port.
+
+Legacy DSM/MSLogon/SecureVNC plugin requests are intentionally fail-closed in the
+portable Linux path. A future implementation should define a native provider ABI
+or PAM/certificate-backed design instead of loading Windows DSM plugins.
