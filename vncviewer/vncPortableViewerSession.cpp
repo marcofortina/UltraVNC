@@ -242,7 +242,7 @@ bool RunHandshakeOnTransport(RfbTransport& socket, const ViewerConfig& config, V
             SetError(error, "VeNCrypt requires a TCP-backed clear transport");
             return false;
         }
-        if (!CreateOpenSslClientTransport(tcp->Socket(), config.TlsCaFile(), config.Host(), config.TlsVerifyPeer(), tlsTransport, error)) {
+        if (!CreateOpenSslClientTransport(tcp->Socket(), config.TlsCaFile(), config.TlsServerName().empty() ? config.Host() : config.TlsServerName(), config.TlsVerifyPeer(), tlsTransport, error)) {
             return false;
         }
         if (upgradedTransport) {

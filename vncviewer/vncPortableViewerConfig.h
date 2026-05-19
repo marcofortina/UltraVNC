@@ -41,6 +41,7 @@ public:
     unsigned int SocketTimeoutMs() const { return socketTimeoutMs_; }
     ViewerTransportSecurityMode TransportSecurity() const { return transportSecurity_; }
     const std::string& TlsCaFile() const { return tlsCaFile_; }
+    const std::string& TlsServerName() const { return tlsServerName_; }
     bool TlsVerifyPeer() const { return tlsVerifyPeer_; }
 
     void SetHost(const std::string& host) { host_ = host; }
@@ -56,6 +57,7 @@ public:
     void SetSocketTimeoutMs(unsigned int socketTimeoutMs) { socketTimeoutMs_ = socketTimeoutMs; }
     void SetTransportSecurity(ViewerTransportSecurityMode mode) { transportSecurity_ = mode; }
     void SetTlsCaFile(const std::string& path) { tlsCaFile_ = path; }
+    void SetTlsServerName(const std::string& name) { tlsServerName_ = name; }
     void SetTlsVerifyPeer(bool verify) { tlsVerifyPeer_ = verify; }
 
     bool Validate(std::string *error = nullptr) const;
@@ -74,6 +76,7 @@ private:
     unsigned int socketTimeoutMs_;
     ViewerTransportSecurityMode transportSecurity_;
     std::string tlsCaFile_;
+    std::string tlsServerName_;
     bool tlsVerifyPeer_;
 };
 

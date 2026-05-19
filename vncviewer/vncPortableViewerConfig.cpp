@@ -64,6 +64,7 @@ ViewerConfig::ViewerConfig()
       socketTimeoutMs_(15000),
       transportSecurity_(ViewerTransportSecurityMode::None),
       tlsCaFile_(),
+      tlsServerName_(),
       tlsVerifyPeer_(true)
 {
     encodings_.push_back(rfbEncodingRaw);
@@ -107,6 +108,10 @@ bool ViewerConfig::Validate(std::string *error) const
     if (transportSecurity_ == ViewerTransportSecurityMode::VeNCryptX509Vnc) {
         if (password_.empty()) {
             if (error) *error = "viewer VeNCrypt/X509Vnc requires a VNCAuth password";
+            return false;
+        }
+        if (tlsVerifyPeer_ && !tlsServerName_.empty() && tlsServerName_.find(' ') != std::string::npos) {
+            if (error) *error = "viewer TLS server name must not contain spaces";
             return false;
         }
         if (tlsVerifyPeer_ && !FileExists(tlsCaFile_)) {
