@@ -53,6 +53,30 @@ bool ParseServerAuthMode(const std::string& value, ServerAuthMode& mode)
     return false;
 }
 
+const char *TransportSecurityModeName(TransportSecurityMode mode)
+{
+    switch (mode) {
+    case TransportSecurityMode::None:
+        return "none";
+    case TransportSecurityMode::VeNCryptX509Vnc:
+        return "vencrypt-x509-vnc";
+    }
+    return "unknown";
+}
+
+bool ParseTransportSecurityMode(const std::string& value, TransportSecurityMode& mode)
+{
+    if (value == "none" || value == "disabled") {
+        mode = TransportSecurityMode::None;
+        return true;
+    }
+    if (value == "vencrypt-x509-vnc" || value == "vencrypt" || value == "tls-vnc") {
+        mode = TransportSecurityMode::VeNCryptX509Vnc;
+        return true;
+    }
+    return false;
+}
+
 ServerConfig::ServerConfig()
     : bindAddress_("127.0.0.1"),
       port_(0),
@@ -72,7 +96,10 @@ ServerConfig::ServerConfig()
       serverCutText_(),
       fileTransferMode_(FileTransferMode::Disabled),
       fileTransferPayloadLimit_(DefaultFileTransferPayloadLimit()),
-      fileTransferRoot_()
+      fileTransferRoot_(),
+      transportSecurity_(TransportSecurityMode::None),
+      tlsCertificateFile_(),
+      tlsPrivateKeyFile_()
 {
 }
 
@@ -133,6 +160,20 @@ bool ServerConfig::Validate(std::string *error) const
     if (fileTransferPayloadLimit_ == 0 || fileTransferPayloadLimit_ > 16U * 1024U * 1024U) {
         if (error) *error = "file-transfer payload guard limit must be between 1 and 16777216 bytes";
         return false;
+    }
+    if (transportSecurity_ == TransportSecurityMode::VeNCryptX509Vnc) {
+        if (authMode_ != ServerAuthMode::VncPassword) {
+            if (error) *error = "VeNCrypt TLS mode requires auth=vnc-password";
+            return false;
+        }
+        if (tlsCertificateFile_.empty() || tlsPrivateKeyFile_.empty()) {
+            if (error) *error = "VeNCrypt TLS mode requires tls_certificate_file and tls_private_key_file";
+            return false;
+        }
+        if (tlsCertificateFile_[0] != '/' || tlsPrivateKeyFile_[0] != '/') {
+            if (error) *error = "TLS certificate and private key paths must be absolute";
+            return false;
+        }
     }
     if ((fileTransferMode_ == FileTransferMode::ReadOnly || fileTransferMode_ == FileTransferMode::ReadWrite) && fileTransferRoot_.empty()) {
         if (error) *error = "file-transfer root is required for read-only/read-write modes";

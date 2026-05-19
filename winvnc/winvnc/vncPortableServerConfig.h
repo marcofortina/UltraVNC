@@ -24,8 +24,15 @@ enum class ServerAuthMode {
     VncPassword
 };
 
+enum class TransportSecurityMode {
+    None,
+    VeNCryptX509Vnc
+};
+
 const char *ServerAuthModeName(ServerAuthMode mode);
 bool ParseServerAuthMode(const std::string& value, ServerAuthMode& mode);
+const char *TransportSecurityModeName(TransportSecurityMode mode);
+bool ParseTransportSecurityMode(const std::string& value, TransportSecurityMode& mode);
 
 class ServerConfig {
 public:
@@ -51,6 +58,9 @@ public:
     FileTransferMode FileTransferModeValue() const { return fileTransferMode_; }
     unsigned int FileTransferPayloadLimit() const { return fileTransferPayloadLimit_; }
     const std::string& FileTransferRoot() const { return fileTransferRoot_; }
+    TransportSecurityMode TransportSecurity() const { return transportSecurity_; }
+    const std::string& TlsCertificateFile() const { return tlsCertificateFile_; }
+    const std::string& TlsPrivateKeyFile() const { return tlsPrivateKeyFile_; }
 
     void SetBindAddress(const std::string& bindAddress) { bindAddress_ = bindAddress; }
     void SetPort(unsigned short port) { port_ = port; }
@@ -71,6 +81,9 @@ public:
     void SetFileTransferMode(FileTransferMode mode) { fileTransferMode_ = mode; }
     void SetFileTransferPayloadLimit(unsigned int bytes) { fileTransferPayloadLimit_ = bytes; }
     void SetFileTransferRoot(const std::string& root) { fileTransferRoot_ = root; }
+    void SetTransportSecurity(TransportSecurityMode mode) { transportSecurity_ = mode; }
+    void SetTlsCertificateFile(const std::string& path) { tlsCertificateFile_ = path; }
+    void SetTlsPrivateKeyFile(const std::string& path) { tlsPrivateKeyFile_ = path; }
 
     bool Validate(std::string *error = nullptr) const;
 
@@ -96,6 +109,9 @@ private:
     FileTransferMode fileTransferMode_;
     unsigned int fileTransferPayloadLimit_;
     std::string fileTransferRoot_;
+    TransportSecurityMode transportSecurity_;
+    std::string tlsCertificateFile_;
+    std::string tlsPrivateKeyFile_;
 };
 
 } // namespace portable

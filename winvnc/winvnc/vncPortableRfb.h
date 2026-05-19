@@ -21,6 +21,9 @@ namespace portable {
 
 std::string ProtocolVersion38();
 bool IsProtocolVersionMessage(const std::string& value);
+const CARD32 kVeNCryptVersion = 2;
+const CARD32 kVeNCryptSubTypeX509Vnc = 261;
+std::vector<CARD8> SecurityTypesForConfig(const ServerConfig& config);
 std::vector<CARD8> SecurityTypesForAuthMode(ServerAuthMode mode);
 std::vector<CARD8> NoAuthSecurityTypes();
 CARD32 AuthOkValue();

@@ -27,6 +27,17 @@ bool IsProtocolVersionMessage(const std::string& value)
            value[11] == '\n';
 }
 
+std::vector<CARD8> SecurityTypesForConfig(const ServerConfig& config)
+{
+    if (config.TransportSecurity() == TransportSecurityMode::VeNCryptX509Vnc) {
+        std::vector<CARD8> types;
+        types.push_back(1);
+        types.push_back(rfbVeNCypt);
+        return types;
+    }
+    return SecurityTypesForAuthMode(config.AuthMode());
+}
+
 std::vector<CARD8> SecurityTypesForAuthMode(ServerAuthMode mode)
 {
     std::vector<CARD8> types;
