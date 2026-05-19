@@ -1645,15 +1645,15 @@ int main(int argc, char **argv)
         served = true;
         if (clientMode == ClientServiceMode::Threaded && liveSource == nullptr) {
             served = RunThreadedStaticServeLoop(server, config, maxUpdates, inputSink, clipboardSink, clipboardSink ? &x11Clipboard : nullptr, cursorSource);
+        } else if (clientMode == ClientServiceMode::Threaded && liveSource != nullptr) {
+            served = RunThreadedLiveServeLoop(server, *liveSource, config, maxUpdates, inputSink, clipboardSink, clipboardSink ? &x11Clipboard : nullptr, cursorSource);
         } else {
-            if (clientMode == ClientServiceMode::Threaded && liveSource != nullptr) {
-                std::cerr << "warning: threaded client mode is currently only used for static memory/raw-file capture; live capture remains sequential\n";
-            }
+            ClientConnectionPolicy clientPolicy(config.MaxSharedClients());
             while (!StopRequested()) {
                 bool accepted = false;
                 const bool ok = liveSource ?
-                    server.TryServeOneUpdatesFromSource(*liveSource, maxUpdates, inputSink, 128, 250, accepted, clipboardSink, clipboardSink ? &x11Clipboard : nullptr, nullptr, cursorSource) :
-                    server.TryServeOneUpdates(maxUpdates, inputSink, 250, accepted, clipboardSink, clipboardSink ? &x11Clipboard : nullptr, nullptr, cursorSource);
+                    server.TryServeOneUpdatesFromSource(*liveSource, maxUpdates, inputSink, 128, 250, accepted, clipboardSink, clipboardSink ? &x11Clipboard : nullptr, &clientPolicy, cursorSource) :
+                    server.TryServeOneUpdates(maxUpdates, inputSink, 250, accepted, clipboardSink, clipboardSink ? &x11Clipboard : nullptr, &clientPolicy, cursorSource);
                 if (!ok) {
                     served = false;
                     break;
