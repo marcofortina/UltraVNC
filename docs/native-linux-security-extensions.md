@@ -32,3 +32,7 @@ starting with a misleading or no-op security plugin configuration.
 ## Native Linux MSLogonII server auth
 
 MSLogonII server authentication is available through an explicit external helper. See `docs/native-linux-mslogon-server-auth.md`. DSM and SecureVNC remain fail-closed plugin features.
+
+## Native Linux DSM provider ABI
+
+A Linux shared-object provider ABI exists for DSM/SecureVNC-style stream transforms. See `docs/native-linux-dsm-provider-abi.md`. The old Windows `.dsm` DLL ABI remains rejected.

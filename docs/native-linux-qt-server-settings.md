@@ -31,3 +31,11 @@ Use `uvnc_winvnc_password_file` to create or validate private VNCAuth password f
 uvnc_winvnc_password_file --output /etc/ultravnc/vnc-password --password secret
 uvnc_winvnc_password_file --validate --output /etc/ultravnc/vnc-password
 ```
+
+## Runtime tab
+
+The server settings GUI includes a Runtime tab for user-mode start/stop/status/log workflows. It writes the current preview to a runtime config path or a temporary config and starts `uvnc_winvnc_memory_server --config <path> --serve-forever` through `QProcess`. This is the Linux replacement for the basic WinVNC tray/admin live workflow, not a Win32 dialog shim.
+
+## DSM provider
+
+The settings GUI exposes `dsm_provider` for the native Linux DSM/SecureVNC provider ABI. See `docs/native-linux-dsm-provider-abi.md`. Legacy Windows `.dsm` DLL loading is still rejected.
