@@ -240,6 +240,10 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
     buttons->addWidget(saveButton_);
     buttons->addWidget(refreshButton_);
 
+    QFormLayout *runtimeForm = new QFormLayout();
+    runtimeForm->addRow(QStringLiteral("Server executable"), serverExecutableEdit_);
+    runtimeForm->addRow(QStringLiteral("Runtime config"), runtimeConfigPathEdit_);
+
     QHBoxLayout *runtimeButtons = new QHBoxLayout();
     runtimeButtons->addWidget(startButton_);
     runtimeButtons->addWidget(stopButton_);
@@ -263,6 +267,7 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
 
     QWidget *runtimePage = new QWidget();
     QVBoxLayout *runtimeLayout = new QVBoxLayout(runtimePage);
+    runtimeLayout->addLayout(runtimeForm);
     runtimeLayout->addLayout(runtimeButtons);
     runtimeLayout->addSpacing(8);
     runtimeLayout->addLayout(systemdForm);
