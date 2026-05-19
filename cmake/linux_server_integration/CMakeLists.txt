@@ -29,6 +29,11 @@ if(BUILD_TESTING)
                 "${CMAKE_CURRENT_SOURCE_DIR}/uvnc-winvnc-memory-server.env.example"
                 "${CMAKE_CURRENT_SOURCE_DIR}/uvnc-winvnc-linux-server.conf.example")
     set_tests_properties(linux_server_integration_templates_smoke PROPERTIES LABELS "native-linux;linux-server-integration" TIMEOUT 5)
+
+    add_test(NAME linux_server_external_viewer_matrix_smoke
+        COMMAND "${CMAKE_SOURCE_DIR}/tests/linux_server_external_viewer_matrix_smoke.sh"
+    )
+    set_tests_properties(linux_server_external_viewer_matrix_smoke PROPERTIES LABELS "native-linux;linux-server-integration;external-viewer-matrix" TIMEOUT 10)
     add_test(NAME linux_server_runtime_helpers_smoke
         COMMAND "${CMAKE_SOURCE_DIR}/tests/linux_server_runtime_helpers_smoke.sh"
                 "${CMAKE_SOURCE_DIR}/linux-server-real-runtime-smoke.sh"
