@@ -1420,11 +1420,29 @@ bool ReadFramebufferUpdate(TcpSocket& socket,
                 SetError(error, "failed to read RFB ServerCutText header");
                 return false;
             }
-            const CARD32 length = Swap32IfLE(cutText.length);
-            result.serverCutText.assign(length, '\0');
-            if (length > 0 && !socket.ReadExact(&result.serverCutText[0], length)) {
-                SetError(error, "failed to read RFB ServerCutText payload");
-                return false;
+            CARD32 length = Swap32IfLE(cutText.length);
+            if (IsExtendedClipboardWireLength(cutText.length)) {
+                length = ExtendedClipboardPayloadLength(cutText.length);
+                std::vector<CARD8> payload(length);
+                if (length > 0 && !socket.ReadExact(payload.data(), payload.size())) {
+                    SetError(error, "failed to read RFB extended clipboard payload");
+                    return false;
+                }
+                ExtendedClipboardPayload extended;
+                if (!DecodeExtendedClipboardPayload(payload, extended)) {
+                    SetError(error, "failed to decode RFB extended clipboard payload");
+                    return false;
+                }
+                result.extendedClipboardReceived = true;
+                if (extended.textPresent) {
+                    result.serverCutText = extended.text;
+                }
+            } else {
+                result.serverCutText.assign(length, '\0');
+                if (length > 0 && !socket.ReadExact(&result.serverCutText[0], length)) {
+                    SetError(error, "failed to read RFB ServerCutText payload");
+                    return false;
+                }
             }
             continue;
         }
