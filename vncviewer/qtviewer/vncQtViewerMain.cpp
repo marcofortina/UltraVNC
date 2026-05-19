@@ -252,19 +252,37 @@ int RunConnectSmoke(const ViewerCliOptions& options)
     return 0;
 }
 
+std::vector<unsigned int> PersistentInputSmokeEncodings()
+{
+    std::vector<unsigned int> encodings;
+    encodings.push_back(rfbEncodingRaw);
+    encodings.push_back(rfbEncodingCopyRect);
+    encodings.push_back(rfbEncodingHextile);
+    encodings.push_back(rfbEncodingZlib);
+    encodings.push_back(rfbEncodingZRLE);
+    encodings.push_back(rfbEncodingTight);
+    encodings.push_back(rfbEncodingRRE);
+    encodings.push_back(rfbEncodingCoRRE);
+    encodings.push_back(rfbEncodingNewFBSize);
+    return encodings;
+}
+
 int RunPersistentInputSmoke(const ViewerCliOptions& options)
 {
+    ViewerCliOptions smokeOptions = options;
+    smokeOptions.config.SetEncodings(PersistentInputSmokeEncodings());
+
     uvnc::vncviewer::portable::PersistentViewerSession session;
     ViewerSessionResult result;
     std::string error;
-    if (!session.Connect(options.config, result, &error)) {
+    if (!session.Connect(smokeOptions.config, result, &error)) {
         std::cerr << error << "\n";
         return 1;
     }
     if (!session.SendKeyEvent(0xff0d, true, &error) ||
         !session.SendKeyEvent(0xff0d, false, &error) ||
         !session.SendPointerEvent(1, 3, 4, &error) ||
-        !session.SendClientCutText(options.clipboardText, &error) ||
+        !session.SendClientCutText(smokeOptions.clipboardText, &error) ||
         !session.RequestFramebufferUpdate(false, result, &error)) {
         std::cerr << error << "\n";
         return 1;
