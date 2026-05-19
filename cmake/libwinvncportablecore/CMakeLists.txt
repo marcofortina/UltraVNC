@@ -13,9 +13,13 @@ project(libwinvncportablecore LANGUAGES CXX)
 option(ULTRAVNC_BUILD_LINUX_CAPTURE_X11 "Build native Linux X11 capture backend when X11 development files are available" ON)
 option(ULTRAVNC_BUILD_LINUX_CAPTURE_PIPEWIRE "Build native Linux PipeWire/XDG portal capture backend when development files are available" ON)
 option(ULTRAVNC_BUILD_LINUX_INPUT_XTEST "Build native Linux XTest input backend when development files are available" ON)
+option(ULTRAVNC_BUILD_WINVNC_OPENSSL_TLS "Build native Linux WinVNC VeNCrypt/OpenSSL transport security" ON)
 
 find_package(ZLIB REQUIRED)
 find_package(JPEG REQUIRED)
+if(ULTRAVNC_BUILD_WINVNC_OPENSSL_TLS)
+    find_package(OpenSSL QUIET)
+endif()
 if(ULTRAVNC_BUILD_LINUX_CAPTURE_X11 OR ULTRAVNC_BUILD_LINUX_INPUT_XTEST)
     find_package(X11 QUIET)
 endif()
@@ -49,6 +53,7 @@ add_library(${PROJECT_NAME} STATIC
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableCapturePipeline.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableUpdateEncoder.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableTcp.cpp"
+    "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableRfbTransport.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableServerConfig.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableRfb.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableRfbMessages.cpp"
@@ -125,4 +130,9 @@ if(ULTRAVNC_BUILD_LINUX_INPUT_XTEST AND X11_FOUND AND X11_XTest_FOUND)
     target_compile_definitions(${PROJECT_NAME} PRIVATE UVNC_HAVE_XTEST=1)
     target_include_directories(${PROJECT_NAME} PRIVATE ${X11_INCLUDE_DIR} ${X11_XTest_INCLUDE_PATH})
     target_link_libraries(${PROJECT_NAME} PUBLIC ${X11_LIBRARIES} ${X11_XTest_LIB})
+endif()
+
+if(ULTRAVNC_BUILD_WINVNC_OPENSSL_TLS AND OpenSSL_FOUND)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC UVNC_HAVE_OPENSSL=1)
+    target_link_libraries(${PROJECT_NAME} PUBLIC OpenSSL::SSL OpenSSL::Crypto)
 endif()
