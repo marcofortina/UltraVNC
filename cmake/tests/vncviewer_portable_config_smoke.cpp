@@ -14,6 +14,7 @@
 #include <string>
 
 using uvnc::vncviewer::portable::ViewerConfig;
+using uvnc::vncviewer::portable::ViewerTransportSecurityMode;
 
 int main()
 {
@@ -26,6 +27,8 @@ int main()
     assert(!config.RequestUpdate());
     assert(!config.ViewOnly());
     assert(config.AllowNoAuth());
+    assert(config.TransportSecurity() == ViewerTransportSecurityMode::None);
+    assert(config.TlsVerifyPeer());
     assert(config.Validate(&error));
     assert(error.empty());
     assert(config.Encodings().size() == 14);
@@ -45,6 +48,12 @@ int main()
     assert(error == "viewer port must not be zero");
 
     config.SetPort(5901);
+    config.SetTransportSecurity(ViewerTransportSecurityMode::VeNCryptX509Vnc);
+    config.SetPassword("secret");
+    config.SetTlsVerifyPeer(false);
+    assert(config.Validate(&error));
+    assert(config.TransportSecurity() == ViewerTransportSecurityMode::VeNCryptX509Vnc);
+
     config.SetRequestUpdate(true);
     config.SetViewOnly(true);
     config.SetAllowNoAuth(false);

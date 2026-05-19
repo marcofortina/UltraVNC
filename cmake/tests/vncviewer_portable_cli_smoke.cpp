@@ -39,6 +39,9 @@ int main()
     args.push_back("--disable-no-auth");
     args.push_back("--password");
     args.push_back("secret");
+    args.push_back("--transport-security");
+    args.push_back("vencrypt-x509-vnc");
+    args.push_back("--tls-insecure");
     args.push_back("--continuous-updates");
     args.push_back("--clipboard-text");
     args.push_back("hello clipboard");
@@ -66,6 +69,8 @@ int main()
     assert(options.config.Encodings()[4] == rfbEncodingZRLE);
     assert(options.config.Encodings()[5] == rfbEncodingTight);
     assert(options.config.Password() == "secret");
+    assert(options.config.TransportSecurity() == ViewerTransportSecurityMode::VeNCryptX509Vnc);
+    assert(!options.config.TlsVerifyPeer());
     assert(options.config.ContinuousUpdates());
     assert(options.clipboardText == "hello clipboard");
     assert(options.config.UpdateIntervalMs() == 250);
