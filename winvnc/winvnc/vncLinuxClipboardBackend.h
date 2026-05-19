@@ -17,10 +17,10 @@ namespace uvnc {
 namespace winvnc {
 namespace linuxclipboard {
 
-class X11ClipboardBackend : public portable::RfbClipboardSink {
+class X11ClipboardBackend : public portable::RfbClipboardSink, public portable::RfbClipboardSource {
 public:
     bool SetText(const std::string& text, std::string *error = nullptr) override;
-    bool GetText(std::string& text, std::string *error = nullptr) const;
+    bool GetText(std::string& text, std::string *error = nullptr) const override;
 
     static bool RuntimeAvailable(std::string *reason = nullptr);
 };

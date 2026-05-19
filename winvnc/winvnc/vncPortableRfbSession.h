@@ -48,6 +48,12 @@ public:
     virtual bool SetText(const std::string& text, std::string *error = nullptr) = 0;
 };
 
+class RfbClipboardSource {
+public:
+    virtual ~RfbClipboardSource() {}
+    virtual bool GetText(std::string& text, std::string *error = nullptr) const = 0;
+};
+
 class RfbServerSession {
 public:
     bool RunHandshake(TcpSocket& socket, const ServerConfig& config, RfbClientState *state = nullptr) const;
