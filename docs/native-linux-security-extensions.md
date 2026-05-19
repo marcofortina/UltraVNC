@@ -4,14 +4,26 @@ The native Linux server must not copy the Windows DSM/MSLogon implementation bli
 Those paths depend on Windows DLL loading, Windows account/domain APIs, and historical
 UltraVNC plugin handshake details that are not safe to expose as a partial Linux port.
 
-Current Linux policy:
+Current Linux server policy:
 
 - DSM/security plugin command line options are rejected explicitly.
-- MSLogon command line options are rejected explicitly.
+- SecureVNC is treated as a DSM plugin and rejected explicitly.
+- MSLogon I/II server-side verification is rejected explicitly because the Windows
+  implementation is tied to Windows/domain account APIs.
 - The legacy HTTP Java applet viewer endpoint is rejected explicitly; see `native-linux-http-java-viewer-legacy.md`.
-- VeNCrypt X.509 + VNCAuth is the supported encrypted Linux path for now.
-- Future Linux-native authentication should be designed around explicit providers, for
-  example PAM, certificate identity, or a reviewed portable plugin ABI.
+- VeNCrypt X.509 + VNCAuth is the supported encrypted Linux server path for now.
+- Future Linux-native server authentication should be designed around explicit
+  providers, for example PAM, certificate identity, or a reviewed portable plugin ABI.
+
+Current portable viewer policy:
+
+- MSLogonII can now be negotiated by the portable viewer when requested with
+  `--security-extension mslogon`, `--username` and a password. This is for
+  compatibility with original UltraVNC servers that offer `rfbUltraVNC_MsLogonIIAuth`.
+- MSLogon I remains legacy-only.
+- DSM/SecureVNC plugin stream transforms are still not implemented in the portable
+  Linux viewer path because they require the DSMPlugin stream ABI, not just a
+  security-type number.
 
 The rejection is intentional product behavior. The server must fail closed instead of
 starting with a misleading or no-op security plugin configuration.

@@ -266,7 +266,7 @@ The portable viewer security selection is also explicit:
 - VNCAuth is preferred when a password is configured and the server offers it;
 - no-auth is accepted only when the viewer policy allows it;
 - VeNCrypt/X509Vnc is implemented in the portable viewer path when OpenSSL is available.
-- DSM/SecureVNC plugin and MSLogon-style UltraVNC extensions still fail closed until a Linux-native plugin/provider implementation is designed.
+- MSLogonII is supported in the portable viewer path for original UltraVNC server compatibility when explicitly requested with username/password. DSM/SecureVNC plugin stream transforms still fail closed until a Linux-native DSM/provider ABI exists.
 
 Use `--disable-no-auth` for production smoke runs that must reject accidental
 no-auth servers.
