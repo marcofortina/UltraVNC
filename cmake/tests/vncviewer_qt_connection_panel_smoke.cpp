@@ -33,6 +33,10 @@ int main(int argc, char **argv)
     config.SetViewOnly(true);
     config.SetContinuousUpdates(true);
     config.SetUpdateIntervalMs(750);
+    config.SetTransportSecurity(ViewerTransportSecurityMode::VeNCryptX509Vnc);
+    config.SetTlsCaFile("/tmp/test-ca.pem");
+    config.SetTlsServerName("viewer.test");
+    config.SetTlsVerifyPeer(false);
 
     QtViewerConnectionPanel panel(config);
     assert(panel.Surface() != nullptr);
@@ -50,6 +54,10 @@ int main(int argc, char **argv)
     QCheckBox *continuous = panel.findChild<QCheckBox *>("continuousCheck");
     QCheckBox *rememberPassword = panel.findChild<QCheckBox *>("rememberPasswordCheck");
     QCheckBox *autoReconnect = panel.findChild<QCheckBox *>("autoReconnectCheck");
+    QCheckBox *tls = panel.findChild<QCheckBox *>("tlsCheck");
+    QCheckBox *tlsInsecure = panel.findChild<QCheckBox *>("tlsInsecureCheck");
+    QLineEdit *tlsCaFile = panel.findChild<QLineEdit *>("tlsCaFileEdit");
+    QLineEdit *tlsServerName = panel.findChild<QLineEdit *>("tlsServerNameEdit");
     QSpinBox *interval = panel.findChild<QSpinBox *>("intervalSpin");
     QLineEdit *clipboard = panel.findChild<QLineEdit *>("clipboardEdit");
     QPushButton *sendClipboard = panel.findChild<QPushButton *>("sendClipboardButton");
@@ -69,6 +77,10 @@ int main(int argc, char **argv)
     assert(continuous && continuous->isChecked());
     assert(rememberPassword && !rememberPassword->isChecked());
     assert(autoReconnect && !autoReconnect->isChecked());
+    assert(tls && tls->isChecked());
+    assert(tlsInsecure && tlsInsecure->isChecked());
+    assert(tlsCaFile && tlsCaFile->text() == "/tmp/test-ca.pem");
+    assert(tlsServerName && tlsServerName->text() == "viewer.test");
     assert(interval && interval->value() == 750);
     assert(clipboard && clipboard->text().isEmpty());
     assert(sendClipboard && sendClipboard->text() == "Send clipboard");
@@ -88,5 +100,9 @@ int main(int argc, char **argv)
     assert(current.ViewOnly());
     assert(current.ContinuousUpdates());
     assert(current.UpdateIntervalMs() == 750);
+    assert(current.TransportSecurity() == ViewerTransportSecurityMode::VeNCryptX509Vnc);
+    assert(current.TlsCaFile() == "/tmp/test-ca.pem");
+    assert(current.TlsServerName() == "viewer.test");
+    assert(!current.TlsVerifyPeer());
     return 0;
 }
