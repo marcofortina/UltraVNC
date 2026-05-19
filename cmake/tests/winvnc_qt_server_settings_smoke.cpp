@@ -52,6 +52,11 @@ int main(int argc, char **argv)
     QPushButton *stopButton = panel.findChild<QPushButton *>("stopButton");
     QPushButton *runtimeStatusButton = panel.findChild<QPushButton *>("runtimeStatusButton");
     QPushButton *runtimeLogButton = panel.findChild<QPushButton *>("runtimeLogButton");
+    QLineEdit *systemdService = panel.findChild<QLineEdit *>("systemdServiceEdit");
+    QComboBox *systemdScope = panel.findChild<QComboBox *>("systemdScopeCombo");
+    QPushButton *systemdStart = panel.findChild<QPushButton *>("systemdStartButton");
+    QPushButton *systemdStop = panel.findChild<QPushButton *>("systemdStopButton");
+    QPushButton *systemdStatus = panel.findChild<QPushButton *>("systemdStatusButton");
     QTextEdit *preview = panel.findChild<QTextEdit *>("previewEdit");
     QTextEdit *runtimeOutput = panel.findChild<QTextEdit *>("runtimeOutputEdit");
     QLabel *title = panel.findChild<QLabel *>("serverSettingsTitle");
@@ -79,6 +84,11 @@ int main(int argc, char **argv)
     assert(stopButton && stopButton->text() == "Stop");
     assert(runtimeStatusButton && runtimeStatusButton->text() == "Refresh status");
     assert(runtimeLogButton && runtimeLogButton->text() == "Refresh log");
+    assert(systemdService && systemdService->text() == "uvnc-winvnc-memory-server.service");
+    assert(systemdScope && systemdScope->currentData().toString() == "user");
+    assert(systemdStart && systemdStart->text() == "Start service");
+    assert(systemdStop && systemdStop->text() == "Stop service");
+    assert(systemdStatus && systemdStatus->text() == "Service status");
     assert(preview && preview->toPlainText().contains("auth=vnc-password"));
     assert(runtimeOutput && runtimeOutput->toPlainText().isEmpty());
     assert(title && title->text() == "UltraVNC Linux Server");
