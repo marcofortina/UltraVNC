@@ -30,8 +30,9 @@ int main()
     RfbSessionStats stats;
     bool updateSent = false;
     bool serverOk = false;
+    RfbClientState state;
     std::thread worker([&]() {
-        serverOk = session.ServeNextClientMessage(serverSocket, framebuffer, updateSent, &stats, nullptr, nullptr);
+        serverOk = session.ServeNextClientMessage(serverSocket, framebuffer, updateSent, &stats, &state, nullptr);
     });
 
     rfbFileTransferMsg message;
@@ -47,6 +48,7 @@ int main()
     assert(clientSocket.ReadExact(&abort, sz_rfbFileTransferMsg));
     assert(abort.type == rfbFileTransfer);
     assert(abort.contentType == rfbAbortFileTransfer);
+    assert(Swap16IfLE(abort.contentParam) == rfbFileTransferVersion);
 
     worker.join();
     assert(serverOk);
