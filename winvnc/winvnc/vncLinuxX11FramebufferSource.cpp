@@ -22,6 +22,9 @@
 #if defined(UVNC_HAVE_X11_XSHM)
 #include <X11/extensions/XShm.h>
 #endif
+#if defined(UVNC_HAVE_X11_XDAMAGE)
+#include <X11/extensions/Xdamage.h>
+#endif
 #endif
 
 namespace uvnc {
@@ -206,6 +209,10 @@ X11DesktopSource::X11DesktopSource(const std::string& displayName)
       root_(0),
       screen_(0),
       initialized_(false),
+      damageAvailable_(false),
+      damage_(0),
+      damageEventBase_(0),
+      damageErrorBase_(0),
       lastError_()
 {
     std::memset(&format_, 0, sizeof(format_));
@@ -220,6 +227,10 @@ X11DesktopSource::X11DesktopSource(unsigned int width, unsigned int height, cons
       root_(0),
       screen_(0),
       initialized_(false),
+      damageAvailable_(false),
+      damage_(0),
+      damageEventBase_(0),
+      damageErrorBase_(0),
       lastError_()
 {
 }
@@ -228,6 +239,12 @@ X11DesktopSource::~X11DesktopSource()
 {
 #if defined(UVNC_HAVE_X11)
     if (display_ != nullptr) {
+#if defined(UVNC_HAVE_X11_XDAMAGE)
+        if (damageAvailable_ && damage_ != 0) {
+            XDamageDestroy(static_cast<Display *>(display_), static_cast<Damage>(damage_));
+            damage_ = 0;
+        }
+#endif
         XCloseDisplay(static_cast<Display *>(display_));
         display_ = nullptr;
     }
@@ -256,10 +273,14 @@ bool X11DesktopSource::Snapshot(portable::Framebuffer& destination, rfb::Region2
     }
 
     Display *display = static_cast<Display *>(display_);
+    rfb::Region2D damageRegion = DrainDamageRegion();
 #if defined(UVNC_HAVE_X11_XSHM)
     if (IsXShmRuntimeAvailable(displayName_) &&
         SnapshotViaXShm(display, static_cast<Drawable>(root_), width_, height_, destination, changed, format_)) {
         RefineChangedRegion(destination, changed);
+        if (!damageRegion.is_empty()) {
+            changed = changed.intersect(damageRegion);
+        }
         return true;
     }
 #endif
@@ -293,6 +314,9 @@ bool X11DesktopSource::Snapshot(portable::Framebuffer& destination, rfb::Region2
     if (ok) {
         format_ = PixelFormatFromImage(image);
         RefineChangedRegion(destination, changed);
+        if (!damageRegion.is_empty()) {
+            changed = changed.intersect(damageRegion);
+        }
         lastError_.clear();
     } else {
         lastError_ = "failed to copy X11 image into the portable framebuffer";
@@ -368,6 +392,34 @@ bool X11DesktopSource::IsXShmRuntimeAvailable(const std::string& displayName)
 #endif
 }
 
+
+bool X11DesktopSource::IsXDamageBuildAvailable()
+{
+#if defined(UVNC_HAVE_X11_XDAMAGE)
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool X11DesktopSource::IsXDamageRuntimeAvailable(const std::string& displayName)
+{
+#if defined(UVNC_HAVE_X11_XDAMAGE)
+    Display *display = OpenDisplay(displayName);
+    if (display == nullptr) {
+        return false;
+    }
+    int eventBase = 0;
+    int errorBase = 0;
+    const bool available = XDamageQueryExtension(display, &eventBase, &errorBase) != 0;
+    XCloseDisplay(display);
+    return available;
+#else
+    (void)displayName;
+    return false;
+#endif
+}
+
 const char *X11DesktopSource::UnavailableReason()
 {
 #if defined(UVNC_HAVE_X11)
@@ -375,6 +427,35 @@ const char *X11DesktopSource::UnavailableReason()
 #else
     return "X11 capture backend was not built because X11 development files were not available";
 #endif
+}
+
+
+rfb::Region2D X11DesktopSource::DrainDamageRegion()
+{
+    rfb::Region2D region;
+#if defined(UVNC_HAVE_X11_XDAMAGE)
+    if (!damageAvailable_ || display_ == nullptr) {
+        return region;
+    }
+    Display *display = static_cast<Display *>(display_);
+    while (XPending(display) > 0) {
+        XEvent event;
+        XNextEvent(display, &event);
+        if (event.type == damageEventBase_ + XDamageNotify) {
+            XDamageNotifyEvent *damageEvent = reinterpret_cast<XDamageNotifyEvent *>(&event);
+            const rfb::Rect rect(damageEvent->area.x,
+                                 damageEvent->area.y,
+                                 damageEvent->area.x + damageEvent->area.width,
+                                 damageEvent->area.y + damageEvent->area.height);
+            rfb::Region2D damageRect(rect);
+            region.assign_union(damageRect);
+        }
+    }
+    if (damage_ != 0) {
+        XDamageSubtract(display, static_cast<Damage>(damage_), None, None);
+    }
+#endif
+    return region;
 }
 
 bool X11DesktopSource::Initialize(std::string *error)
@@ -404,6 +485,13 @@ bool X11DesktopSource::Initialize(std::string *error)
     display_ = display;
     root_ = static_cast<unsigned long>(root);
     screen_ = screen;
+#if defined(UVNC_HAVE_X11_XDAMAGE)
+    damageAvailable_ = XDamageQueryExtension(display, &damageEventBase_, &damageErrorBase_) != 0;
+    if (damageAvailable_) {
+        damage_ = static_cast<unsigned long>(XDamageCreate(display, root, XDamageReportNonEmpty));
+        XDamageSubtract(display, static_cast<Damage>(damage_), None, None);
+    }
+#endif
     initialized_ = true;
 
     XImage *probe = nullptr;

@@ -32,11 +32,14 @@ public:
     static bool IsAvailable(const std::string& displayName = std::string());
     static bool IsXShmBuildAvailable();
     static bool IsXShmRuntimeAvailable(const std::string& displayName = std::string());
+    static bool IsXDamageBuildAvailable();
+    static bool IsXDamageRuntimeAvailable(const std::string& displayName = std::string());
     static const char *UnavailableReason();
 
 private:
     bool Initialize(std::string *error = nullptr);
     void RefineChangedRegion(portable::Framebuffer& destination, rfb::Region2D& changed);
+    rfb::Region2D DrainDamageRegion();
 
     std::string displayName_;
     unsigned int width_;
@@ -46,6 +49,10 @@ private:
     unsigned long root_;
     int screen_;
     bool initialized_;
+    bool damageAvailable_;
+    unsigned long damage_;
+    int damageEventBase_;
+    int damageErrorBase_;
     std::string lastError_;
     portable::Framebuffer previousFrame_;
 };
