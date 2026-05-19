@@ -67,6 +67,8 @@ message(STATUS "TOOL_VERSION: ${TOOL_VERSION}")
 
 project(UltraVNC VERSION ${TOOL_VERSION})
 include(CTest)
+include(GNUInstallDirs)
+include(${CMAKE_CURRENT_SOURCE_DIR}/UltraVncLegacyAliases.cmake)
 enable_language(CXX)
 enable_language(C)
 if(WIN32)
