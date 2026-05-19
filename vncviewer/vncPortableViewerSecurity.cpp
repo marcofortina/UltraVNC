@@ -45,13 +45,25 @@ const char *ViewerSecurityTypeName(CARD8 wireType)
 
 ViewerSecurityDecision SelectViewerSecurityType(const std::vector<CARD8>& serverTypes,
                                                 bool hasPassword,
-                                                bool allowNoAuth)
+                                                bool allowNoAuth,
+                                                bool requireVeNCrypt)
 {
     ViewerSecurityDecision decision;
     const bool offersNoAuth = std::find(serverTypes.begin(), serverTypes.end(), rfbNoAuth) != serverTypes.end();
     const bool offersVncAuth = std::find(serverTypes.begin(), serverTypes.end(), rfbVncAuth) != serverTypes.end();
     const bool offersVeNCrypt = std::find(serverTypes.begin(), serverTypes.end(), rfbVeNCypt) != serverTypes.end();
 
+    if (requireVeNCrypt) {
+        if (hasPassword && offersVeNCrypt) {
+            decision.selection = ViewerSecuritySelection::VeNCryptX509Vnc;
+            decision.wireType = rfbVeNCypt;
+            return decision;
+        }
+        decision.error = offersVeNCrypt ?
+            "RFB server offers VeNCrypt but viewer has no VNCAuth password" :
+            "viewer requires VeNCrypt but RFB server does not offer it";
+        return decision;
+    }
     if (hasPassword && offersVncAuth) {
         decision.selection = ViewerSecuritySelection::VncAuth;
         decision.wireType = rfbVncAuth;

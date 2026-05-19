@@ -21,7 +21,8 @@ namespace portable {
 enum class ViewerSecuritySelection {
     Unsupported,
     NoAuth,
-    VncAuth
+    VncAuth,
+    VeNCryptX509Vnc
 };
 
 struct ViewerSecurityDecision {
@@ -34,7 +35,8 @@ struct ViewerSecurityDecision {
 
 ViewerSecurityDecision SelectViewerSecurityType(const std::vector<CARD8>& serverTypes,
                                                 bool hasPassword,
-                                                bool allowNoAuth = true);
+                                                bool allowNoAuth = true,
+                                                bool requireVeNCrypt = false);
 const char *ViewerSecurityTypeName(CARD8 wireType);
 
 } // namespace portable
