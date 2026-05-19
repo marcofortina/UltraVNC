@@ -46,6 +46,8 @@ public:
     const std::string& FileTransferRoot() const { return fileTransferRoot_; }
     bool FileUploadActive() const { return fileUploadActive_; }
     const std::string& FileUploadPath() const { return fileUploadPath_; }
+    const std::string& FileUploadFinalPath() const { return fileUploadFinalPath_; }
+    const std::string& FileUploadTemporaryPath() const { return fileUploadTemporaryPath_; }
     CARD32 FileUploadBytes() const { return fileUploadBytes_; }
 
     void SetPixelFormat(const rfbPixelFormat& format);
@@ -58,6 +60,7 @@ public:
     void RecordClientCutText(const std::string& text);
     void RecordServerCutTextSent(const std::string& text);
     void BeginFileUpload(const std::string& path);
+    void BeginFileUpload(const std::string& finalPath, const std::string& temporaryPath);
     void AddFileUploadBytes(CARD32 bytes);
     void EndFileUpload();
 
@@ -80,6 +83,8 @@ private:
     std::string fileTransferRoot_;
     bool fileUploadActive_;
     std::string fileUploadPath_;
+    std::string fileUploadFinalPath_;
+    std::string fileUploadTemporaryPath_;
     CARD32 fileUploadBytes_;
 };
 

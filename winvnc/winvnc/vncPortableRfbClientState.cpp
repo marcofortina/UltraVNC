@@ -34,6 +34,8 @@ RfbClientState::RfbClientState(const ServerConfig& config)
       fileTransferRoot_(config.FileTransferRoot()),
       fileUploadActive_(false),
       fileUploadPath_(),
+      fileUploadFinalPath_(),
+      fileUploadTemporaryPath_(),
       fileUploadBytes_(0)
 {
     std::memset(&lastKeyEvent_, 0, sizeof(lastKeyEvent_));
@@ -120,8 +122,15 @@ void RfbClientState::RecordServerCutTextSent(const std::string& text)
 
 void RfbClientState::BeginFileUpload(const std::string& path)
 {
+    BeginFileUpload(path, path);
+}
+
+void RfbClientState::BeginFileUpload(const std::string& finalPath, const std::string& temporaryPath)
+{
     fileUploadActive_ = true;
-    fileUploadPath_ = path;
+    fileUploadPath_ = temporaryPath;
+    fileUploadFinalPath_ = finalPath;
+    fileUploadTemporaryPath_ = temporaryPath;
     fileUploadBytes_ = 0;
 }
 
@@ -134,6 +143,8 @@ void RfbClientState::EndFileUpload()
 {
     fileUploadActive_ = false;
     fileUploadPath_.clear();
+    fileUploadFinalPath_.clear();
+    fileUploadTemporaryPath_.clear();
     fileUploadBytes_ = 0;
 }
 
