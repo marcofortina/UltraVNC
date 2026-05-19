@@ -39,6 +39,8 @@ int main(int argc, char **argv)
     assert(panel.StatusText() == "Disconnected");
     QLabel *serverClipboard = panel.findChild<QLabel *>("serverClipboardLabel");
     assert(serverClipboard && serverClipboard->text() == "Server clipboard: <none>");
+    QLabel *remoteListing = panel.findChild<QLabel *>("remoteListingLabel");
+    assert(remoteListing && remoteListing->text() == "Remote files: <none>");
 
     QLineEdit *host = panel.findChild<QLineEdit *>("hostEdit");
     QSpinBox *port = panel.findChild<QSpinBox *>("portSpin");
@@ -51,6 +53,11 @@ int main(int argc, char **argv)
     QSpinBox *interval = panel.findChild<QSpinBox *>("intervalSpin");
     QLineEdit *clipboard = panel.findChild<QLineEdit *>("clipboardEdit");
     QPushButton *sendClipboard = panel.findChild<QPushButton *>("sendClipboardButton");
+    QLineEdit *remotePath = panel.findChild<QLineEdit *>("remotePathEdit");
+    QLineEdit *downloadOutput = panel.findChild<QLineEdit *>("downloadOutputEdit");
+    QPushButton *remoteList = panel.findChild<QPushButton *>("remoteListButton");
+    QPushButton *remoteDrives = panel.findChild<QPushButton *>("remoteDrivesButton");
+    QPushButton *remoteDownload = panel.findChild<QPushButton *>("remoteDownloadButton");
     QPushButton *loadProfile = panel.findChild<QPushButton *>("loadProfileButton");
     QPushButton *saveProfile = panel.findChild<QPushButton *>("saveProfileButton");
 
@@ -65,6 +72,11 @@ int main(int argc, char **argv)
     assert(interval && interval->value() == 750);
     assert(clipboard && clipboard->text().isEmpty());
     assert(sendClipboard && sendClipboard->text() == "Send clipboard");
+    assert(remotePath && remotePath->text() == "/");
+    assert(downloadOutput && downloadOutput->text().isEmpty());
+    assert(remoteList && remoteList->text() == "List remote");
+    assert(remoteDrives && remoteDrives->text() == "List roots");
+    assert(remoteDownload && remoteDownload->text() == "Download");
     assert(loadProfile && loadProfile->text() == "Load profile");
     assert(saveProfile && saveProfile->text() == "Save profile");
 
