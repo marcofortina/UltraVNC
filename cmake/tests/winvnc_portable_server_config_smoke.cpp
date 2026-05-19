@@ -11,6 +11,7 @@
 #include <iostream>
 #include <string>
 
+using uvnc::winvnc::portable::DefaultFileTransferPayloadLimit;
 using uvnc::winvnc::portable::FileTransferMode;
 using uvnc::winvnc::portable::ServerConfig;
 
@@ -49,6 +50,17 @@ int main()
     config.SetFileTransferPayloadLimit(0);
     if (config.Validate(&error) || error.empty()) {
         std::cerr << "invalid file transfer payload limit accepted\n";
+        return 1;
+    }
+    config.SetFileTransferPayloadLimit(DefaultFileTransferPayloadLimit());
+    config.SetMaxSharedClients(4);
+    if (config.MaxSharedClients() != 4 || !config.Validate(&error)) {
+        std::cerr << "valid max shared clients rejected: " << error << "\n";
+        return 1;
+    }
+    config.SetMaxSharedClients(0);
+    if (config.Validate(&error) || error.empty()) {
+        std::cerr << "invalid max shared clients accepted\n";
         return 1;
     }
     return 0;
