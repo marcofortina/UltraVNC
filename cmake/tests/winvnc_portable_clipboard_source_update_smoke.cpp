@@ -18,17 +18,15 @@ using namespace uvnc::winvnc::portable;
 
 namespace {
 
-class MutableClipboardSource : public RfbClipboardSource {
+class AdvancingClipboardSource : public RfbClipboardSource {
 public:
-    explicit MutableClipboardSource(const std::string& text) : text_(text) {}
     bool GetText(std::string& text, std::string *) const override
     {
-        text = text_;
+        text = calls_++ == 0 ? "first" : "second";
         return true;
     }
-    void SetText(const std::string& text) { text_ = text; }
 private:
-    std::string text_;
+    mutable unsigned int calls_ = 0;
 };
 
 bool RunHandshake(TcpSocket& client)
@@ -52,6 +50,17 @@ bool RunHandshake(TcpSocket& client)
     return name.empty() || client.ReadExact(&name[0], name.size());
 }
 
+
+bool ReadAndDiscardRawUpdate(TcpSocket& client, unsigned int width, unsigned int height)
+{
+    rfbFramebufferUpdateMsg update = {};
+    if (!client.ReadExact(&update, sz_rfbFramebufferUpdateMsg) || Swap16IfLE(update.nRects) != 1) return false;
+    rfbFramebufferUpdateRectHeader header = {};
+    if (!client.ReadExact(&header, sz_rfbFramebufferUpdateRectHeader) || Swap32IfLE(header.encoding) != rfbEncodingRaw) return false;
+    std::string pixels(width * height * 4, '\0');
+    return client.ReadExact(&pixels[0], pixels.size());
+}
+
 bool ReadServerCutText(TcpSocket& client, std::string& text)
 {
     rfbServerCutTextMsg cut = {};
@@ -72,7 +81,7 @@ int main()
     MemoryServer server;
     assert(server.Start(config));
 
-    MutableClipboardSource source("first");
+    AdvancingClipboardSource source;
     bool accepted = false;
     bool serverOk = false;
     std::thread worker([&]() {
@@ -84,7 +93,6 @@ int main()
     std::string text;
     clientOk = clientOk && ReadServerCutText(client, text) && text == "first";
 
-    source.SetText("second");
     FramebufferUpdateRequest request = {};
     request.incremental = false;
     request.width = 16;
@@ -92,9 +100,10 @@ int main()
     const rfbFramebufferUpdateRequestMsg wire = EncodeFramebufferUpdateRequest(request);
     clientOk = clientOk && client.WriteAll(&wire, sz_rfbFramebufferUpdateRequestMsg);
     clientOk = clientOk && ReadServerCutText(client, text) && text == "second";
+    clientOk = clientOk && ReadAndDiscardRawUpdate(client, 16, 16);
+
     clientOk = clientOk && client.WriteAll(&wire, sz_rfbFramebufferUpdateRequestMsg);
-    rfbFramebufferUpdateMsg update = {};
-    clientOk = clientOk && client.ReadExact(&update, sz_rfbFramebufferUpdateMsg);
+    clientOk = clientOk && ReadAndDiscardRawUpdate(client, 16, 16);
 
     worker.join();
     server.Stop();
