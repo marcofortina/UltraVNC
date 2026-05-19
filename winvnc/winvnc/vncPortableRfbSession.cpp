@@ -41,6 +41,28 @@ void EncryptVncAuthChallenge(std::vector<CARD8>& challenge, const std::string& p
     }
 }
 
+
+bool MaybeSendClipboardSource(TcpSocket& socket, RfbClientState *state, RfbClipboardSource *clipboardSource)
+{
+    if (!state || !clipboardSource) {
+        return true;
+    }
+    std::string text;
+    std::string error;
+    if (!clipboardSource->GetText(text, &error)) {
+        return false;
+    }
+    if (text.empty() || text == state->LastServerCutText()) {
+        return true;
+    }
+    const std::vector<CARD8> bytes = EncodeServerCutText(text);
+    if (!socket.WriteAll(bytes.data(), bytes.size())) {
+        return false;
+    }
+    state->RecordServerCutTextSent(text);
+    return true;
+}
+
 std::vector<CARD8> GenerateVncAuthChallenge()
 {
     std::vector<CARD8> challenge(16);
@@ -159,9 +181,12 @@ bool RfbServerSession::ServeFramebufferUpdateRequest(TcpSocket& socket, const Fr
     return socket.WriteAll(update.data(), update.size());
 }
 
-bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink) const
+bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource) const
 {
     updateSent = false;
+    if (!MaybeSendClipboardSource(socket, state, clipboardSource)) {
+        return false;
+    }
     CARD8 type = 0;
     if (!socket.ReadExact(&type, sizeof(type))) {
         return false;
@@ -347,11 +372,11 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
     }
 }
 
-bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink) const
+bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource) const
 {
     for (unsigned int i = 0; i < maxMessages; ++i) {
         bool updateSent = false;
-        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state, inputSink, forceRawIncremental, clipboardSink)) {
+        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state, inputSink, forceRawIncremental, clipboardSink, clipboardSource)) {
             return false;
         }
         if (updateSent) {
@@ -361,7 +386,7 @@ bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Fram
     return false;
 }
 
-bool RfbServerSession::ServeFramebufferUpdates(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink) const
+bool RfbServerSession::ServeFramebufferUpdates(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource) const
 {
     if (updateCount == 0) {
         return true;
@@ -370,7 +395,7 @@ bool RfbServerSession::ServeFramebufferUpdates(TcpSocket& socket, const Framebuf
     unsigned int sent = 0;
     for (unsigned int i = 0; i < maxMessages && sent < updateCount; ++i) {
         bool updateSent = false;
-        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state, inputSink, forceRawIncremental, clipboardSink)) {
+        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state, inputSink, forceRawIncremental, clipboardSink, clipboardSource)) {
             return false;
         }
         if (updateSent) {

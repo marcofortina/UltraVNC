@@ -136,7 +136,7 @@ bool MemoryServer::ServeConnectedUpdates(TcpSocket client, unsigned int updateCo
         return false;
     }
     return SendInitialServerMessages(session, client, config_, clipboardSource) &&
-        session.ServeFramebufferUpdates(client, framebuffer_, updateCount, 128, nullptr, &state, inputSink, false, clipboardSink);
+        session.ServeFramebufferUpdates(client, framebuffer_, updateCount, 128, nullptr, &state, inputSink, false, clipboardSink, clipboardSource);
 }
 
 bool MemoryServer::TryServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy)
@@ -184,7 +184,7 @@ bool MemoryServer::ServeConnectedUpdatesFromSource(TcpSocket client, DesktopSour
         }
 
         bool updateSent = false;
-        if (!session.ServeNextClientMessage(client, current, updateSent, &stats, &state, inputSink, true, clipboardSink)) {
+        if (!session.ServeNextClientMessage(client, current, updateSent, &stats, &state, inputSink, true, clipboardSink, clipboardSource)) {
             return false;
         }
         if (updateSent) {
