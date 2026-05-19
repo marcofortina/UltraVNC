@@ -147,6 +147,23 @@ if(ULTRAVNC_BUILD_PORTABLE_LIBS)
     endif()
 endif()
 
+if(NOT WIN32 AND ULTRAVNC_BUILD_PORTABLE_LIBS AND ULTRAVNC_BUILD_WINVNC_PORTABLE_CORE)
+    set(UVNC_NATIVE_LINUX_LEGACY_PARITY_TARGETS
+        uvnc_winvnc_memory_server
+        uvnc_winvnc_password_file
+        uvnc_securevnc_provider
+    )
+    if(ULTRAVNC_BUILD_REPEATER_HEADLESS AND TARGET uvnc_repeater_headless)
+        list(APPEND UVNC_NATIVE_LINUX_LEGACY_PARITY_TARGETS uvnc_repeater_headless)
+    endif()
+    if(ULTRAVNC_BUILD_QT_VIEWER AND TARGET native_linux_qt_legacy_parity_smokes)
+        list(APPEND UVNC_NATIVE_LINUX_LEGACY_PARITY_TARGETS native_linux_qt_legacy_parity_smokes)
+    endif()
+    add_custom_target(native_linux_legacy_parity_targets
+        DEPENDS ${UVNC_NATIVE_LINUX_LEGACY_PARITY_TARGETS}
+    )
+endif()
+
 if(ULTRAVNC_BUILD_WINDOWS_APPS)
     if(NOT WIN32)
         message(FATAL_ERROR "ULTRAVNC_BUILD_WINDOWS_APPS requires a Windows or MinGW target")
