@@ -29,6 +29,7 @@
 #include <thread>
 #include <vector>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 extern "C" {
@@ -155,6 +156,14 @@ bool EnforceLinuxServerSecurityPolicy(const ServerConfig& config, std::string *e
         }
     }
     return true;
+}
+
+void HardenRuntimeFileCreationUmask()
+{
+    // Runtime pid, status and log files can contain operational details.
+    // Keep newly-created files private even when the parent process has a
+    // permissive umask.
+    umask(S_IRWXG | S_IRWXO);
 }
 
 void PrintSecurityWarnings(const ServerConfig& config)
@@ -1056,6 +1065,8 @@ int main(int argc, char **argv)
     if (!ParseArgs(static_cast<int>(mergedArgv.size()), mergedArgv.data(), config, captureBackend, inputBackend, rawFramebufferFile, passwordFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, smokeX11AvailabilityTest, smokePipeWireAvailabilityTest, smokeXTestAvailabilityTest, smokeXTestInputTest, allowInputInjection, serveUpdates, serveForever, maxUpdates, pidFile, statusFile, logFile)) {
         return 2;
     }
+
+    HardenRuntimeFileCreationUmask();
 
     if (!passwordFile.empty()) {
         std::string password;

@@ -76,6 +76,13 @@ done
 test -s "${RUNTIME_LOG_SHUTDOWN_PID}"
 grep -q "^${RUNTIME_LOG_SHUTDOWN_SERVER_PID}$" "${RUNTIME_LOG_SHUTDOWN_PID}"
 grep -q '^listening 127\.0\.0\.1:' "${RUNTIME_LOG_SHUTDOWN_STATUS}"
+for runtime_file in "${RUNTIME_LOG_SHUTDOWN_PID}" "${RUNTIME_LOG_SHUTDOWN_STATUS}" "${RUNTIME_LOG_SHUTDOWN_LOG}"; do
+  mode="$(stat -c '%a' "${runtime_file}")"
+  if [[ "${mode}" != "600" ]]; then
+    echo "runtime file must be private: ${runtime_file} has mode ${mode}" >&2
+    exit 1
+  fi
+done
 kill -TERM "${RUNTIME_LOG_SHUTDOWN_SERVER_PID}"
 wait "${RUNTIME_LOG_SHUTDOWN_SERVER_PID}"
 RUNTIME_LOG_SHUTDOWN_SERVER_PID=""
@@ -162,6 +169,13 @@ done
 test -s "${PID_FILE}"
 grep -q "^${SERVER_PID}$" "${PID_FILE}"
 grep -q '^listening 127\.0\.0\.1:' "${STATUS_FILE}"
+for runtime_file in "${PID_FILE}" "${STATUS_FILE}" "${LOG_FILE}"; do
+  mode="$(stat -c '%a' "${runtime_file}")"
+  if [[ "${mode}" != "600" ]]; then
+    echo "runtime file must be private: ${runtime_file} has mode ${mode}" >&2
+    exit 1
+  fi
+done
 LISTEN_PORT="$(sed -n 's/^listening 127\.0\.0\.1:\([0-9][0-9]*\)$/\1/p' "${STATUS_FILE}" | tail -n 1)"
 if [[ -z "${LISTEN_PORT}" || "${LISTEN_PORT}" == "0" ]]; then
   echo "could not parse listening port from ${STATUS_FILE}" >&2
