@@ -42,6 +42,7 @@ public:
     const std::string& VncPassword() const { return vncPassword_; }
     bool AllowNoAuth() const { return allowNoAuth_; }
     bool AllowPublicNoAuth() const { return allowPublicNoAuth_; }
+    bool AllowUnencryptedPublic() const { return allowUnencryptedPublic_; }
 
     void SetBindAddress(const std::string& bindAddress) { bindAddress_ = bindAddress; }
     void SetPort(unsigned short port) { port_ = port; }
@@ -54,6 +55,7 @@ public:
     void SetVncPassword(const std::string& password) { vncPassword_ = password; }
     void SetAllowNoAuth(bool allow) { allowNoAuth_ = allow; }
     void SetAllowPublicNoAuth(bool allow) { allowPublicNoAuth_ = allow; }
+    void SetAllowUnencryptedPublic(bool allow) { allowUnencryptedPublic_ = allow; }
 
     bool Validate(std::string *error = nullptr) const;
 
@@ -72,6 +74,7 @@ private:
     std::string vncPassword_;
     bool allowNoAuth_;
     bool allowPublicNoAuth_;
+    bool allowUnencryptedPublic_;
 };
 
 } // namespace portable

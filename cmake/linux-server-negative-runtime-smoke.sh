@@ -76,6 +76,12 @@ grep -q 'invalid --input-backend' /tmp/uvnc-negative-runtime.err
 expect_fail "unwritable log path serving" "${BIN}" --allow-no-auth --log-file "${WORK_DIR}/missing-dir/server.log" --serve-updates --max-updates 1
 grep -q 'cannot open log file' /tmp/uvnc-negative-runtime.err
 
+PASSWORD_FILE="${WORK_DIR}/vnc-password"
+printf '%s\n' 'secret1' >"${PASSWORD_FILE}"
+chmod 600 "${PASSWORD_FILE}"
+expect_fail "public VNCAuth without transport opt-in" "${BIN}" --password-file "${PASSWORD_FILE}" --bind-address 0.0.0.0 --validate-config
+grep -q 'refusing VNCAuth on a non-loopback bind without transport encryption' /tmp/uvnc-negative-runtime.err
+
 PORT_HOLDER=""
 PORT_FILE="${WORK_DIR}/held-port"
 python3 - "${PORT_FILE}" <<'PY' &

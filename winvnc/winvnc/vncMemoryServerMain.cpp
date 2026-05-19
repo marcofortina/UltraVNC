@@ -88,7 +88,7 @@ void InstallStopSignalHandlers()
 
 bool IsLoopbackBindAddress(const std::string& address)
 {
-    return address == "127.0.0.1" || address == "127.0.0.0";
+    return address == "localhost" || address.rfind("127.", 0) == 0;
 }
 
 bool IsAllInterfacesBindAddress(const std::string& address)
@@ -145,15 +145,20 @@ bool ReadPasswordFile(const std::string& path, std::string& password, std::strin
 
 bool EnforceLinuxServerSecurityPolicy(const ServerConfig& config, std::string *error)
 {
+    const bool loopback = IsLoopbackBindAddress(config.BindAddress());
     if (config.AuthMode() == ServerAuthMode::NoAuth) {
         if (!config.AllowNoAuth()) {
             if (error) *error = "no-auth is disabled by default; use --allow-no-auth only for loopback/lab use or configure --auth vnc-password --password-file";
             return false;
         }
-        if (!IsLoopbackBindAddress(config.BindAddress()) && !config.AllowPublicNoAuth()) {
+        if (!loopback && !config.AllowPublicNoAuth()) {
             if (error) *error = "refusing no-auth on a non-loopback bind address; configure VNCAuth or use --allow-public-no-auth only for controlled lab validation";
             return false;
         }
+    }
+    if (config.AuthMode() == ServerAuthMode::VncPassword && !loopback && !config.AllowUnencryptedPublic()) {
+        if (error) *error = "refusing VNCAuth on a non-loopback bind without transport encryption; use loopback/tunnel/firewall or --allow-unencrypted-public for explicit controlled exposure";
+        return false;
     }
     return true;
 }
@@ -277,6 +282,7 @@ void PrintUsage(const char *name)
               << "  --password-file <path>  Read VNCAuth password from a private file, max 8 bytes\n"
               << "  --allow-no-auth         Explicitly allow no-auth loopback/lab mode\n"
               << "  --allow-public-no-auth  Explicitly allow no-auth on non-loopback lab binds\n"
+              << "  --allow-unencrypted-public Explicitly allow non-loopback VNCAuth without transport encryption\n"
               << "  --validate-config       Validate options and exit\n"
               << "  --print-config          Print resolved configuration and exit\n"
               << "  --smoke-test            Start on loopback, complete one RFB handshake, and exit\n"
@@ -354,6 +360,16 @@ bool AddConfigOption(const std::string& key, const std::string& value, std::vect
             return true;
         }
         if (error) *error = "invalid boolean value for allow_public_no_auth";
+        return false;
+    } else if (key == "allow_unencrypted_public") {
+        if (value == "true" || value == "1" || value == "yes") {
+            args.push_back("--allow-unencrypted-public");
+            return true;
+        }
+        if (value == "false" || value == "0" || value == "no") {
+            return true;
+        }
+        if (error) *error = "invalid boolean value for allow_unencrypted_public";
         return false;
     } else if (key == "max_updates") {
         args.push_back("--max-updates");
@@ -552,6 +568,8 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
             config.SetAllowNoAuth(true);
         } else if (arg == "--allow-public-no-auth") {
             config.SetAllowPublicNoAuth(true);
+        } else if (arg == "--allow-unencrypted-public") {
+            config.SetAllowUnencryptedPublic(true);
         } else if (arg == "--auth" && i + 1 < argc) {
             ServerAuthMode mode = ServerAuthMode::NoAuth;
             if (!ParseServerAuthMode(argv[++i], mode)) {
@@ -833,6 +851,7 @@ void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBac
               << "auth=" << ServerAuthModeName(config.AuthMode()) << "\n"
               << "allow_no_auth=" << (config.AllowNoAuth() ? "yes" : "no") << "\n"
               << "allow_public_no_auth=" << (config.AllowPublicNoAuth() ? "yes" : "no") << "\n"
+              << "allow_unencrypted_public=" << (config.AllowUnencryptedPublic() ? "yes" : "no") << "\n"
               << "serve_updates=" << (serveUpdates ? "yes" : "no") << "\n"
               << "serve_forever=" << (serveForever ? "yes" : "no") << "\n"
               << "max_updates=" << maxUpdates << "\n"

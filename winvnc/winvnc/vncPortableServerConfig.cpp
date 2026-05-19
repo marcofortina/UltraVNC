@@ -65,7 +65,8 @@ ServerConfig::ServerConfig()
       authMode_(ServerAuthMode::NoAuth),
       vncPassword_(),
       allowNoAuth_(false),
-      allowPublicNoAuth_(false)
+      allowPublicNoAuth_(false),
+      allowUnencryptedPublic_(false)
 {
 }
 

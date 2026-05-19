@@ -62,6 +62,29 @@ VNCAUTH_VALIDATE_ERR="${WORK_DIR}/vncauth-validate.err"
   --validate-config 2>"${VNCAUTH_VALIDATE_ERR}"
 grep -q 'VNCAuth protects the handshake' "${VNCAUTH_VALIDATE_ERR}"
 
+if "${BIN}" \
+  --auth vnc-password \
+  --password-file "${PASSWORD_FILE}" \
+  --bind-address 0.0.0.0 \
+  --capture-backend memory \
+  --input-backend none \
+  --validate-config >"${WORK_DIR}/public-vncauth.out" 2>"${WORK_DIR}/public-vncauth.err"; then
+  echo "expected non-loopback VNCAuth without transport opt-in to fail" >&2
+  exit 1
+fi
+grep -q 'refusing VNCAuth on a non-loopback bind without transport encryption' "${WORK_DIR}/public-vncauth.err"
+
+"${BIN}" \
+  --auth vnc-password \
+  --password-file "${PASSWORD_FILE}" \
+  --bind-address 0.0.0.0 \
+  --allow-unencrypted-public \
+  --capture-backend memory \
+  --input-backend none \
+  --validate-config >"${WORK_DIR}/public-vncauth-optin.out" 2>"${WORK_DIR}/public-vncauth-optin.err"
+grep -q 'listening on 0.0.0.0' "${WORK_DIR}/public-vncauth-optin.err"
+grep -q 'VNCAuth protects the handshake' "${WORK_DIR}/public-vncauth-optin.err"
+
 CONFIG_OUT="${WORK_DIR}/print-config.out"
 CONFIG_ERR="${WORK_DIR}/print-config.err"
 "${BIN}" \
