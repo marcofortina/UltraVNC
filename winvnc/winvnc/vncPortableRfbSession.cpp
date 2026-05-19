@@ -10,6 +10,7 @@
 
 #include "vncPortableRfb.h"
 #include "vncPortableCursor.h"
+#include "vncPortableExtendedClipboard.h"
 #include "vncPortableFileTransfer.h"
 #include "vncPortableRfbMessages.h"
 #include "vncPortableRfbUpdate.h"
@@ -61,11 +62,64 @@ bool MaybeSendClipboardSource(RfbTransport& socket, RfbClientState *state, RfbCl
     if (text.empty() || text == state->LastServerCutText()) {
         return true;
     }
-    const std::vector<CARD8> bytes = EncodeServerCutText(text);
+    std::vector<CARD8> bytes;
+    if (state->SupportsExtendedClipboard()) {
+        bytes = EncodeExtendedServerCutText(EncodeExtendedClipboardNotify(true));
+        if (!socket.WriteAll(bytes.data(), bytes.size())) {
+            return false;
+        }
+        bytes = EncodeExtendedServerCutText(EncodeExtendedClipboardProvideText(text));
+    } else {
+        bytes = EncodeServerCutText(text);
+    }
     if (!socket.WriteAll(bytes.data(), bytes.size())) {
         return false;
     }
     state->RecordServerCutTextSent(text);
+    return true;
+}
+
+
+bool SendExtendedClipboardCaps(RfbTransport& socket, RfbClientState& state, RfbSessionStats *stats)
+{
+    if (!state.SupportsExtendedClipboard() || state.ExtendedClipboardCapsSent()) {
+        return true;
+    }
+    const std::vector<CARD8> payload = EncodeExtendedClipboardCaps();
+    const std::vector<CARD8> message = EncodeExtendedServerCutText(payload);
+    if (!socket.WriteAll(message.data(), message.size())) {
+        return false;
+    }
+    state.MarkExtendedClipboardCapsSent();
+    if (stats) {
+        stats->extendedClipboardCapsSent += 1;
+    }
+    return true;
+}
+
+bool SendExtendedClipboardNotify(RfbTransport& socket, bool textAvailable, RfbSessionStats *stats)
+{
+    const std::vector<CARD8> payload = EncodeExtendedClipboardNotify(textAvailable);
+    const std::vector<CARD8> message = EncodeExtendedServerCutText(payload);
+    if (!socket.WriteAll(message.data(), message.size())) {
+        return false;
+    }
+    if (stats) {
+        stats->extendedClipboardNotifiesSent += 1;
+    }
+    return true;
+}
+
+bool SendExtendedClipboardProvide(RfbTransport& socket, const std::string& text, RfbSessionStats *stats)
+{
+    const std::vector<CARD8> payload = EncodeExtendedClipboardProvideText(text);
+    const std::vector<CARD8> message = EncodeExtendedServerCutText(payload);
+    if (!socket.WriteAll(message.data(), message.size())) {
+        return false;
+    }
+    if (stats) {
+        stats->extendedClipboardProvidesSent += 1;
+    }
     return true;
 }
 
@@ -494,6 +548,9 @@ bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Frameb
         if (ok && state) {
             state->SetEncodings(DecodeSetEncodingsPayload(payload));
             if (state->SupportsCursorShapeUpdates() && !SendCursorShape(socket, *state)) {
+                return false;
+            }
+            if (!SendExtendedClipboardCaps(socket, *state, stats)) {
                 return false;
             }
         }
