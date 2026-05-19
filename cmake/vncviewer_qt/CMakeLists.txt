@@ -39,6 +39,7 @@ target_include_directories(uvnc_qt_viewer PRIVATE
 )
 
 target_link_libraries(uvnc_qt_viewer PRIVATE Qt6::Widgets libwinvncportablecore ZLIB::ZLIB JPEG::JPEG)
+uvnc_add_legacy_executable_alias(uvnc_qt_viewer vncviewer)
 
 add_executable(vncviewer_qt_connection_panel_smoke
     "${CMAKE_SOURCE_DIR}/tests/vncviewer_qt_connection_panel_smoke.cpp"
@@ -106,6 +107,7 @@ target_include_directories(uvnc_qt_server_settings PRIVATE
     "${CMAKE_SOURCE_DIR}/../common"
 )
 target_link_libraries(uvnc_qt_server_settings PRIVATE Qt6::Widgets libwinvncportablecore)
+uvnc_add_legacy_executable_alias(uvnc_qt_server_settings uvnc_settings)
 
 add_executable(winvnc_qt_server_settings_smoke
     "${CMAKE_SOURCE_DIR}/tests/winvnc_qt_server_settings_smoke.cpp"

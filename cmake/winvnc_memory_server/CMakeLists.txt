@@ -15,6 +15,7 @@ add_executable(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE libwinvncportablecore)
+uvnc_add_legacy_executable_alias(${PROJECT_NAME} winvnc)
 
 if(BUILD_TESTING)
     add_test(NAME winvnc_memory_server_help COMMAND uvnc_winvnc_memory_server --help)

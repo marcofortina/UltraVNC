@@ -29,6 +29,7 @@ target_link_libraries(${PROJECT_NAME}
         librepeatercore
         Threads::Threads
 )
+uvnc_add_legacy_executable_alias(${PROJECT_NAME} repeater)
 
 install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
