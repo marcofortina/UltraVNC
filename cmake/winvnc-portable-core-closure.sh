@@ -48,4 +48,10 @@ if [[ -n "${INSTALL_PREFIX}" ]]; then
         --width 64 \
         --height 32 \
         --name installed-winvnc-portable-closure
+    "${INSTALL_PREFIX}/bin/uvnc_winvnc_password_file" --help >/dev/null
+    password_file="$(mktemp /tmp/uvnc-installed-password.XXXXXX)"
+    rm -f "${password_file}"
+    "${INSTALL_PREFIX}/bin/uvnc_winvnc_password_file" --output "${password_file}" --password secret
+    "${INSTALL_PREFIX}/bin/uvnc_winvnc_password_file" --validate --output "${password_file}"
+    rm -f "${password_file}"
 fi
