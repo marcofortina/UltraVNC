@@ -10,6 +10,8 @@
 
 #include "vncPortableVncAuth.h"
 
+#include "vncPortableExtendedClipboard.h"
+
 #include "vncPortableRfb.h"
 #include "vncPortableRfbMessages.h"
 #include "vncPortableTcp.h"
@@ -35,6 +37,12 @@ using uvnc::winvnc::portable::EncodeFramebufferUpdateRequest;
 using uvnc::winvnc::portable::EncodeKeyEvent;
 using uvnc::winvnc::portable::EncodePointerEvent;
 using uvnc::winvnc::portable::EncodeSetEncodings;
+using uvnc::winvnc::portable::EncodeExtendedClientCutText;
+using uvnc::winvnc::portable::EncodeExtendedClipboardCaps;
+using uvnc::winvnc::portable::DecodeExtendedClipboardPayload;
+using uvnc::winvnc::portable::ExtendedClipboardPayload;
+using uvnc::winvnc::portable::ExtendedClipboardPayloadLength;
+using uvnc::winvnc::portable::IsExtendedClipboardWireLength;
 using uvnc::winvnc::portable::IsProtocolVersionMessage;
 using uvnc::winvnc::portable::ProtocolVersion38;
 using uvnc::winvnc::portable::KeyEvent;
@@ -178,6 +186,13 @@ bool RunHandshakeOnSocket(TcpSocket& socket, const ViewerConfig& config, ViewerS
     if (!socket.WriteAll(setEncodings.data(), setEncodings.size())) {
         SetError(error, "failed to write RFB SetEncodings");
         return false;
+    }
+    if (std::find(encodings.begin(), encodings.end(), static_cast<CARD32>(rfbEncodingExtendedClipboard)) != encodings.end()) {
+        const std::vector<CARD8> caps = EncodeExtendedClientCutText(EncodeExtendedClipboardCaps(clipCaps | clipRequest | clipProvide | clipNotify | clipPeek | clipText));
+        if (!socket.WriteAll(caps.data(), caps.size())) {
+            SetError(error, "failed to write RFB extended clipboard caps");
+            return false;
+        }
     }
     return true;
 }
@@ -1506,6 +1521,17 @@ bool ReadFramebufferUpdate(TcpSocket& socket,
 
 } // namespace
 
+ViewerCursorShape::ViewerCursorShape()
+    : received(false),
+      hotspotX(0),
+      hotspotY(0),
+      width(0),
+      height(0),
+      encoding(0),
+      pixels()
+{
+}
+
 ViewerFramebufferRect::ViewerFramebufferRect()
     : x(0),
       y(0),
@@ -1537,7 +1563,12 @@ ViewerSessionResult::ViewerSessionResult()
       format(),
       desktopName(),
       serverCutText(),
+      extendedClipboardReceived(false),
       bellCount(0),
+      pointerPositionReceived(false),
+      pointerX(0),
+      pointerY(0),
+      cursorShape(),
       update(),
       rectangles()
 {

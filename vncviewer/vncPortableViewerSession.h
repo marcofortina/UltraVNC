@@ -37,6 +37,18 @@ struct ViewerFramebufferUpdate {
     std::vector<CARD8> pixels;
 };
 
+struct ViewerCursorShape {
+    ViewerCursorShape();
+
+    bool received;
+    unsigned int hotspotX;
+    unsigned int hotspotY;
+    unsigned int width;
+    unsigned int height;
+    CARD32 encoding;
+    std::vector<CARD8> pixels;
+};
+
 struct ViewerFramebufferRect {
     ViewerFramebufferRect();
 
@@ -59,7 +71,12 @@ struct ViewerSessionResult {
     rfbPixelFormat format;
     std::string desktopName;
     std::string serverCutText;
+    bool extendedClipboardReceived;
     unsigned int bellCount;
+    bool pointerPositionReceived;
+    unsigned int pointerX;
+    unsigned int pointerY;
+    ViewerCursorShape cursorShape;
     ViewerFramebufferUpdate update;
     std::vector<ViewerFramebufferRect> rectangles;
 };
