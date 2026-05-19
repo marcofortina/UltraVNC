@@ -48,6 +48,7 @@ compressed encodings, cursor/pointer pseudo-encodings, extended clipboard, VNCAu
 VeNCrypt/X509Vnc TLS and basic UltraVNC file-transfer operations. The Qt shell is
 the Linux-native frontend for these portable pieces; it is not a Win32 dialog port.
 
-Legacy DSM/MSLogon/SecureVNC plugin requests are intentionally fail-closed in the
-portable Linux path. A future implementation should define a native provider ABI
-or PAM/certificate-backed design instead of loading Windows DSM plugins.
+MSLogonII is implemented in the portable Linux viewer for original UltraVNC
+server compatibility. DSM/SecureVNC plugin stream transforms remain intentionally
+fail-closed until a native provider ABI exists; Linux must not load Windows DSM
+plugins blindly.

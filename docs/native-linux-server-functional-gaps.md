@@ -29,7 +29,7 @@ Native Linux file transfer remains disabled by default, but the portable server 
 
 ### DSM/security plugins and MSLogon
 
-Windows DSM plugins and MSLogon are not portable Linux features. The native Linux server rejects `--security-plugin`, `--dsm-plugin` and `--mslogon` rather than pretending to load Windows-only security code.
+Windows DSM plugins and SecureVNC plugin stream transforms are not portable Linux features. The native Linux server rejects `--security-plugin`, `--dsm-plugin` and `--securevnc-plugin` rather than pretending to load Windows-only security code. MSLogonII is supported through an explicit external auth helper, not through Windows account APIs.
 
 A future Linux security design should use explicit Linux-native authentication and transport security instead of copying Windows plugin loading behavior.
 
@@ -45,7 +45,7 @@ The Windows service manager, tray icon and settings UI are not native Linux feat
 
 ## Security extensions
 
-DSM/security plugins, MSLogon and the legacy HTTP Java viewer are explicitly rejected on native Linux. See `native-linux-security-extensions.md` for the fail-closed policy and replacement direction.
+DSM/security plugins and the legacy HTTP Java viewer are explicitly rejected on native Linux. MSLogonII uses the external helper provider. See `native-linux-security-extensions.md` for the fail-closed policy and supported replacement direction.
 
 ## Protocol extensions
 

@@ -8,8 +8,9 @@ Current Linux server policy:
 
 - DSM/security plugin command line options are rejected explicitly.
 - SecureVNC is treated as a DSM plugin and rejected explicitly.
-- MSLogon I/II server-side verification is rejected explicitly because the Windows
-  implementation is tied to Windows/domain account APIs.
+- MSLogon I remains legacy-only. MSLogonII is available on the native Linux
+  server through the explicit external auth helper described in
+  `native-linux-mslogon-server-auth.md`; it is not a Windows SSPI/domain API port.
 - The legacy HTTP Java applet viewer endpoint is rejected explicitly; see `native-linux-http-java-viewer-legacy.md`.
 - VeNCrypt X.509 + VNCAuth is the supported encrypted Linux server path for now.
 - Future Linux-native server authentication should be designed around explicit

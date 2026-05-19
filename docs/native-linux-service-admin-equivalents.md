@@ -15,7 +15,7 @@ The Linux equivalents are:
 | Tray status icon | `%t/uvnc-winvnc-memory-server.status`, journal logs, CLI summary |
 | Settings UI | `~/.config/ultravnc/uvnc-winvnc-linux-server.conf` plus `--validate-config` |
 | Admin diagnostics | `--print-config`, `--print-admin-summary`, status/log/pid files |
-| Windows-only DSM/MSLogon/plugin UI | unsupported/fail-closed policy on Linux |
+| Windows-only DSM/plugin UI | unsupported/fail-closed policy on Linux; MSLogonII uses external helper config |
 | HTTP Java viewer toggle | legacy disabled policy on Linux |
 
 ## Operator lifecycle
@@ -71,7 +71,7 @@ $XDG_RUNTIME_DIR/uvnc-winvnc-memory-server.log
 - No Linux tray icon is shipped.
 - No Linux GUI settings editor is shipped.
 - No Windows service-control compatibility layer is shipped.
-- No DSM/MSLogon/security-plugin UI is ported.
+- No DSM/SecureVNC security-plugin UI is ported. MSLogonII is represented as external-helper configuration, not as the Windows admin UI.
 - No HTTP Java viewer service is enabled.
 
 Those are not silently missing features: they are documented platform boundaries. Future Linux admin UI work should be a native Qt/admin tool or a separate management frontend, not a direct port of Windows tray/service UI code.

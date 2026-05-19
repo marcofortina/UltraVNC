@@ -137,7 +137,7 @@ TLS is not implemented in this milestone.
 ## TLS/security-type strategy
 
 The native Linux server now supports a real TLS transport security path using
-VeNCrypt with the X509Vnc subtype. This is not DSM/MSLogon emulation and it does
+VeNCrypt with the X509Vnc subtype. This is not DSM plugin emulation and it does
 not pretend that legacy VNCAuth encrypts traffic. The production baseline is:
 
 1. `transport_security=vencrypt-x509-vnc`;
