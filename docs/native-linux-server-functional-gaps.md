@@ -42,3 +42,7 @@ The preferred Linux direction is a real native viewer or documented external web
 ## Security extensions
 
 DSM/security plugins, MSLogon and the legacy HTTP Java viewer are explicitly rejected on native Linux. See `native-linux-security-extensions.md` for the fail-closed policy and replacement direction.
+
+## Protocol extensions
+
+UltraVNC scale messages and quality/compress pseudo-encoding preferences are now parsed into per-client state. Unsupported encoders remain unadvertised until they exist in the portable encoder. See `native-linux-protocol-extensions.md`.
