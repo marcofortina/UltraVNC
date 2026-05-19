@@ -107,7 +107,7 @@ int main()
 
     MemoryServer server;
     assert(server.Start(serverConfig));
-    std::thread worker([&]() { assert(server.ServeOne()); });
+    std::thread worker([&]() { assert(server.ServeOneUpdates(1)); });
 
     ViewerConfig viewerConfig;
     viewerConfig.SetHost("127.0.0.1");
@@ -119,7 +119,7 @@ int main()
 
     ViewerSessionResult result;
     std::string error;
-assert(ViewerSession().RunHandshake(viewerConfig, result, &error));
+if (!ViewerSession().RunHandshake(viewerConfig, result, &error)) { std::cerr << error << "\n"; assert(false); }
     assert(error.empty());
     assert(result.width == 64);
     assert(result.height == 32);
