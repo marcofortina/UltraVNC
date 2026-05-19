@@ -46,6 +46,7 @@ public:
     bool AllowUnencryptedPublic() const { return allowUnencryptedPublic_; }
     bool BellOnConnect() const { return bellOnConnect_; }
     const std::string& ServerCutText() const { return serverCutText_; }
+    unsigned int MaxSharedClients() const { return maxSharedClients_; }
     bool EnableFileTransfer() const { return fileTransferMode_ != FileTransferMode::Disabled; }
     FileTransferMode FileTransferModeValue() const { return fileTransferMode_; }
     unsigned int FileTransferPayloadLimit() const { return fileTransferPayloadLimit_; }
@@ -64,6 +65,7 @@ public:
     void SetAllowUnencryptedPublic(bool allow) { allowUnencryptedPublic_ = allow; }
     void SetBellOnConnect(bool enable) { bellOnConnect_ = enable; }
     void SetServerCutText(const std::string& text) { serverCutText_ = text; }
+    void SetMaxSharedClients(unsigned int maxClients) { maxSharedClients_ = maxClients; }
     void SetEnableFileTransfer(bool enable) { fileTransferMode_ = enable ? FileTransferMode::RejectOnly : FileTransferMode::Disabled; }
     void SetFileTransferMode(FileTransferMode mode) { fileTransferMode_ = mode; }
     void SetFileTransferPayloadLimit(unsigned int bytes) { fileTransferPayloadLimit_ = bytes; }
@@ -82,6 +84,7 @@ private:
     FramebufferPattern pattern_;
     rfbPixelFormat format_;
     ServerAuthMode authMode_;
+    unsigned int maxSharedClients_;
     std::string vncPassword_;
     bool allowNoAuth_;
     bool allowPublicNoAuth_;

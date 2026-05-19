@@ -63,6 +63,7 @@ ServerConfig::ServerConfig()
       pattern_(FramebufferPattern::Solid),
       format_(DefaultPixelFormat()),
       authMode_(ServerAuthMode::NoAuth),
+      maxSharedClients_(8),
       vncPassword_(),
       allowNoAuth_(false),
       allowPublicNoAuth_(false),
@@ -100,6 +101,10 @@ bool ServerConfig::Validate(std::string *error) const
     }
     if (desktopName_.size() > 1024) {
         if (error) *error = "desktop name is too long";
+        return false;
+    }
+    if (maxSharedClients_ == 0 || maxSharedClients_ > 64) {
+        if (error) *error = "max shared clients must be between 1 and 64";
         return false;
     }
     if (serverCutText_.size() > 1024 * 1024) {
