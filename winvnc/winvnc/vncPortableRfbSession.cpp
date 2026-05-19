@@ -185,6 +185,23 @@ bool SendRecursiveDirectorySize(RfbTransport& socket,
     return SendFileTransferPacketMessage(socket, rfbDirPacket, rfbADirRecursiveSize, size.bytesLow, payload.str());
 }
 
+
+bool SendFileTransferChecksums(RfbTransport& socket,
+                               const std::string& root,
+                               const std::string& requestedPath)
+{
+    std::vector<FileTransferChecksumBlock> blocks;
+    std::string reason;
+    if (!ComputeFileTransferChecksums(root, requestedPath, static_cast<CARD32>(sz_rfbBlockSize), 16384, blocks, &reason)) {
+        return SendFileTransferError(socket);
+    }
+    std::ostringstream payload;
+    for (std::vector<FileTransferChecksumBlock>::const_iterator it = blocks.begin(); it != blocks.end(); ++it) {
+        payload << it->offset << ':' << it->length << ':' << it->crc32 << '\n';
+    }
+    return SendFileTransferPacketMessage(socket, rfbFileChecksums, 0, static_cast<CARD32>(blocks.size()), payload.str());
+}
+
 bool SendFileDownload(RfbTransport& socket, const std::string& path, const std::string& displayPath, CARD32 payloadLimit)
 {
     std::ifstream input(path.c_str(), std::ios::binary);
@@ -640,6 +657,11 @@ bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Frameb
                 return SendFileTransferAccess(socket, false);
             }
             return SendFileDownload(socket, resolvedPath, requestedPath, limit);
+        case rfbFileChecksums:
+            if (!IsReadFileTransferMode(mode)) {
+                return SendFileTransferAccess(socket, false);
+            }
+            return SendFileTransferChecksums(socket, state->FileTransferRoot(), requestedPath);
         case rfbFileTransferOffer:
             if (!IsWriteFileTransferMode(mode)) {
                 return SendFileTransferAccess(socket, false);
