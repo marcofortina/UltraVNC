@@ -56,3 +56,15 @@ not X11, or when `DISPLAY` looks like SSH X forwarding.
   available. Wayland-native injection is intentionally out of scope here.
 - SSH X forwarding: live injection helpers skip it because it is not a safe local
   desktop validation target.
+
+## Key symbol handling
+
+The XTest backend now normalizes common RFB keysyms that require modifiers on
+standard X11 layouts before injection. Uppercase ASCII and common shifted
+punctuation are translated into the base keysym plus a synthetic Shift press
+around the key event. This avoids sending uppercase or punctuation keysyms as if
+they were unmodified physical keys.
+
+This is still intentionally conservative: fully locale-aware dead-key/compose
+handling should be added only with a dedicated XKB-backed mapper and live matrix
+coverage.
