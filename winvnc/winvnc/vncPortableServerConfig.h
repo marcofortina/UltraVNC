@@ -50,6 +50,7 @@ public:
     bool EnableFileTransfer() const { return fileTransferMode_ != FileTransferMode::Disabled; }
     FileTransferMode FileTransferModeValue() const { return fileTransferMode_; }
     unsigned int FileTransferPayloadLimit() const { return fileTransferPayloadLimit_; }
+    const std::string& FileTransferRoot() const { return fileTransferRoot_; }
 
     void SetBindAddress(const std::string& bindAddress) { bindAddress_ = bindAddress; }
     void SetPort(unsigned short port) { port_ = port; }
@@ -69,6 +70,7 @@ public:
     void SetEnableFileTransfer(bool enable) { fileTransferMode_ = enable ? FileTransferMode::RejectOnly : FileTransferMode::Disabled; }
     void SetFileTransferMode(FileTransferMode mode) { fileTransferMode_ = mode; }
     void SetFileTransferPayloadLimit(unsigned int bytes) { fileTransferPayloadLimit_ = bytes; }
+    void SetFileTransferRoot(const std::string& root) { fileTransferRoot_ = root; }
 
     bool Validate(std::string *error = nullptr) const;
 
@@ -93,6 +95,7 @@ private:
     std::string serverCutText_;
     FileTransferMode fileTransferMode_;
     unsigned int fileTransferPayloadLimit_;
+    std::string fileTransferRoot_;
 };
 
 } // namespace portable
