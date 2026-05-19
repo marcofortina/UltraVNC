@@ -29,7 +29,7 @@ bool RunClientHandshake(TcpSocket& client, const ServerConfig& config)
     CARD32 auth = 0;
     if (!client.ReadExact(&auth, sizeof(auth)) || auth != AuthOkValue()) return false;
     rfbClientInitMsg init;
-    init.flags = rfbClientInitShared;
+    init.flags = clientInitShared;
     if (!client.WriteAll(&init, sz_rfbClientInitMsg)) return false;
     rfbServerInitMsg serverInit;
     if (!client.ReadExact(&serverInit, sz_rfbServerInitMsg)) return false;
