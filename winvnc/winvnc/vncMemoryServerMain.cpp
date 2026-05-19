@@ -1204,7 +1204,7 @@ void PrintLinuxAdminSummary(const ServerConfig& config,
 {
     std::cout << "linux_admin_equivalent=systemd-user-service\n"
               << "windows_service_equivalent=uvnc-winvnc-memory-server.service\n"
-              << "windows_tray_ui_equivalent=not-ported-linux-use-status-files-and-journal\n"
+              << "windows_tray_ui_equivalent=qt-server-settings-live-admin\n"
               << "windows_settings_ui_equivalent=config-file-plus-validate-config\n"
               << "http_java_viewer=legacy-disabled\n"
               << "dsm_plugin=native-provider-abi-available\n"
