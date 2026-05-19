@@ -13,7 +13,7 @@
 #include <random>
 
 extern "C" {
-#include "vncauth.h"
+#include "d3des.h"
 }
 
 namespace uvnc {
@@ -56,6 +56,22 @@ unsigned long long PowMod(unsigned long long base, unsigned long long exponent, 
         exponent >>= 1;
     }
     return result;
+}
+
+
+void EncryptMsLogonBlock(CARD8 *where, int length, CARD8 *key)
+{
+    deskey(key, EN0);
+    for (int i = 0; i < 8; ++i) {
+        where[i] ^= key[i];
+    }
+    des(where, where);
+    for (int i = 8; i < length; i += 8) {
+        for (int j = 0; j < 8; ++j) {
+            where[i + j] ^= where[i + j - 8];
+        }
+        des(where + i, where + i);
+    }
 }
 
 unsigned long long GeneratePrivateExponent()
@@ -130,8 +146,8 @@ bool EncodeMsLogonIIResponse(const MsLogonIIExchange& exchange,
     std::copy(username.begin(), username.end(), encryptedUser);
     std::copy(password.begin(), password.end(), encryptedPassword);
 
-    vncEncryptBytes2(encryptedUser, kMsLogonIIUserBytes, key);
-    vncEncryptBytes2(encryptedPassword, kMsLogonIIPasswordBytes, key);
+    EncryptMsLogonBlock(encryptedUser, kMsLogonIIUserBytes, key);
+    EncryptMsLogonBlock(encryptedPassword, kMsLogonIIPasswordBytes, key);
 
     response.assign(kMsLogonIIResponseBytes, 0);
     WriteU64BE(clientPublic, response.data());
