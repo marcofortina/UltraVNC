@@ -58,6 +58,7 @@ add_library(${PROJECT_NAME} STATIC
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableSecurityExtensions.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableRfb.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableRfbMessages.cpp"
+    "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableDsmProvider.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableExtendedClipboard.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableExternalAuth.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableMsLogonServer.cpp"
