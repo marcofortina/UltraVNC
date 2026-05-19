@@ -11,6 +11,7 @@
 #ifdef UVNC_HAVE_OPENSSL
 #include <openssl/err.h>
 #include <openssl/ssl.h>
+#include <openssl/x509v3.h>
 #endif
 
 #include <cstring>
