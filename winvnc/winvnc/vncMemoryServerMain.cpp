@@ -13,6 +13,7 @@
 #include "vncLinuxXTestInput.h"
 #include "vncLinuxPipeWirePortalCapture.h"
 #include "vncLinuxX11FramebufferSource.h"
+#include "vncLinuxX11CursorSource.h"
 #include "vncPortableFramebufferPattern.h"
 #include "vncPortableMemoryServer.h"
 #include "vncPortableRfb.h"
@@ -54,6 +55,7 @@ using uvnc::winvnc::linuxfb::PipeWirePortalRuntimeState;
 using uvnc::winvnc::linuxfb::ParseCaptureBackendName;
 using uvnc::winvnc::linuxfb::ResolveCaptureBackend;
 using uvnc::winvnc::linuxfb::X11DesktopSource;
+using uvnc::winvnc::linuxfb::X11CursorSource;
 using uvnc::winvnc::linuxinput::InputBackend;
 using uvnc::winvnc::linuxinput::InputBackendName;
 using uvnc::winvnc::linuxinput::ParseInputBackendName;
@@ -1368,7 +1370,8 @@ bool RunThreadedStaticServeLoop(MemoryServer& server,
                                 unsigned int maxUpdates,
                                 RfbInputSink *inputSink,
                                 RfbClipboardSink *clipboardSink,
-                                RfbClipboardSource *clipboardSource)
+                                RfbClipboardSource *clipboardSource,
+                                uvnc::winvnc::portable::RfbCursorSource *cursorSource)
 {
     ClientConnectionPolicy clientPolicy(config.MaxSharedClients());
     std::vector<std::thread> workers;
@@ -1384,8 +1387,8 @@ bool RunThreadedStaticServeLoop(MemoryServer& server,
         if (!accepted) {
             continue;
         }
-        workers.emplace_back([&server, maxUpdates, inputSink, clipboardSink, clipboardSource, &clientPolicy, client = std::move(client)]() mutable {
-            server.ServeConnectedUpdates(std::move(client), maxUpdates, inputSink, clipboardSink, clipboardSource, &clientPolicy);
+        workers.emplace_back([&server, maxUpdates, inputSink, clipboardSink, clipboardSource, cursorSource, &clientPolicy, client = std::move(client)]() mutable {
+            server.ServeConnectedUpdates(std::move(client), maxUpdates, inputSink, clipboardSink, clipboardSource, &clientPolicy, cursorSource);
         });
     }
 
@@ -1403,7 +1406,8 @@ bool RunThreadedLiveServeLoop(MemoryServer& server,
                               unsigned int maxUpdates,
                               RfbInputSink *inputSink,
                               RfbClipboardSink *clipboardSink,
-                              RfbClipboardSource *clipboardSource)
+                              RfbClipboardSource *clipboardSource,
+                                uvnc::winvnc::portable::RfbCursorSource *cursorSource)
 {
     LockedDesktopSource lockedSource(source);
     ClientConnectionPolicy clientPolicy(config.MaxSharedClients());
@@ -1420,8 +1424,8 @@ bool RunThreadedLiveServeLoop(MemoryServer& server,
         if (!accepted) {
             continue;
         }
-        workers.emplace_back([&server, &lockedSource, maxUpdates, inputSink, clipboardSink, clipboardSource, &clientPolicy, client = std::move(client)]() mutable {
-            server.ServeConnectedUpdatesFromSource(std::move(client), lockedSource, maxUpdates, inputSink, 128, clipboardSink, clipboardSource, &clientPolicy);
+        workers.emplace_back([&server, &lockedSource, maxUpdates, inputSink, clipboardSink, clipboardSource, cursorSource, &clientPolicy, client = std::move(client)]() mutable {
+            server.ServeConnectedUpdatesFromSource(std::move(client), lockedSource, maxUpdates, inputSink, 128, clipboardSink, clipboardSource, &clientPolicy, cursorSource);
         });
     }
 
@@ -1596,6 +1600,8 @@ int main(int argc, char **argv)
 
     MemoryServer server;
     X11DesktopSource x11Source;
+    X11CursorSource x11CursorSource;
+    uvnc::winvnc::portable::RfbCursorSource *cursorSource = nullptr;
     DesktopSource *liveSource = nullptr;
     if (resolvedCaptureBackend == CaptureBackend::RawFile) {
         Framebuffer framebuffer;
@@ -1618,6 +1624,7 @@ int main(int argc, char **argv)
             return 1;
         }
         liveSource = &x11Source;
+        cursorSource = &x11CursorSource;
     } else if (!server.Start(config)) {
         std::cerr << "failed to start memory server\n";
         return 1;
@@ -1637,7 +1644,7 @@ int main(int argc, char **argv)
     if (serveForever) {
         served = true;
         if (clientMode == ClientServiceMode::Threaded && liveSource == nullptr) {
-            served = RunThreadedStaticServeLoop(server, config, maxUpdates, inputSink, clipboardSink, clipboardSink ? &x11Clipboard : nullptr);
+            served = RunThreadedStaticServeLoop(server, config, maxUpdates, inputSink, clipboardSink, clipboardSink ? &x11Clipboard : nullptr, cursorSource);
         } else {
             if (clientMode == ClientServiceMode::Threaded && liveSource != nullptr) {
                 std::cerr << "warning: threaded client mode is currently only used for static memory/raw-file capture; live capture remains sequential\n";
@@ -1645,8 +1652,8 @@ int main(int argc, char **argv)
             while (!StopRequested()) {
                 bool accepted = false;
                 const bool ok = liveSource ?
-                    server.TryServeOneUpdatesFromSource(*liveSource, maxUpdates, inputSink, 128, 250, accepted, clipboardSink, clipboardSink ? &x11Clipboard : nullptr) :
-                    server.TryServeOneUpdates(maxUpdates, inputSink, 250, accepted, clipboardSink, clipboardSink ? &x11Clipboard : nullptr);
+                    server.TryServeOneUpdatesFromSource(*liveSource, maxUpdates, inputSink, 128, 250, accepted, clipboardSink, clipboardSink ? &x11Clipboard : nullptr, nullptr, cursorSource) :
+                    server.TryServeOneUpdates(maxUpdates, inputSink, 250, accepted, clipboardSink, clipboardSink ? &x11Clipboard : nullptr, nullptr, cursorSource);
                 if (!ok) {
                     served = false;
                     break;
@@ -1654,8 +1661,13 @@ int main(int argc, char **argv)
             }
         }
     } else {
-        served = serveUpdates && liveSource ? server.ServeOneUpdatesFromSource(*liveSource, maxUpdates, inputSink, 128, clipboardSink, clipboardSink ? &x11Clipboard : nullptr) :
-            (serveUpdates ? server.ServeOneUpdates(maxUpdates, inputSink) : server.ServeOne());
+        if (serveUpdates && liveSource) {
+            served = server.ServeOneUpdatesFromSource(*liveSource, maxUpdates, inputSink, 128, clipboardSink, clipboardSink ? &x11Clipboard : nullptr, nullptr, cursorSource);
+        } else if (serveUpdates) {
+            served = server.ServeOneUpdates(maxUpdates, inputSink, clipboardSink, clipboardSink ? &x11Clipboard : nullptr, nullptr, cursorSource);
+        } else {
+            served = server.ServeOne();
+        }
     }
 
     WriteTextFile(statusFile, StopRequested() ? "stopping\n" : (served ? "completed\n" : "failed\n"));
