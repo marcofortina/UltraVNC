@@ -363,6 +363,10 @@ RfbSessionStats::RfbSessionStats()
       keyEvents(0),
       pointerEvents(0),
       clientCutTextMessages(0),
+      extendedClipboardMessages(0),
+      extendedClipboardCapsSent(0),
+      extendedClipboardProvidesSent(0),
+      extendedClipboardNotifiesSent(0),
       pointerPositionUpdatesSent(0),
       fileTransferMessages(0),
       fileTransferBytesDiscarded(0)

@@ -31,6 +31,10 @@ struct RfbSessionStats {
     unsigned int keyEvents;
     unsigned int pointerEvents;
     unsigned int clientCutTextMessages;
+    unsigned int extendedClipboardMessages;
+    unsigned int extendedClipboardCapsSent;
+    unsigned int extendedClipboardProvidesSent;
+    unsigned int extendedClipboardNotifiesSent;
     unsigned int pointerPositionUpdatesSent;
     unsigned int fileTransferMessages;
     unsigned int fileTransferBytesDiscarded;
