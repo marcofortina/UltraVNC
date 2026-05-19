@@ -60,6 +60,7 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
       passwordEdit_(new QLineEdit()),
       passwordFileEdit_(new QLineEdit()),
       authHelperEdit_(new QLineEdit()),
+      dsmProviderEdit_(new QLineEdit()),
       allowNoAuthCheck_(new QCheckBox(QStringLiteral("Allow no-auth lab mode"))),
       allowPublicNoAuthCheck_(new QCheckBox(QStringLiteral("Allow public no-auth"))),
       allowUnencryptedPublicCheck_(new QCheckBox(QStringLiteral("Allow unencrypted public bind"))),
@@ -103,6 +104,7 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
     passwordEdit_->setObjectName(QStringLiteral("passwordEdit"));
     passwordFileEdit_->setObjectName(QStringLiteral("passwordFileEdit"));
     authHelperEdit_->setObjectName(QStringLiteral("authHelperEdit"));
+    dsmProviderEdit_->setObjectName(QStringLiteral("dsmProviderEdit"));
     allowNoAuthCheck_->setObjectName(QStringLiteral("allowNoAuthCheck"));
     allowPublicNoAuthCheck_->setObjectName(QStringLiteral("allowPublicNoAuthCheck"));
     allowUnencryptedPublicCheck_->setObjectName(QStringLiteral("allowUnencryptedPublicCheck"));
@@ -151,6 +153,7 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
     passwordEdit_->setEchoMode(QLineEdit::Password);
     passwordFileEdit_->setPlaceholderText(QStringLiteral("/etc/ultravnc/vnc-password"));
     authHelperEdit_->setPlaceholderText(QStringLiteral("/usr/local/libexec/uvnc-mslogon-auth"));
+    dsmProviderEdit_->setPlaceholderText(QStringLiteral("/usr/local/lib/ultravnc/dsm-provider.so"));
     logFileEdit_->setPlaceholderText(QStringLiteral("/var/log/ultravnc/winvnc.log"));
     pidFileEdit_->setPlaceholderText(QStringLiteral("/run/ultravnc/winvnc.pid"));
     statusFileEdit_->setPlaceholderText(QStringLiteral("/run/ultravnc/winvnc.status"));
@@ -193,6 +196,7 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
     form->addRow(QStringLiteral("Password"), passwordEdit_);
     form->addRow(QStringLiteral("Password file"), passwordFileEdit_);
     form->addRow(QStringLiteral("Auth helper"), authHelperEdit_);
+    form->addRow(QStringLiteral("DSM provider"), dsmProviderEdit_);
     form->addRow(QStringLiteral("Transport security"), transportSecurityCombo_);
     form->addRow(QStringLiteral("TLS certificate"), tlsCertEdit_);
     form->addRow(QStringLiteral("TLS private key"), tlsKeyEdit_);
@@ -280,6 +284,7 @@ portable::ServerConfig QtServerSettingsPanel::CurrentConfig() const
     config.SetAuthMode(SelectedAuthMode());
     config.SetVncPassword(passwordEdit_->text().toStdString());
     config.SetAuthHelperPath(authHelperEdit_->text().toStdString());
+    config.SetDsmProviderPath(dsmProviderEdit_->text().toStdString());
     config.SetAllowNoAuth(allowNoAuthCheck_->isChecked());
     config.SetAllowPublicNoAuth(allowPublicNoAuthCheck_->isChecked());
     config.SetAllowUnencryptedPublic(allowUnencryptedPublicCheck_->isChecked());
@@ -316,6 +321,9 @@ QString QtServerSettingsPanel::GeneratedConfigText() const
     }
     if (config.AuthMode() == portable::ServerAuthMode::MsLogonII) {
         text += QStringLiteral("auth_helper=%1\n").arg(authHelperEdit_->text());
+    }
+    if (!dsmProviderEdit_->text().isEmpty()) {
+        text += QStringLiteral("dsm_provider=%1\n").arg(dsmProviderEdit_->text());
     }
     text += QStringLiteral("allow_no_auth=%1\n").arg(BoolText(allowNoAuthCheck_->isChecked()));
     text += QStringLiteral("allow_public_no_auth=%1\n").arg(BoolText(allowPublicNoAuthCheck_->isChecked()));

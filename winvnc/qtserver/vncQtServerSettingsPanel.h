@@ -61,6 +61,7 @@ private:
     QLineEdit *passwordEdit_;
     QLineEdit *passwordFileEdit_;
     QLineEdit *authHelperEdit_;
+    QLineEdit *dsmProviderEdit_;
     QCheckBox *allowNoAuthCheck_;
     QCheckBox *allowPublicNoAuthCheck_;
     QCheckBox *allowUnencryptedPublicCheck_;
