@@ -54,6 +54,12 @@ struct FileTransferRecursiveSize {
     bool truncated;
 };
 
+struct FileTransferChecksumBlock {
+    CARD32 offset;
+    CARD32 length;
+    CARD32 crc32;
+};
+
 struct FileTransferCommandResult {
     bool success;
     CARD16 responseParam;
@@ -95,6 +101,12 @@ bool PrepareFileTransferUpload(const std::string& root,
 bool CommitFileTransferUpload(const std::string& temporaryPath,
                               const std::string& finalPath,
                               std::string *reason = nullptr);
+bool ComputeFileTransferChecksums(const std::string& root,
+                                  const std::string& requestedPath,
+                                  CARD32 blockSize,
+                                  CARD32 maxBlocks,
+                                  std::vector<FileTransferChecksumBlock>& blocks,
+                                  std::string *reason = nullptr);
 void AbortFileTransferUpload(const std::string& temporaryPath);
 FileTransferCommandResult ExecuteFileTransferCommand(const std::string& root,
                                                      CARD16 command,

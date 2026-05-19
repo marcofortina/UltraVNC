@@ -19,6 +19,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <zlib.h>
 #endif
 
 namespace uvnc {
@@ -513,6 +514,63 @@ bool CommitFileTransferUpload(const std::string& temporaryPath,
     (void)temporaryPath;
     (void)finalPath;
     if (reason) *reason = "portable atomic upload is not used on Windows builds";
+    return false;
+#endif
+}
+
+
+bool ComputeFileTransferChecksums(const std::string& root,
+                                  const std::string& requestedPath,
+                                  CARD32 blockSize,
+                                  CARD32 maxBlocks,
+                                  std::vector<FileTransferChecksumBlock>& blocks,
+                                  std::string *reason)
+{
+    blocks.clear();
+#ifndef _WIN32
+    if (blockSize == 0 || maxBlocks == 0) {
+        if (reason) *reason = "checksum block limits must be non-zero";
+        return false;
+    }
+    std::string resolved;
+    if (!ResolveFileTransferPath(root, requestedPath, resolved, reason)) {
+        return false;
+    }
+    if (!IsRegularFilePath(resolved, reason)) {
+        return false;
+    }
+    std::ifstream input(resolved.c_str(), std::ios::binary);
+    if (!input) {
+        if (reason) *reason = "open file for checksums failed";
+        return false;
+    }
+    std::vector<unsigned char> buffer(blockSize);
+    CARD32 offset = 0;
+    while (input && blocks.size() < maxBlocks) {
+        input.read(reinterpret_cast<char *>(buffer.data()), static_cast<std::streamsize>(buffer.size()));
+        const std::streamsize got = input.gcount();
+        if (got <= 0) {
+            break;
+        }
+        FileTransferChecksumBlock block;
+        block.offset = offset;
+        block.length = static_cast<CARD32>(got);
+        block.crc32 = static_cast<CARD32>(crc32(0U, buffer.data(), static_cast<uInt>(got)));
+        blocks.push_back(block);
+        offset += block.length;
+    }
+    if (input.bad()) {
+        if (reason) *reason = "read file for checksums failed";
+        return false;
+    }
+    if (reason) reason->clear();
+    return true;
+#else
+    (void)root;
+    (void)requestedPath;
+    (void)blockSize;
+    (void)maxBlocks;
+    if (reason) *reason = "portable checksums are not used on Windows builds";
     return false;
 #endif
 }
