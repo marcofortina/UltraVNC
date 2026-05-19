@@ -11,12 +11,11 @@
 
 #include "vncPortableRfbSession.h"
 
+#include <mutex>
 #include <string>
 
-#if defined(UVNC_HAVE_X11)
-#include <X11/Xlib.h>
-#include <mutex>
-#endif
+struct _XDisplay;
+typedef struct _XDisplay Display;
 
 namespace uvnc {
 namespace winvnc {
@@ -33,22 +32,20 @@ public:
     static bool RuntimeAvailable(std::string *reason = nullptr);
 
 private:
-#if defined(UVNC_HAVE_X11)
     bool EnsureOwnerDisplay(std::string *error) const;
     void PumpSelectionRequests() const;
     bool FetchExternalSelectionText(std::string& text, std::string *error) const;
 
     mutable std::mutex mutex_;
     mutable Display *display_;
-    mutable Window window_;
-    mutable Atom clipboardAtom_;
-    mutable Atom targetsAtom_;
-    mutable Atom utf8StringAtom_;
-    mutable Atom textAtom_;
-    mutable Atom selectionPropertyAtom_;
-    mutable Atom incrAtom_;
+    mutable unsigned long window_;
+    mutable unsigned long clipboardAtom_;
+    mutable unsigned long targetsAtom_;
+    mutable unsigned long utf8StringAtom_;
+    mutable unsigned long textAtom_;
+    mutable unsigned long selectionPropertyAtom_;
+    mutable unsigned long incrAtom_;
     mutable std::string ownedText_;
-#endif
 };
 
 } // namespace linuxclipboard
