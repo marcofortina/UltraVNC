@@ -35,6 +35,11 @@ ViewerConfig::ViewerConfig()
     encodings_.push_back(rfbEncodingRRE);
     encodings_.push_back(rfbEncodingCoRRE);
     encodings_.push_back(rfbEncodingNewFBSize);
+    encodings_.push_back(rfbEncodingRichCursor);
+    encodings_.push_back(rfbEncodingXCursor);
+    encodings_.push_back(rfbEncodingPointerPos);
+    encodings_.push_back(rfbEncodingLastRect);
+    encodings_.push_back(rfbEncodingExtendedClipboard);
 }
 
 bool ViewerConfig::Validate(std::string *error) const
