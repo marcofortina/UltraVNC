@@ -39,3 +39,13 @@ The server settings GUI includes a Runtime tab for user-mode start/stop/status/l
 ## DSM provider
 
 The settings GUI exposes `dsm_provider` for the native Linux DSM/SecureVNC provider ABI. See `docs/native-linux-dsm-provider-abi.md`. Legacy Windows `.dsm` DLL loading is still rejected.
+
+
+## Systemd service controls
+
+The Runtime tab can manage either the user service or the system service with `systemctl`. The GUI exposes the service name, scope, start, stop and status actions. System service actions may still require host policy such as polkit or sudoers configuration; the GUI reports the `systemctl` output instead of hiding failures.
+
+
+## Native SecureVNC provider
+
+When OpenSSL is available, the Linux build can produce `uvnc_securevnc_provider`, a native DSM-provider shared object that performs AES-256-CTR stream transforms through the Linux DSM provider ABI. Configure it with `dsm_provider=` and provide `UVNC_SECUREVNC_PROVIDER_KEY_HEX` in the service environment.

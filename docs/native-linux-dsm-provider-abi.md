@@ -39,5 +39,15 @@ Operational constraints:
 
 - the provider path must be absolute;
 - legacy Windows `--dsm-plugin` / `.dsm` DLL loading remains rejected;
-- this ABI is the Linux boundary for SecureVNC-compatible providers, but a real SecureVNC provider shared object still needs to be implemented and reviewed;
+- `uvnc_securevnc_provider` is the native Linux SecureVNC-style AES-256-CTR provider shipped with the portable Linux build when OpenSSL is available;
+- set `UVNC_SECUREVNC_PROVIDER_KEY_HEX` to a 64-character hex key before starting the server when using that provider;
 - provider code runs in the server process and must be treated as trusted native code.
+
+Native SecureVNC provider example:
+
+```sh
+export UVNC_SECUREVNC_PROVIDER_KEY_HEX=00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff
+uvnc_winvnc_memory_server \
+  --dsm-provider /usr/local/lib/ultravnc/libuvnc_securevnc_provider.so \
+  --validate-config
+```

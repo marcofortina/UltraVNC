@@ -46,7 +46,8 @@ serve_updates=true
 # Optional native Linux DSM/SecureVNC provider ABI.
 # Legacy Windows .dsm DLL loading is not supported.
 #
-# dsm_provider=/usr/local/lib/ultravnc/libuvnc-securevnc-provider.so
+# dsm_provider=/usr/local/lib/ultravnc/libuvnc_securevnc_provider.so
+# Set UVNC_SECUREVNC_PROVIDER_KEY_HEX in the service environment when using the native provider.
 
 # Optional MSLogonII-style Linux authentication through an external helper.
 # The helper receives UVNC_AUTH_METHOD, UVNC_AUTH_USERNAME and
