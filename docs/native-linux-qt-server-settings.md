@@ -49,3 +49,5 @@ The Runtime tab can manage either the user service or the system service with `s
 ## Native SecureVNC provider
 
 When OpenSSL is available, the Linux build can produce `uvnc_securevnc_provider`, a native DSM-provider shared object that performs AES-256-CTR stream transforms through the Linux DSM provider ABI. Configure it with `dsm_provider=` and provide `UVNC_SECUREVNC_PROVIDER_KEY_HEX` in the service environment.
+
+See `docs/native-linux-legacy-parity.md` for executable-name, DSM and visual parity status.

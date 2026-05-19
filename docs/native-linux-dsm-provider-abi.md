@@ -51,3 +51,5 @@ uvnc_winvnc_memory_server \
   --dsm-provider /usr/local/lib/ultravnc/libuvnc_securevnc_provider.so \
   --validate-config
 ```
+
+See `docs/native-linux-legacy-parity.md` for executable-name, DSM and visual parity status.
