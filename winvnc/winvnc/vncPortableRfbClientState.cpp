@@ -27,6 +27,7 @@ RfbClientState::RfbClientState(const ServerConfig& config)
       lastClientCutText_(),
       lastServerCutText_(),
       cursorShapeSent_(false),
+      lastCursorShapeFingerprint_(0),
       extendedClipboardEnabled_(config.ExtendedClipboardEnabled()),
       extendedClipboardTextLimit_(config.ExtendedClipboardTextLimit()),
       extendedClipboardCapsSent_(false),
@@ -90,12 +91,24 @@ void RfbClientState::SetEncodings(const std::vector<CARD32>& encodings)
 {
     encodings_ = encodings;
     cursorShapeSent_ = false;
+    lastCursorShapeFingerprint_ = 0;
     extendedClipboardCapsSent_ = false;
+}
+
+bool RfbClientState::CursorShapeChanged(CARD32 fingerprint) const
+{
+    return !cursorShapeSent_ || lastCursorShapeFingerprint_ != fingerprint;
 }
 
 void RfbClientState::MarkCursorShapeSent()
 {
+    MarkCursorShapeSent(0);
+}
+
+void RfbClientState::MarkCursorShapeSent(CARD32 fingerprint)
+{
     cursorShapeSent_ = true;
+    lastCursorShapeFingerprint_ = fingerprint;
 }
 
 void RfbClientState::MarkExtendedClipboardCapsSent()

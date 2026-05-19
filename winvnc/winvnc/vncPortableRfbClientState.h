@@ -38,6 +38,8 @@ public:
     bool ExtendedClipboardEnabled() const { return extendedClipboardEnabled_; }
     unsigned int ExtendedClipboardTextLimit() const { return extendedClipboardTextLimit_; }
     bool CursorShapeSent() const { return cursorShapeSent_; }
+    CARD32 LastCursorShapeFingerprint() const { return lastCursorShapeFingerprint_; }
+    bool CursorShapeChanged(CARD32 fingerprint) const;
     bool SharedClientRequested() const { return sharedClientRequested_; }
     bool ClientInitReceived() const { return clientInitReceived_; }
     const KeyEvent& LastKeyEvent() const { return lastKeyEvent_; }
@@ -63,6 +65,7 @@ public:
     void SetPixelFormat(const rfbPixelFormat& format);
     void SetEncodings(const std::vector<CARD32>& encodings);
     void MarkCursorShapeSent();
+    void MarkCursorShapeSent(CARD32 fingerprint);
     void MarkExtendedClipboardCapsSent();
     void RecordExtendedClipboardRemoteCaps(CARD32 caps, unsigned int textLimit = 0);
     void RecordExtendedClipboardNotify(CARD32 flags);
@@ -89,6 +92,7 @@ private:
     std::string lastClientCutText_;
     std::string lastServerCutText_;
     bool cursorShapeSent_;
+    CARD32 lastCursorShapeFingerprint_;
     bool extendedClipboardEnabled_;
     unsigned int extendedClipboardTextLimit_;
     bool extendedClipboardCapsSent_;
