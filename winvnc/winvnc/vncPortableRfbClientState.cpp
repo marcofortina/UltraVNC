@@ -36,6 +36,8 @@ RfbClientState::RfbClientState(const ServerConfig& config)
       extendedClipboardTextAvailable_(false),
       sharedClientRequested_(true),
       clientInitReceived_(false),
+      lastFramebufferWidth_(config.Width()),
+      lastFramebufferHeight_(config.Height()),
       fileTransferMode_(config.FileTransferModeValue()),
       fileTransferPayloadLimit_(config.FileTransferPayloadLimit()),
       fileTransferRoot_(config.FileTransferRoot()),
@@ -80,6 +82,11 @@ bool RfbClientState::SupportsCursorShapeUpdates() const
 bool RfbClientState::SupportsExtendedClipboard() const
 {
     return extendedClipboardEnabled_ && SupportsEncoding(rfbEncodingExtendedClipboard);
+}
+
+bool RfbClientState::SupportsNewFramebufferSizeUpdates() const
+{
+    return SupportsEncoding(rfbEncodingNewFBSize);
 }
 
 void RfbClientState::SetPixelFormat(const rfbPixelFormat& format)
@@ -131,6 +138,17 @@ void RfbClientState::RecordClientInit(bool shared)
 {
     sharedClientRequested_ = shared;
     clientInitReceived_ = true;
+}
+
+bool RfbClientState::FramebufferSizeChanged(unsigned int width, unsigned int height) const
+{
+    return lastFramebufferWidth_ != width || lastFramebufferHeight_ != height;
+}
+
+void RfbClientState::RecordFramebufferSize(unsigned int width, unsigned int height)
+{
+    lastFramebufferWidth_ = width;
+    lastFramebufferHeight_ = height;
 }
 
 void RfbClientState::RecordKeyEvent(const KeyEvent& event)

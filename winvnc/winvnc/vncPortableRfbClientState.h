@@ -31,6 +31,7 @@ public:
     bool SupportsXCursorUpdates() const;
     bool SupportsCursorShapeUpdates() const;
     bool SupportsExtendedClipboard() const;
+bool SupportsNewFramebufferSizeUpdates() const;
     bool ExtendedClipboardCapsSent() const { return extendedClipboardCapsSent_; }
     CARD32 ExtendedClipboardRemoteCaps() const { return extendedClipboardRemoteCaps_; }
     unsigned int ExtendedClipboardRemoteTextLimit() const { return extendedClipboardRemoteTextLimit_; }
@@ -42,6 +43,9 @@ public:
     bool CursorShapeChanged(CARD32 fingerprint) const;
     bool SharedClientRequested() const { return sharedClientRequested_; }
     bool ClientInitReceived() const { return clientInitReceived_; }
+unsigned int LastFramebufferWidth() const { return lastFramebufferWidth_; }
+unsigned int LastFramebufferHeight() const { return lastFramebufferHeight_; }
+bool FramebufferSizeChanged(unsigned int width, unsigned int height) const;
     const KeyEvent& LastKeyEvent() const { return lastKeyEvent_; }
     const PointerEvent& LastPointerEvent() const { return lastPointerEvent_; }
     unsigned int KeyEventCount() const { return keyEventCount_; }
@@ -70,6 +74,7 @@ public:
     void RecordExtendedClipboardRemoteCaps(CARD32 caps, unsigned int textLimit = 0);
     void RecordExtendedClipboardNotify(CARD32 flags);
     void RecordClientInit(bool shared);
+void RecordFramebufferSize(unsigned int width, unsigned int height);
     void RecordKeyEvent(const KeyEvent& event);
     void RecordPointerEvent(const PointerEvent& event);
     void RecordClientCutText(unsigned int bytes);
@@ -101,6 +106,8 @@ private:
     bool extendedClipboardTextAvailable_;
     bool sharedClientRequested_;
     bool clientInitReceived_;
+unsigned int lastFramebufferWidth_;
+unsigned int lastFramebufferHeight_;
     FileTransferMode fileTransferMode_;
     unsigned int fileTransferPayloadLimit_;
     std::string fileTransferRoot_;
