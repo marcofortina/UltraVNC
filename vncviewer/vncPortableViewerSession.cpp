@@ -10,6 +10,7 @@
 
 #include "vncPortableViewerSecurity.h"
 #include "vncPortableViewerFileTransfer.h"
+#include "vncPortableMsLogon.h"
 #include "vncPortableVncAuth.h"
 
 #include "vncPortableExtendedClipboard.h"
@@ -145,6 +146,29 @@ bool RunViewerVeNCryptX509VncNegotiation(RfbTransport& transport, std::string *e
     return true;
 }
 
+
+bool RunMsLogonIIOnTransport(RfbTransport& socket, const ViewerConfig& config, std::string *error)
+{
+    std::vector<CARD8> exchangeBytes(kMsLogonIIExchangeBytes);
+    if (!socket.ReadExact(exchangeBytes.data(), exchangeBytes.size())) {
+        SetError(error, "failed to read MSLogonII Diffie-Hellman exchange");
+        return false;
+    }
+    MsLogonIIExchange exchange;
+    if (!DecodeMsLogonIIExchange(exchangeBytes, exchange, error)) {
+        return false;
+    }
+    std::vector<CARD8> response;
+    if (!EncodeMsLogonIIResponse(exchange, config.Username(), config.Password(), response, error)) {
+        return false;
+    }
+    if (!socket.WriteAll(response.data(), response.size())) {
+        SetError(error, "failed to write MSLogonII credentials");
+        return false;
+    }
+    return true;
+}
+
 bool RunVncAuthOnTransport(RfbTransport& socket, const ViewerConfig& config, std::string *error)
 {
     std::vector<unsigned char> challenge(16);
@@ -219,12 +243,21 @@ bool RunHandshakeOnTransport(RfbTransport& socket, const ViewerConfig& config, V
         return false;
     }
 
-    const ViewerSecurityDecision security = SelectViewerSecurityType(securityTypes, !config.Password().empty(), config.AllowNoAuth(), config.TransportSecurity() == ViewerTransportSecurityMode::VeNCryptX509Vnc);
-    if (security.selection == ViewerSecuritySelection::Unsupported) {
-        SetError(error, security.error);
-        return false;
+    CARD8 selectedSecurity = 0;
+    if (config.SecurityExtension() == ViewerSecurityExtensionMode::MsLogon) {
+        if (std::find(securityTypes.begin(), securityTypes.end(), rfbUltraVNC_MsLogonIIAuth) == securityTypes.end()) {
+            SetError(error, "viewer requested MSLogon but server does not offer MSLogonII");
+            return false;
+        }
+        selectedSecurity = rfbUltraVNC_MsLogonIIAuth;
+    } else {
+        const ViewerSecurityDecision security = SelectViewerSecurityType(securityTypes, !config.Password().empty(), config.AllowNoAuth(), config.TransportSecurity() == ViewerTransportSecurityMode::VeNCryptX509Vnc);
+        if (security.selection == ViewerSecuritySelection::Unsupported) {
+            SetError(error, security.error);
+            return false;
+        }
+        selectedSecurity = security.wireType;
     }
-    const CARD8 selectedSecurity = security.wireType;
 
     if (!socket.WriteAll(&selectedSecurity, sizeof(selectedSecurity))) {
         SetError(error, "failed to select RFB security type");
@@ -256,6 +289,10 @@ bool RunHandshakeOnTransport(RfbTransport& socket, const ViewerConfig& config, V
         }
     } else if (selectedSecurity == rfbVncAuth) {
         if (!RunVncAuthOnTransport(*active, config, error)) {
+            return false;
+        }
+    } else if (selectedSecurity == rfbUltraVNC_MsLogonIIAuth) {
+        if (!RunMsLogonIIOnTransport(*active, config, error)) {
             return false;
         }
     }
