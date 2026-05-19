@@ -166,9 +166,11 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
       sendClipboardButton_(new QPushButton(QStringLiteral("Send clipboard"))),
       remotePathEdit_(new QLineEdit(QStringLiteral("/"))),
       downloadOutputEdit_(new QLineEdit()),
+      uploadInputEdit_(new QLineEdit()),
       remoteListButton_(new QPushButton(QStringLiteral("List remote"))),
       remoteDrivesButton_(new QPushButton(QStringLiteral("List roots"))),
       remoteDownloadButton_(new QPushButton(QStringLiteral("Download"))),
+      remoteUploadButton_(new QPushButton(QStringLiteral("Upload"))),
       statusLabel_(new QLabel(QStringLiteral("Disconnected"))),
       serverClipboardLabel_(new QLabel(QStringLiteral("Server clipboard: <none>"))),
       remoteListingLabel_(new QLabel(QStringLiteral("Remote files: <none>"))),
@@ -193,9 +195,11 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     sendClipboardButton_->setObjectName(QStringLiteral("sendClipboardButton"));
     remotePathEdit_->setObjectName(QStringLiteral("remotePathEdit"));
     downloadOutputEdit_->setObjectName(QStringLiteral("downloadOutputEdit"));
+    uploadInputEdit_->setObjectName(QStringLiteral("uploadInputEdit"));
     remoteListButton_->setObjectName(QStringLiteral("remoteListButton"));
     remoteDrivesButton_->setObjectName(QStringLiteral("remoteDrivesButton"));
     remoteDownloadButton_->setObjectName(QStringLiteral("remoteDownloadButton"));
+    remoteUploadButton_->setObjectName(QStringLiteral("remoteUploadButton"));
     loadProfileButton_->setObjectName(QStringLiteral("loadProfileButton"));
     saveProfileButton_->setObjectName(QStringLiteral("saveProfileButton"));
     statusLabel_->setObjectName(QStringLiteral("statusLabel"));
@@ -252,6 +256,8 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     fileTransfer->addWidget(remoteDrivesButton_);
     fileTransfer->addWidget(downloadOutputEdit_, 1);
     fileTransfer->addWidget(remoteDownloadButton_);
+    fileTransfer->addWidget(uploadInputEdit_, 1);
+    fileTransfer->addWidget(remoteUploadButton_);
 
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->addLayout(form);
@@ -295,6 +301,9 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     });
     QObject::connect(remoteDownloadButton_, &QPushButton::clicked, this, [this]() {
         DownloadRemoteFile(true);
+    });
+    QObject::connect(remoteUploadButton_, &QPushButton::clicked, this, [this]() {
+        UploadLocalFile(true);
     });
     QObject::connect(loadProfileButton_, &QPushButton::clicked, this, [this]() {
         LoadProfile();
@@ -542,6 +551,33 @@ void QtViewerConnectionPanel::DownloadRemoteFile(bool showDialogOnError)
     }
     remoteListingLabel_->setText(QStringLiteral("Downloaded %1 bytes").arg(download.payload.size()));
     SetStatus(QStringLiteral("Remote file downloaded"));
+}
+
+
+void QtViewerConnectionPanel::UploadLocalFile(bool showDialogOnError)
+{
+    if (uploadInputEdit_->text().isEmpty()) {
+        ShowError(QStringLiteral("Upload input path is required"), showDialogOnError);
+        return;
+    }
+    if (!session_.Connected()) {
+        RequestUpdate(showDialogOnError);
+        if (!session_.Connected()) return;
+    }
+    QFile input(uploadInputEdit_->text());
+    if (!input.open(QIODevice::ReadOnly)) {
+        ShowError(QStringLiteral("Failed to open upload input path"), showDialogOnError);
+        return;
+    }
+    const QByteArray bytes = input.readAll();
+    const std::vector<CARD8> payload(bytes.begin(), bytes.end());
+    std::string error;
+    if (!session_.UploadRemoteFile(remotePathEdit_->text().toStdString(), payload, &error)) {
+        ShowError(QString::fromStdString(error), showDialogOnError);
+        return;
+    }
+    remoteListingLabel_->setText(QStringLiteral("Uploaded %1 bytes").arg(payload.size()));
+    SetStatus(QStringLiteral("Local file uploaded"));
 }
 
 void QtViewerConnectionPanel::StartContinuousUpdatesIfRequested()

@@ -42,6 +42,7 @@ private:
     void ListRemotePath(bool showDialogOnError);
     void ListRemoteDrives(bool showDialogOnError);
     void DownloadRemoteFile(bool showDialogOnError);
+    void UploadLocalFile(bool showDialogOnError);
     void LoadProfile();
     void SaveProfile();
     void StartContinuousUpdatesIfRequested();
@@ -72,9 +73,11 @@ private:
     QPushButton *sendClipboardButton_;
     QLineEdit *remotePathEdit_;
     QLineEdit *downloadOutputEdit_;
+    QLineEdit *uploadInputEdit_;
     QPushButton *remoteListButton_;
     QPushButton *remoteDrivesButton_;
     QPushButton *remoteDownloadButton_;
+    QPushButton *remoteUploadButton_;
     QLabel *statusLabel_;
     QLabel *serverClipboardLabel_;
     QLabel *remoteListingLabel_;
