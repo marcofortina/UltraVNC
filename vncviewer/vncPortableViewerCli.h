@@ -24,6 +24,7 @@ struct ViewerCliOptions {
     ViewerConfig config;
     bool help;
     bool validateOnly;
+    bool printConfig;
     bool smokeTest;
     bool connectSmoke;
     bool connectUpdateSmoke;

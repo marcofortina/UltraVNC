@@ -26,6 +26,7 @@ using uvnc::vncviewer::portable::ParseViewerCli;
 using uvnc::vncviewer::portable::PersistentViewerSession;
 using uvnc::vncviewer::portable::ViewerCliOptions;
 using uvnc::vncviewer::portable::ViewerCliUsage;
+using uvnc::vncviewer::portable::ViewerConfigSummary;
 using uvnc::vncviewer::portable::ViewerFileDownload;
 using uvnc::vncviewer::portable::ViewerFileTransferEntry;
 using uvnc::vncviewer::portable::ViewerSession;
@@ -273,6 +274,11 @@ int main(int argc, char **argv)
 
     if (options.help) {
         std::cout << ViewerCliUsage(argv[0]);
+        return 0;
+    }
+
+    if (options.printConfig) {
+        std::cout << ViewerConfigSummary(options.config);
         return 0;
     }
 

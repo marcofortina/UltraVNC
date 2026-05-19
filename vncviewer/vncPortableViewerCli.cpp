@@ -22,6 +22,7 @@ namespace portable {
 ViewerCliOptions::ViewerCliOptions()
     : help(false),
       validateOnly(false),
+      printConfig(false),
       smokeTest(false),
       connectSmoke(false),
       connectUpdateSmoke(false),
@@ -130,6 +131,8 @@ bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& opti
             options.help = true;
         } else if (arg == "--validate-config") {
             options.validateOnly = true;
+        } else if (arg == "--print-config") {
+            options.printConfig = true;
         } else if (arg == "--smoke-test") {
             options.smokeTest = true;
         } else if (arg == "--connect-smoke") {
@@ -270,6 +273,7 @@ std::string ViewerCliUsage(const char *programName)
         << "Options:\n"
         << "  --help                 Show this help and exit\n"
         << "  --validate-config      Validate viewer options and exit\n"
+        << "  --print-config         Print sanitized viewer configuration and exit\n"
         << "  --smoke-test           Create the Qt viewer shell and exit\n"
         << "  --connect-smoke        Connect to an RFB server, complete handshake, and exit\n"
         << "  --connect-update-smoke Connect to an RFB server, request one raw update, and exit\n"
