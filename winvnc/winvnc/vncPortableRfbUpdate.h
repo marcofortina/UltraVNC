@@ -10,6 +10,7 @@
 #define UVNC_WINVNC_PORTABLE_RFB_UPDATE_H
 
 #include "vncPortableFramebuffer.h"
+#include "rfbRegion.h"
 #include "vncPortableRfbMessages.h"
 
 #include <vector>
