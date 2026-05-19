@@ -72,7 +72,8 @@ int main(int argc, char **argv)
     assert(input && input->currentText() == "none");
     assert(clipboard && clipboard->currentText() == "memory");
     assert(logFile && pidFile && statusFile);
-    assert(serverExecutable && serverExecutable->text() == "uvnc_winvnc_memory_server");
+    assert(serverExecutable);
+    assert(serverExecutable->text() == "uvnc_winvnc_memory_server" || serverExecutable->text().endsWith("/uvnc_winvnc_memory_server"));
     assert(runtimeConfigPath && runtimeConfigPath->text().isEmpty());
     assert(startButton && startButton->text() == "Start user server");
     assert(stopButton && stopButton->text() == "Stop");
