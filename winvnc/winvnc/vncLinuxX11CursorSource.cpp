@@ -13,6 +13,12 @@
 #if defined(UVNC_HAVE_X11_XFIXES)
 #include <X11/Xlib.h>
 #include <X11/extensions/Xfixes.h>
+
+// X11/X.h defines a CursorShape macro for QueryBestSize.
+// Keep that legacy X11 token out of the portable cursor shape API.
+#ifdef CursorShape
+#undef CursorShape
+#endif
 #endif
 
 namespace uvnc {
