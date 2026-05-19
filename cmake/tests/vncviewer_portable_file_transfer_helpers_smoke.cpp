@@ -24,14 +24,20 @@ namespace {
 
 class ServerOnce {
 public:
-    ServerOnce(TcpSocket& serverSocket, RfbClientState& state)
-        : serverSocket_(serverSocket), state_(state), ok_(false)
+    ServerOnce(TcpSocket& serverSocket, RfbClientState& state, unsigned int messages = 1)
+        : serverSocket_(serverSocket), state_(state), messages_(messages), ok_(false)
     {
         worker_ = std::thread([this]() {
             RfbServerSession session;
             Framebuffer framebuffer(8, 8, ServerConfig::DefaultPixelFormat());
-            bool updateSent = false;
-            ok_ = session.ServeNextClientMessage(serverSocket_, framebuffer, updateSent, nullptr, &state_);
+            ok_ = true;
+            for (unsigned int i = 0; i < messages_; ++i) {
+                bool updateSent = false;
+                if (!session.ServeNextClientMessage(serverSocket_, framebuffer, updateSent, nullptr, &state_)) {
+                    ok_ = false;
+                    break;
+                }
+            }
         });
     }
 
@@ -51,6 +57,7 @@ public:
 private:
     TcpSocket& serverSocket_;
     RfbClientState& state_;
+    unsigned int messages_;
     bool ok_;
     std::thread worker_;
 };
@@ -116,7 +123,7 @@ int main()
     config.SetFileTransferMode(FileTransferMode::ReadWrite);
     RfbClientState writeState(config);
     {
-        ServerOnce server(serverSocket, writeState);
+        ServerOnce server(serverSocket, writeState, 3);
         const std::string uploadText = "viewer-upload-payload";
         const std::vector<CARD8> upload(uploadText.begin(), uploadText.end());
         std::string error;
