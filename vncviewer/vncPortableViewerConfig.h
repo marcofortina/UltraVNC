@@ -32,8 +32,6 @@ const char *ViewerTransportSecurityModeName(ViewerTransportSecurityMode mode);
 bool ParseViewerTransportSecurityMode(const std::string& value, ViewerTransportSecurityMode& mode);
 const char *ViewerSecurityExtensionModeName(ViewerSecurityExtensionMode mode);
 bool ParseViewerSecurityExtensionMode(const std::string& value, ViewerSecurityExtensionMode& mode);
-std::string ViewerConfigSummary(const ViewerConfig& config);
-
 class ViewerConfig {
 public:
     ViewerConfig();
@@ -95,6 +93,8 @@ private:
     ViewerSecurityExtensionMode securityExtension_;
     std::string securityExtensionName_;
 };
+
+std::string ViewerConfigSummary(const ViewerConfig& config);
 
 } // namespace portable
 } // namespace vncviewer
