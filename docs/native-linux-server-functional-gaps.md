@@ -9,12 +9,15 @@ This document tracks Windows WinVNC server features that are not yet native Linu
 - PointerPos pseudo-encoding is sent to clients that request it.
 - Bell and classic ServerCutText server messages are available.
 - XCursor and RichCursor shape messages are encoded by the portable server path.
-- Clients that advertise XCursor/RichCursor receive a cursor shape update after SetEncodings.
+- Clients that advertise XCursor/RichCursor receive cursor updates after SetEncodings and when a cursor source reports a new shape.
+- Native X11 cursor capture uses XFixes when available, including hotspot and alpha mask conversion.
+- Cursor capture failures fall back to an explicit empty cursor update rather than a stale default arrow.
 - Classic ClientCutText is parsed and can be routed to a Linux clipboard sink.
 - UltraVNC extended clipboard is negotiated for clients that advertise `rfbEncodingExtendedClipboard`.
 - Extended clipboard caps, notify, peek, request and provide messages are supported for UTF-8 text.
 - Extended clipboard `clipProvide` payloads use the UltraVNC zlib-compressed wire format.
 - A guarded X11 clipboard backend is available for local desktop sessions and can own/respond to CLIPBOARD selection requests.
+- The X11 clipboard backend tracks SelectionClear, falls back from UTF8_STRING to XA_STRING, and rejects INCR transfers explicitly instead of hanging on large selections.
 - UltraVNC file-transfer messages are parsed and explicitly rejected by default.
 - ClientInit shared/non-shared preference is preserved in per-client state.
 
