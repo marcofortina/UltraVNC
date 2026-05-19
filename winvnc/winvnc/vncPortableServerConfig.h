@@ -53,6 +53,8 @@ public:
     bool AllowUnencryptedPublic() const { return allowUnencryptedPublic_; }
     bool BellOnConnect() const { return bellOnConnect_; }
     const std::string& ServerCutText() const { return serverCutText_; }
+    bool ExtendedClipboardEnabled() const { return extendedClipboardEnabled_; }
+    unsigned int ExtendedClipboardTextLimit() const { return extendedClipboardTextLimit_; }
     unsigned int MaxSharedClients() const { return maxSharedClients_; }
     bool EnableFileTransfer() const { return fileTransferMode_ != FileTransferMode::Disabled; }
     FileTransferMode FileTransferModeValue() const { return fileTransferMode_; }
@@ -79,6 +81,8 @@ public:
     void SetAllowUnencryptedPublic(bool allow) { allowUnencryptedPublic_ = allow; }
     void SetBellOnConnect(bool enable) { bellOnConnect_ = enable; }
     void SetServerCutText(const std::string& text) { serverCutText_ = text; }
+    void SetExtendedClipboardEnabled(bool enable) { extendedClipboardEnabled_ = enable; }
+    void SetExtendedClipboardTextLimit(unsigned int bytes) { extendedClipboardTextLimit_ = bytes; }
     void SetMaxSharedClients(unsigned int maxClients) { maxSharedClients_ = maxClients; }
     void SetEnableFileTransfer(bool enable) { fileTransferMode_ = enable ? FileTransferMode::RejectOnly : FileTransferMode::Disabled; }
     void SetFileTransferMode(FileTransferMode mode) { fileTransferMode_ = mode; }
@@ -112,6 +116,8 @@ private:
     bool allowUnencryptedPublic_;
     bool bellOnConnect_;
     std::string serverCutText_;
+    bool extendedClipboardEnabled_;
+    unsigned int extendedClipboardTextLimit_;
     FileTransferMode fileTransferMode_;
     unsigned int fileTransferPayloadLimit_;
     std::string fileTransferRoot_;

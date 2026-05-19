@@ -94,6 +94,8 @@ ServerConfig::ServerConfig()
       allowUnencryptedPublic_(false),
       bellOnConnect_(false),
       serverCutText_(),
+      extendedClipboardEnabled_(true),
+      extendedClipboardTextLimit_(10U * 1024U * 1024U),
       fileTransferMode_(FileTransferMode::Disabled),
       fileTransferPayloadLimit_(DefaultFileTransferPayloadLimit()),
       fileTransferRoot_(),
@@ -138,8 +140,12 @@ bool ServerConfig::Validate(std::string *error) const
         if (error) *error = "max shared clients must be between 1 and 64";
         return false;
     }
-    if (serverCutText_.size() > 1024 * 1024) {
-        if (error) *error = "server cut text is too large";
+    if (serverCutText_.size() > extendedClipboardTextLimit_) {
+        if (error) *error = "server cut text exceeds extended clipboard text limit";
+        return false;
+    }
+    if (extendedClipboardTextLimit_ == 0 || extendedClipboardTextLimit_ > 100U * 1024U * 1024U) {
+        if (error) *error = "extended clipboard text limit must be between 1 and 104857600 bytes";
         return false;
     }
     if (format_.bitsPerPixel != 8 && format_.bitsPerPixel != 16 && format_.bitsPerPixel != 32) {

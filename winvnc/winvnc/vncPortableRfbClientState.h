@@ -34,6 +34,8 @@ public:
     bool ExtendedClipboardCapsSent() const { return extendedClipboardCapsSent_; }
     CARD32 ExtendedClipboardRemoteCaps() const { return extendedClipboardRemoteCaps_; }
     bool ExtendedClipboardTextAvailable() const { return extendedClipboardTextAvailable_; }
+    bool ExtendedClipboardEnabled() const { return extendedClipboardEnabled_; }
+    unsigned int ExtendedClipboardTextLimit() const { return extendedClipboardTextLimit_; }
     bool CursorShapeSent() const { return cursorShapeSent_; }
     bool SharedClientRequested() const { return sharedClientRequested_; }
     bool ClientInitReceived() const { return clientInitReceived_; }
@@ -86,6 +88,8 @@ private:
     std::string lastClientCutText_;
     std::string lastServerCutText_;
     bool cursorShapeSent_;
+    bool extendedClipboardEnabled_;
+    unsigned int extendedClipboardTextLimit_;
     bool extendedClipboardCapsSent_;
     CARD32 extendedClipboardRemoteCaps_;
     bool extendedClipboardTextAvailable_;

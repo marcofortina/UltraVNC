@@ -27,6 +27,8 @@ RfbClientState::RfbClientState(const ServerConfig& config)
       lastClientCutText_(),
       lastServerCutText_(),
       cursorShapeSent_(false),
+      extendedClipboardEnabled_(config.ExtendedClipboardEnabled()),
+      extendedClipboardTextLimit_(config.ExtendedClipboardTextLimit()),
       extendedClipboardCapsSent_(false),
       extendedClipboardRemoteCaps_(0),
       extendedClipboardTextAvailable_(false),
@@ -75,7 +77,7 @@ bool RfbClientState::SupportsCursorShapeUpdates() const
 
 bool RfbClientState::SupportsExtendedClipboard() const
 {
-    return SupportsEncoding(rfbEncodingExtendedClipboard);
+    return extendedClipboardEnabled_ && SupportsEncoding(rfbEncodingExtendedClipboard);
 }
 
 void RfbClientState::SetPixelFormat(const rfbPixelFormat& format)
