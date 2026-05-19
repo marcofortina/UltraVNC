@@ -44,7 +44,7 @@ cp /usr/local/share/ultravnc/linux/uvnc-winvnc-linux-server.conf.example \
   ~/.config/ultravnc/uvnc-winvnc-linux-server.conf
 ```
 
-Conservative loopback/lab starting point:
+Conservative installed starting point:
 
 ```ini
 bind_address=127.0.0.1
@@ -54,11 +54,13 @@ capture_backend=auto
 input_backend=none
 max_updates=1024
 serve_updates=true
-auth=none
-allow_no_auth=true
+# auth=vnc-password
+# password_file=/home/USER/.config/ultravnc/vnc-password
 ```
 
-No-auth is disabled by default in the binary. `allow_no_auth=true` is an
+The installed example is intentionally fail-closed: it does not enable no-auth
+and it requires the operator to configure a private password file before real
+use. No-auth is disabled by default in the binary. `allow_no_auth=true` is an
 explicit lab opt-in and is acceptable only for loopback validation. Use
 `capture_backend=x11` only from a real local X11 session. Keep
 `input_backend=none` until live input injection has been explicitly validated.
@@ -100,7 +102,14 @@ framebuffer, clipboard or input traffic.
 Recommended stages:
 
 ```ini
-# local smoke/lab only
+# local production-like baseline with legacy VNCAuth
+bind_address=127.0.0.1
+auth=vnc-password
+password_file=/home/USER/.config/ultravnc/vnc-password
+```
+
+```ini
+# local smoke/lab only, not production
 bind_address=127.0.0.1
 auth=none
 allow_no_auth=true

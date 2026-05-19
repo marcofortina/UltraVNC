@@ -9,8 +9,9 @@
 # Conservative native Linux server runtime config.
 # Copy to ~/.config/ultravnc/uvnc-winvnc-linux-server.conf and adjust per host.
 #
-# This sample is intentionally loopback/lab-only. For any LAN bind, configure
-# auth=vnc-password with a private password_file first.
+# This sample is intentionally fail-closed: no authentication mode is enabled
+# until the operator configures either VNCAuth or an explicit loopback lab
+# no-auth override. For real use, configure auth=vnc-password first.
 
 bind_address=127.0.0.1
 port=5901
@@ -20,22 +21,24 @@ input_backend=none
 max_updates=1024
 serve_updates=true
 
-# No-auth is disabled by default in the binary. This explicit opt-in is only
-# acceptable for loopback/lab validation. Remove it before binding to a LAN
-# address and configure auth=vnc-password instead.
-auth=none
-allow_no_auth=true
+# Recommended production baseline for this milestone:
+#
+#   install -m 0600 /dev/null ~/.config/ultravnc/vnc-password
+#   printf '%s\n' 'secret1' > ~/.config/ultravnc/vnc-password
+#
+# Then uncomment and adjust the absolute password_file path:
+#
+# auth=vnc-password
+# password_file=/home/USER/.config/ultravnc/vnc-password
 
 # VNCAuth is legacy RFB password authentication: max 8 bytes and no transport
 # encryption. It is still better than no-auth, but use it only with trusted
-# networks or tunnels until TLS/security-type work lands.
-#
-# Example:
-#   install -m 0600 /dev/null ~/.config/ultravnc/vnc-password
-#   printf '%s\n' 'secret1' > ~/.config/ultravnc/vnc-password
-#   auth=vnc-password
-#   password_file=/home/USER/.config/ultravnc/vnc-password
-#
+# networks, host firewalls or tunnels until TLS/security-type work lands.
+
+# Local loopback/lab no-auth, not production:
+# auth=none
+# allow_no_auth=true
+
 # Non-loopback no-auth requires both allow_no_auth=true and
 # allow_public_no_auth=true and should only be used for controlled lab tests.
 # allow_public_no_auth=false
