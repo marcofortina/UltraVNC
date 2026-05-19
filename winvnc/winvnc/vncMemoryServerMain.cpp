@@ -412,6 +412,8 @@ void PrintUsage(const char *name)
               << "  --file-transfer-mode <mode> File transfer policy: disabled, reject-only\n"
               << "  --file-transfer-payload-limit <bytes> Max file-transfer payload accepted for discard\n"
               << "  --file-transfer-allow-overwrite Allow uploads to replace existing files\n"
+              << "  --file-transfer-recursive-max-depth <count> Recursive listing depth limit\n"
+              << "  --file-transfer-recursive-max-entries <count> Recursive listing entry limit\n"
               << "  --allow-no-auth         Explicitly allow no-auth loopback/lab mode\n"
               << "  --allow-public-no-auth  Explicitly allow no-auth on non-loopback lab binds\n"
               << "  --transport-security <mode> Transport security: none, vencrypt-x509-vnc\n"
@@ -526,6 +528,10 @@ bool AddConfigOption(const std::string& key, const std::string& value, std::vect
         }
         if (error) *error = "invalid boolean value for file_transfer_allow_overwrite";
         return false;
+    } else if (key == "file_transfer_recursive_max_depth") {
+        args.push_back("--file-transfer-recursive-max-depth");
+    } else if (key == "file_transfer_recursive_max_entries") {
+        args.push_back("--file-transfer-recursive-max-entries");
     } else if (key == "transport_security") {
         args.push_back("--transport-security");
     } else if (key == "tls_certificate_file") {
@@ -840,6 +846,20 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
             config.SetFileTransferRoot(argv[++i]);
         } else if (arg == "--file-transfer-allow-overwrite") {
             config.SetFileTransferAllowOverwrite(true);
+        } else if (arg == "--file-transfer-recursive-max-depth" && i + 1 < argc) {
+            unsigned int depth = 0;
+            if (!ParseUnsigned(argv[++i], 1, 256, depth)) {
+                std::cerr << "invalid --file-transfer-recursive-max-depth\n";
+                return false;
+            }
+            config.SetFileTransferRecursiveMaxDepth(depth);
+        } else if (arg == "--file-transfer-recursive-max-entries" && i + 1 < argc) {
+            unsigned int entries = 0;
+            if (!ParseUnsigned(argv[++i], 1, 1048576, entries)) {
+                std::cerr << "invalid --file-transfer-recursive-max-entries\n";
+                return false;
+            }
+            config.SetFileTransferRecursiveMaxEntries(entries);
         } else if (arg == "--security-plugin" || arg == "--dsm-plugin" || arg == "--mslogon" || arg == "--http-java-viewer") {
             std::cerr << arg << " is not supported by the native Linux server runtime yet\n";
             return false;
@@ -1096,6 +1116,8 @@ void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBac
               << "file_transfer_payload_limit=" << config.FileTransferPayloadLimit() << "\n"
               << "file_transfer_root=" << config.FileTransferRoot() << "\n"
               << "file_transfer_allow_overwrite=" << (config.FileTransferAllowOverwrite() ? "true" : "false") << "\n"
+              << "file_transfer_recursive_max_depth=" << config.FileTransferRecursiveMaxDepth() << "\n"
+              << "file_transfer_recursive_max_entries=" << config.FileTransferRecursiveMaxEntries() << "\n"
               << "client_mode=" << ClientServiceModeName(clientMode) << "\n"
               << "serve_updates=" << (serveUpdates ? "yes" : "no") << "\n"
               << "serve_forever=" << (serveForever ? "yes" : "no") << "\n"
