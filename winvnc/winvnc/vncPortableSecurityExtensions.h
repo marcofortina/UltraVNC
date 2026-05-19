@@ -17,7 +17,9 @@ namespace portable {
 
 enum class SecurityExtensionKind {
     DsmPlugin,
-    MsLogon,
+    SecureVncPlugin,
+    MsLogonI,
+    MsLogonII,
     HttpJavaViewer,
     Unknown,
 };
@@ -27,10 +29,13 @@ struct SecurityExtensionDecision {
     bool supported;
     std::string reason;
     std::string replacement;
+    unsigned int wireType;
+    std::string originalImplementation;
 };
 
 SecurityExtensionKind ParseSecurityExtensionOption(const std::string& option);
 SecurityExtensionDecision EvaluateSecurityExtension(SecurityExtensionKind kind);
+const char *SecurityExtensionKindName(SecurityExtensionKind kind);
 
 } // namespace portable
 } // namespace winvnc
