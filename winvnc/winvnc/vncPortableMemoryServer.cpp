@@ -107,10 +107,10 @@ bool MemoryServer::ServeOneUpdate(RfbInputSink *inputSink)
            session.ServeUntilFramebufferUpdate(*transport, framebuffer_, 32, nullptr, &state, inputSink);
 }
 
-bool MemoryServer::ServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink)
+bool MemoryServer::ServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy, RfbCursorSource *cursorSource)
 {
     bool accepted = false;
-    return TryServeOneUpdates(updateCount, inputSink, 0, accepted) && accepted;
+    return TryServeOneUpdates(updateCount, inputSink, 0, accepted, clipboardSink, clipboardSource, clientPolicy, cursorSource) && accepted;
 }
 
 bool MemoryServer::TryAccept(TcpSocket& client, unsigned int acceptTimeoutMs, bool& accepted)
@@ -126,7 +126,7 @@ bool MemoryServer::TryAccept(TcpSocket& client, unsigned int acceptTimeoutMs, bo
     return true;
 }
 
-bool MemoryServer::ServeConnectedUpdates(TcpSocket client, unsigned int updateCount, RfbInputSink *inputSink, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy)
+bool MemoryServer::ServeConnectedUpdates(TcpSocket client, unsigned int updateCount, RfbInputSink *inputSink, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy, RfbCursorSource *cursorSource)
 {
     if (!client.Valid()) {
         return false;
@@ -142,25 +142,25 @@ bool MemoryServer::ServeConnectedUpdates(TcpSocket client, unsigned int updateCo
         return false;
     }
     return SendInitialServerMessages(session, *transport, config_, clipboardSource, &state) &&
-        session.ServeFramebufferUpdates(*transport, framebuffer_, updateCount, 128, nullptr, &state, inputSink, false, clipboardSink, clipboardSource);
+        session.ServeFramebufferUpdates(*transport, framebuffer_, updateCount, 128, nullptr, &state, inputSink, false, clipboardSink, clipboardSource, cursorSource);
 }
 
-bool MemoryServer::TryServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy)
+bool MemoryServer::TryServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy, RfbCursorSource *cursorSource)
 {
     TcpSocket client;
     if (!TryAccept(client, acceptTimeoutMs, accepted) || !accepted) {
         return !accepted;
     }
-    return ServeConnectedUpdates(std::move(client), updateCount, inputSink, clipboardSink, clipboardSource, clientPolicy);
+    return ServeConnectedUpdates(std::move(client), updateCount, inputSink, clipboardSink, clipboardSource, clientPolicy, cursorSource);
 }
 
-bool MemoryServer::ServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy)
+bool MemoryServer::ServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy, RfbCursorSource *cursorSource)
 {
     bool accepted = false;
-    return TryServeOneUpdatesFromSource(source, updateCount, inputSink, maxMessages, 0, accepted, clipboardSink, clipboardSource, clientPolicy) && accepted;
+    return TryServeOneUpdatesFromSource(source, updateCount, inputSink, maxMessages, 0, accepted, clipboardSink, clipboardSource, clientPolicy, cursorSource) && accepted;
 }
 
-bool MemoryServer::ServeConnectedUpdatesFromSource(TcpSocket client, DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy)
+bool MemoryServer::ServeConnectedUpdatesFromSource(TcpSocket client, DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy, RfbCursorSource *cursorSource)
 {
     if (!client.Valid()) {
         return false;
@@ -191,7 +191,7 @@ bool MemoryServer::ServeConnectedUpdatesFromSource(TcpSocket client, DesktopSour
         }
 
         bool updateSent = false;
-        if (!session.ServeNextClientMessage(*transport, current, updateSent, &stats, &state, inputSink, true, clipboardSink, clipboardSource)) {
+        if (!session.ServeNextClientMessage(*transport, current, updateSent, &stats, &state, inputSink, true, clipboardSink, clipboardSource, cursorSource)) {
             return false;
         }
         if (updateSent) {
@@ -201,13 +201,13 @@ bool MemoryServer::ServeConnectedUpdatesFromSource(TcpSocket client, DesktopSour
     return sent == updateCount;
 }
 
-bool MemoryServer::TryServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy)
+bool MemoryServer::TryServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy, RfbCursorSource *cursorSource)
 {
     TcpSocket client;
     if (!TryAccept(client, acceptTimeoutMs, accepted) || !accepted) {
         return !accepted;
     }
-    return ServeConnectedUpdatesFromSource(std::move(client), source, updateCount, inputSink, maxMessages, clipboardSink, clipboardSource, clientPolicy);
+    return ServeConnectedUpdatesFromSource(std::move(client), source, updateCount, inputSink, maxMessages, clipboardSink, clipboardSource, clientPolicy, cursorSource);
 }
 
 void MemoryServer::Stop()
