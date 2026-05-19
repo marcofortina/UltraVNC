@@ -11,6 +11,8 @@
 
 #include <cassert>
 #include <thread>
+#include <sys/socket.h>
+#include <unistd.h>
 
 using namespace uvnc::winvnc::portable;
 
@@ -27,9 +29,10 @@ public:
 
 int main()
 {
-    auto pair = TcpSocket::CreateConnectedPair();
-    assert(pair.first.Valid());
-    assert(pair.second.Valid());
+    int fds[2] = {-1, -1};
+    assert(socketpair(AF_UNIX, SOCK_STREAM, 0, fds) == 0);
+    TcpSocket serverSocket(fds[0]);
+    TcpSocket clientSocket(fds[1]);
 
     RfbServerSession session;
     Framebuffer framebuffer(8, 8, ServerConfig::DefaultPixelFormat());
@@ -38,11 +41,11 @@ int main()
     bool updateSent = false;
     bool serverOk = false;
     std::thread worker([&]() {
-        serverOk = session.ServeNextClientMessage(pair.first, framebuffer, updateSent, nullptr, &state, nullptr, false, &clipboard);
+        serverOk = session.ServeNextClientMessage(serverSocket, framebuffer, updateSent, nullptr, &state, nullptr, false, &clipboard);
     });
 
     const std::vector<CARD8> cut = EncodeClientCutText("linux clipboard");
-    assert(pair.second.WriteAll(cut.data(), cut.size()));
+    assert(clientSocket.WriteAll(cut.data(), cut.size()));
 
     worker.join();
     assert(serverOk);

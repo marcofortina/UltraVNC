@@ -11,6 +11,8 @@
 
 #include <cassert>
 #include <thread>
+#include <sys/socket.h>
+#include <unistd.h>
 
 using namespace uvnc::winvnc::portable;
 
@@ -18,35 +20,36 @@ int main()
 {
     ServerConfig config;
     config.SetAllowNoAuth(true);
-    auto pair = TcpSocket::CreateConnectedPair();
-    assert(pair.first.Valid());
-    assert(pair.second.Valid());
+    int fds[2] = {-1, -1};
+    assert(socketpair(AF_UNIX, SOCK_STREAM, 0, fds) == 0);
+    TcpSocket serverSocket(fds[0]);
+    TcpSocket clientSocket(fds[1]);
 
     RfbServerSession session;
     RfbClientState state(config);
     bool serverOk = false;
     std::thread worker([&]() {
-        serverOk = session.RunHandshake(pair.first, config, &state);
+        serverOk = session.RunHandshake(serverSocket, config, &state);
     });
 
     char version[sz_rfbProtocolVersionMsg] = {};
-    assert(pair.second.ReadExact(version, sizeof(version)));
-    assert(pair.second.WriteAll(version, sizeof(version)));
+    assert(clientSocket.ReadExact(version, sizeof(version)));
+    assert(clientSocket.WriteAll(version, sizeof(version)));
     CARD8 count = 0;
-    assert(pair.second.ReadExact(&count, sizeof(count)));
+    assert(clientSocket.ReadExact(&count, sizeof(count)));
     CARD8 security = 0;
-    assert(pair.second.ReadExact(&security, sizeof(security)));
-    assert(pair.second.WriteAll(&security, sizeof(security)));
+    assert(clientSocket.ReadExact(&security, sizeof(security)));
+    assert(clientSocket.WriteAll(&security, sizeof(security)));
     CARD32 auth = 0;
-    assert(pair.second.ReadExact(&auth, sizeof(auth)));
+    assert(clientSocket.ReadExact(&auth, sizeof(auth)));
     assert(auth == AuthOkValue());
     rfbClientInitMsg init;
-    init.shared = 0;
-    assert(pair.second.WriteAll(&init, sz_rfbClientInitMsg));
+    init.flags = 0;
+    assert(clientSocket.WriteAll(&init, sz_rfbClientInitMsg));
     rfbServerInitMsg serverInit;
-    assert(pair.second.ReadExact(&serverInit, sz_rfbServerInitMsg));
+    assert(clientSocket.ReadExact(&serverInit, sz_rfbServerInitMsg));
     std::vector<CARD8> name(Swap32IfLE(serverInit.nameLength));
-    if (!name.empty()) assert(pair.second.ReadExact(name.data(), name.size()));
+    if (!name.empty()) assert(clientSocket.ReadExact(name.data(), name.size()));
 
     worker.join();
     assert(serverOk);

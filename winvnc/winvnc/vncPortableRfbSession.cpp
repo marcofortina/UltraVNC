@@ -135,7 +135,7 @@ bool RfbServerSession::RunHandshake(TcpSocket& socket, const ServerConfig& confi
         return false;
     }
     if (state) {
-        state->RecordClientInit(clientInit.shared != 0);
+        state->RecordClientInit((clientInit.flags & rfbClientInitShared) != 0);
     }
 
     const std::vector<CARD8> init = ServerInitBytes(config.Width(), config.Height(), config.PixelFormat(), config.DesktopName());

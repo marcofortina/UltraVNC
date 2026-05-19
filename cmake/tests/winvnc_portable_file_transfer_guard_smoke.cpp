@@ -12,15 +12,18 @@
 #include <cassert>
 #include <cstring>
 #include <thread>
+#include <sys/socket.h>
+#include <unistd.h>
 
 using namespace uvnc::winvnc::portable;
 
 int main()
 {
     const std::string payload = "ignored-file-transfer-payload";
-    auto pair = TcpSocket::CreateConnectedPair();
-    assert(pair.first.Valid());
-    assert(pair.second.Valid());
+    int fds[2] = {-1, -1};
+    assert(socketpair(AF_UNIX, SOCK_STREAM, 0, fds) == 0);
+    TcpSocket serverSocket(fds[0]);
+    TcpSocket clientSocket(fds[1]);
 
     RfbServerSession session;
     Framebuffer framebuffer(8, 8, ServerConfig::DefaultPixelFormat());
@@ -28,7 +31,7 @@ int main()
     bool updateSent = false;
     bool serverOk = false;
     std::thread worker([&]() {
-        serverOk = session.ServeNextClientMessage(pair.first, framebuffer, updateSent, &stats, nullptr, nullptr);
+        serverOk = session.ServeNextClientMessage(serverSocket, framebuffer, updateSent, &stats, nullptr, nullptr);
     });
 
     rfbFileTransferMsg message;
@@ -37,11 +40,11 @@ int main()
     message.contentType = rfbFileTransferOffer;
     message.contentParam = Swap16IfLE(rfbFileTransferVersion);
     message.length = Swap32IfLE(static_cast<CARD32>(payload.size()));
-    assert(pair.second.WriteAll(&message, sz_rfbFileTransferMsg));
-    assert(pair.second.WriteAll(payload.data(), payload.size()));
+    assert(clientSocket.WriteAll(&message, sz_rfbFileTransferMsg));
+    assert(clientSocket.WriteAll(payload.data(), payload.size()));
 
     rfbFileTransferMsg abort;
-    assert(pair.second.ReadExact(&abort, sz_rfbFileTransferMsg));
+    assert(clientSocket.ReadExact(&abort, sz_rfbFileTransferMsg));
     assert(abort.type == rfbFileTransfer);
     assert(abort.contentType == rfbAbortFileTransfer);
 
