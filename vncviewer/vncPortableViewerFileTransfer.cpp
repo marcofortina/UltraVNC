@@ -34,27 +34,68 @@ bool WritePacket(uvnc::winvnc::portable::RfbTransport& transport,
     return transport.WriteAll(bytes.data(), bytes.size());
 }
 
+bool DrainBytes(uvnc::winvnc::portable::RfbTransport& transport, CARD32 length)
+{
+    std::vector<CARD8> buffer(length);
+    return length == 0 || transport.ReadExact(buffer.data(), buffer.size());
+}
+
+bool DrainServerCutText(uvnc::winvnc::portable::RfbTransport& transport, std::string *error)
+{
+    rfbServerCutTextMsg message;
+    std::memset(&message, 0, sizeof(message));
+    message.type = rfbServerCutText;
+    if (!transport.ReadExact(reinterpret_cast<char *>(&message) + 1, sz_rfbServerCutTextMsg - 1)) {
+        SetError(error, "failed to read RFB ServerCutText while waiting for file-transfer data");
+        return false;
+    }
+    const int32_t signedLength = static_cast<int32_t>(Swap32IfLE(message.length));
+    const CARD32 length = signedLength < 0 ? static_cast<CARD32>(-signedLength) : static_cast<CARD32>(signedLength);
+    if (!DrainBytes(transport, length)) {
+        SetError(error, "failed to drain RFB ServerCutText while waiting for file-transfer data");
+        return false;
+    }
+    return true;
+}
+
 bool ReadPacket(uvnc::winvnc::portable::RfbTransport& transport,
                 rfbFileTransferMsg& message,
                 std::vector<CARD8>& payload,
                 std::string *error)
 {
-    std::memset(&message, 0, sizeof(message));
-    if (!transport.ReadExact(&message, sz_rfbFileTransferMsg)) {
-        SetError(error, "failed to read RFB file-transfer header");
-        return false;
+    for (;;) {
+        CARD8 type = 0;
+        if (!transport.ReadExact(&type, sizeof(type))) {
+            SetError(error, "failed to read RFB message while waiting for file-transfer data");
+            return false;
+        }
+        if (type == rfbBell) {
+            continue;
+        }
+        if (type == rfbServerCutText) {
+            if (!DrainServerCutText(transport, error)) {
+                return false;
+            }
+            continue;
+        }
+        if (type != rfbFileTransfer) {
+            SetError(error, "unexpected RFB message while reading file-transfer data");
+            return false;
+        }
+        std::memset(&message, 0, sizeof(message));
+        message.type = type;
+        if (!transport.ReadExact(reinterpret_cast<char *>(&message) + 1, sz_rfbFileTransferMsg - 1)) {
+            SetError(error, "failed to read RFB file-transfer header");
+            return false;
+        }
+        const CARD32 length = Swap32IfLE(message.length);
+        payload.assign(length, 0);
+        if (length > 0 && !transport.ReadExact(payload.data(), payload.size())) {
+            SetError(error, "failed to read RFB file-transfer payload");
+            return false;
+        }
+        return true;
     }
-    if (message.type != rfbFileTransfer) {
-        SetError(error, "unexpected RFB message while reading file-transfer data");
-        return false;
-    }
-    const CARD32 length = Swap32IfLE(message.length);
-    payload.assign(length, 0);
-    if (length > 0 && !transport.ReadExact(payload.data(), payload.size())) {
-        SetError(error, "failed to read RFB file-transfer payload");
-        return false;
-    }
-    return true;
 }
 
 std::string PayloadString(const std::vector<CARD8>& payload)
