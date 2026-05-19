@@ -419,6 +419,26 @@ QString QtServerSettingsPanel::StatusText() const
     return statusLabel_->text();
 }
 
+QString QtServerSettingsPanel::VisualParityReport() const
+{
+    QString text;
+    text += QStringLiteral("legacy.window=WinVNC settings\n");
+    text += QStringLiteral("linux.window=UltraVNC Linux Server Settings\n");
+    text += QStringLiteral("layout.cue=WinVNC-compatible settings layout\n");
+    text += QStringLiteral("section.network=bind_address,port,desktop_name\n");
+    text += QStringLiteral("section.security=auth,password_file,mslogon_helper,dsm_provider,tls\n");
+    text += QStringLiteral("section.capture=capture_backend,input_backend,clipboard_backend\n");
+    text += QStringLiteral("section.file_transfer=file_transfer_mode,file_transfer_root,overwrite\n");
+    text += QStringLiteral("section.runtime=start,stop,status,log,systemd\n");
+    text += QStringLiteral("widget.serverExecutableEdit=%1\n").arg(serverExecutableEdit_->text());
+    text += QStringLiteral("widget.systemdServiceEdit=%1\n").arg(systemdServiceEdit_->text());
+    text += QStringLiteral("tab.count=3\n");
+    text += QStringLiteral("tab.0=Settings\n");
+    text += QStringLiteral("tab.1=Runtime\n");
+    text += QStringLiteral("tab.2=Config preview\n");
+    return text;
+}
+
 bool QtServerSettingsPanel::ServerRunning() const
 {
     return serverProcess_->state() != QProcess::NotRunning;
