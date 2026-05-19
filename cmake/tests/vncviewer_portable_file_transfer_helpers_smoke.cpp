@@ -37,7 +37,13 @@ public:
 
     ~ServerOnce()
     {
+        Wait();
+    }
+
+    bool Wait()
+    {
         if (worker_.joinable()) worker_.join();
+        return ok_;
     }
 
     bool ok() const { return ok_; }
@@ -77,7 +83,7 @@ int main()
         std::vector<ViewerFileTransferEntry> entries;
         std::string error;
         assert(RequestViewerDirectoryListing(clientSocket, "dir", entries, &error));
-        assert(server.ok());
+        assert(server.Wait());
         assert(!entries.empty());
         bool sawFile = false;
         for (std::size_t i = 0; i < entries.size(); ++i) {
@@ -93,7 +99,7 @@ int main()
         ViewerFileDownload download;
         std::string error;
         assert(RequestViewerFileDownload(clientSocket, "dir/file.txt", download, &error));
-        assert(server.ok());
+        assert(server.Wait());
         assert(download.expectedSize == std::string("viewer-ft-payload").size());
         assert(std::string(download.payload.begin(), download.payload.end()) == "viewer-ft-payload");
     }
@@ -103,7 +109,7 @@ int main()
         std::vector<std::string> checksums;
         std::string error;
         assert(RequestViewerFileChecksums(clientSocket, "dir/file.txt", checksums, &error));
-        assert(server.ok());
+        assert(server.Wait());
         assert(!checksums.empty());
     }
 
