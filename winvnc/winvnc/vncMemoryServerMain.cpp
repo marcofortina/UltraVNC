@@ -7,6 +7,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2002-2025 UltraVNC Team Members. All Rights Reserved.
 
 #include "vncLinuxCaptureBackend.h"
+#include "vncLinuxClipboardBackend.h"
 #include "vncLinuxFramebufferSource.h"
 #include "vncLinuxInputBackend.h"
 #include "vncLinuxXTestInput.h"
@@ -53,6 +54,7 @@ using uvnc::winvnc::linuxinput::InputBackendName;
 using uvnc::winvnc::linuxinput::ParseInputBackendName;
 using uvnc::winvnc::linuxinput::ResolveInputBackend;
 using uvnc::winvnc::linuxinput::XTestInputBackend;
+using uvnc::winvnc::linuxclipboard::X11ClipboardBackend;
 using uvnc::winvnc::portable::DesktopSource;
 using uvnc::winvnc::portable::Framebuffer;
 using uvnc::winvnc::portable::MemoryServer;
@@ -60,6 +62,7 @@ using uvnc::winvnc::portable::FramebufferUpdateRequest;
 using uvnc::winvnc::portable::KeyEvent;
 using uvnc::winvnc::portable::PointerEvent;
 using uvnc::winvnc::portable::RfbInputSink;
+using uvnc::winvnc::portable::RfbClipboardSink;
 using uvnc::winvnc::portable::TcpSocket;
 using uvnc::winvnc::portable::FramebufferPattern;
 using uvnc::winvnc::portable::FramebufferPatternName;
@@ -311,6 +314,36 @@ private:
     XTestInputBackend input_;
 };
 
+
+enum class ClipboardBackend {
+    None,
+    X11
+};
+
+const char *ClipboardBackendName(ClipboardBackend backend)
+{
+    switch (backend) {
+    case ClipboardBackend::None:
+        return "none";
+    case ClipboardBackend::X11:
+        return "x11";
+    }
+    return "unknown";
+}
+
+bool ParseClipboardBackendName(const std::string& value, ClipboardBackend& backend)
+{
+    if (value == "none") {
+        backend = ClipboardBackend::None;
+        return true;
+    }
+    if (value == "x11") {
+        backend = ClipboardBackend::X11;
+        return true;
+    }
+    return false;
+}
+
 void PrintUsage(const char *name)
 {
     std::cout << "Usage: " << name << " [options]\n"
@@ -328,6 +361,7 @@ void PrintUsage(const char *name)
               << "  --pattern <name>       Framebuffer pattern: solid, checker, gradient-x, gradient-y\n"
               << "  --capture-backend <name> Capture backend: auto, memory, raw-file, x11, pipewire\n"
               << "  --input-backend <name> Input backend: auto, none, xtest\n"
+              << "  --clipboard-backend <name> Clipboard backend: none, x11\n"
               << "  --raw-framebuffer-file <path> Serve exact-size raw framebuffer file instead of synthetic pattern\n"
               << "  --config <path>         Load key=value server runtime config before CLI overrides\n"
               << "  --auth <mode>           Auth mode: none or vnc-password\n"
@@ -562,7 +596,7 @@ bool ParseUnsigned(const char *value, unsigned int min, unsigned int max, unsign
     return true;
 }
 
-bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& captureBackend, InputBackend& inputBackend, std::string& rawFramebufferFile, std::string& passwordFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& smokeX11UpdateTest, bool& smokeX11AvailabilityTest, bool& smokePipeWireAvailabilityTest, bool& smokeXTestAvailabilityTest, bool& smokeXTestInputTest, bool& allowInputInjection, bool& serveUpdates, bool& serveForever, unsigned int& maxUpdates, std::string& pidFile, std::string& statusFile, std::string& logFile)
+bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& captureBackend, InputBackend& inputBackend, ClipboardBackend& clipboardBackend, std::string& rawFramebufferFile, std::string& passwordFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& smokeX11UpdateTest, bool& smokeX11AvailabilityTest, bool& smokePipeWireAvailabilityTest, bool& smokeXTestAvailabilityTest, bool& smokeXTestInputTest, bool& allowInputInjection, bool& serveUpdates, bool& serveForever, unsigned int& maxUpdates, std::string& pidFile, std::string& statusFile, std::string& logFile)
 {
     validateOnly = false;
     printConfig = false;
@@ -584,6 +618,7 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
     logFile.clear();
     captureBackend = CaptureBackend::Auto;
     inputBackend = InputBackend::Auto;
+    clipboardBackend = ClipboardBackend::None;
     rawFramebufferFile.clear();
     passwordFile.clear();
     for (int i = 1; i < argc; ++i) {
@@ -680,6 +715,16 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
                 std::cerr << "invalid --input-backend\n";
                 return false;
             }
+        } else if (arg == "--clipboard-backend" && i + 1 < argc) {
+            if (!ParseClipboardBackendName(argv[++i], clipboardBackend)) {
+                std::cerr << "invalid --clipboard-backend\n";
+                return false;
+            }
+        } else if (arg == "--enable-file-transfer") {
+            config.SetEnableFileTransfer(true);
+        } else if (arg == "--security-plugin" || arg == "--dsm-plugin" || arg == "--mslogon" || arg == "--http-java-viewer") {
+            std::cerr << arg << " is not supported by the native Linux server runtime yet\n";
+            return false;
         } else if (arg == "--pattern" && i + 1 < argc) {
             FramebufferPattern pattern = FramebufferPattern::Solid;
             if (!ParseFramebufferPattern(argv[++i], pattern)) {
@@ -905,7 +950,7 @@ bool RunSmokeMultiUpdateTest(const ServerConfig& config, unsigned int maxUpdates
     return clientOk && serverOk;
 }
 
-void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBackend, CaptureBackend resolvedBackend, InputBackend requestedInputBackend, InputBackend resolvedInputBackend, bool serveUpdates, bool serveForever, unsigned int maxUpdates, const std::string& pidFile, const std::string& statusFile, const std::string& logFile)
+void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBackend, CaptureBackend resolvedBackend, InputBackend requestedInputBackend, InputBackend resolvedInputBackend, ClipboardBackend clipboardBackend, bool serveUpdates, bool serveForever, unsigned int maxUpdates, const std::string& pidFile, const std::string& statusFile, const std::string& logFile)
 {
     std::cout << "bind_address=" << config.BindAddress() << "\n"
               << "port=" << config.Port() << "\n"
@@ -918,6 +963,7 @@ void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBac
               << "resolved_capture_backend=" << CaptureBackendName(resolvedBackend) << "\n"
               << "input_backend=" << InputBackendName(requestedInputBackend) << "\n"
               << "resolved_input_backend=" << InputBackendName(resolvedInputBackend) << "\n"
+              << "clipboard_backend=" << ClipboardBackendName(clipboardBackend) << "\n"
               << "auth=" << ServerAuthModeName(config.AuthMode()) << "\n"
               << "allow_no_auth=" << (config.AllowNoAuth() ? "yes" : "no") << "\n"
               << "allow_public_no_auth=" << (config.AllowPublicNoAuth() ? "yes" : "no") << "\n"
@@ -1122,6 +1168,7 @@ int main(int argc, char **argv)
     CaptureBackend resolvedCaptureBackend = CaptureBackend::Memory;
     InputBackend inputBackend = InputBackend::Auto;
     InputBackend resolvedInputBackend = InputBackend::None;
+    ClipboardBackend clipboardBackend = ClipboardBackend::None;
     std::string rawFramebufferFile;
     std::string passwordFile;
     bool validateOnly = false;
@@ -1153,7 +1200,7 @@ int main(int argc, char **argv)
         mergedArgv.push_back(&mergedArgs[i][0]);
     }
 
-    if (!ParseArgs(static_cast<int>(mergedArgv.size()), mergedArgv.data(), config, captureBackend, inputBackend, rawFramebufferFile, passwordFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, smokeX11AvailabilityTest, smokePipeWireAvailabilityTest, smokeXTestAvailabilityTest, smokeXTestInputTest, allowInputInjection, serveUpdates, serveForever, maxUpdates, pidFile, statusFile, logFile)) {
+    if (!ParseArgs(static_cast<int>(mergedArgv.size()), mergedArgv.data(), config, captureBackend, inputBackend, clipboardBackend, rawFramebufferFile, passwordFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, smokeX11AvailabilityTest, smokePipeWireAvailabilityTest, smokeXTestAvailabilityTest, smokeXTestInputTest, allowInputInjection, serveUpdates, serveForever, maxUpdates, pidFile, statusFile, logFile)) {
         return 2;
     }
 
@@ -1209,7 +1256,7 @@ int main(int argc, char **argv)
         return 0;
     }
     if (printConfig) {
-        PrintResolvedConfig(config, captureBackend, resolvedCaptureBackend, inputBackend, resolvedInputBackend, serveUpdates, serveForever, maxUpdates, pidFile, statusFile, logFile);
+        PrintResolvedConfig(config, captureBackend, resolvedCaptureBackend, inputBackend, resolvedInputBackend, clipboardBackend, serveUpdates, serveForever, maxUpdates, pidFile, statusFile, logFile);
         return 0;
     }
     if (smokeTest) {
@@ -1230,6 +1277,16 @@ int main(int argc, char **argv)
 
     XTestRfbInputSink xtestInputSink;
     RfbInputSink *inputSink = resolvedInputBackend == InputBackend::XTest ? &xtestInputSink : nullptr;
+    X11ClipboardBackend x11Clipboard;
+    RfbClipboardSink *clipboardSink = nullptr;
+    if (clipboardBackend == ClipboardBackend::X11) {
+        std::string clipboardError;
+        if (!X11ClipboardBackend::RuntimeAvailable(&clipboardError)) {
+            std::cerr << "invalid clipboard backend: " << clipboardError << "\n";
+            return 2;
+        }
+        clipboardSink = &x11Clipboard;
+    }
 
     std::ofstream logStream;
     ScopedStreamBufferRedirect coutRedirect;
@@ -1296,15 +1353,15 @@ int main(int argc, char **argv)
         while (!StopRequested()) {
             bool accepted = false;
             const bool ok = liveSource ?
-                server.TryServeOneUpdatesFromSource(*liveSource, maxUpdates, inputSink, 128, 250, accepted) :
-                server.TryServeOneUpdates(maxUpdates, inputSink, 250, accepted);
+                server.TryServeOneUpdatesFromSource(*liveSource, maxUpdates, inputSink, 128, 250, accepted, clipboardSink) :
+                server.TryServeOneUpdates(maxUpdates, inputSink, 250, accepted, clipboardSink);
             if (!ok) {
                 served = false;
                 break;
             }
         }
     } else {
-        served = serveUpdates && liveSource ? server.ServeOneUpdatesFromSource(*liveSource, maxUpdates, inputSink) :
+        served = serveUpdates && liveSource ? server.ServeOneUpdatesFromSource(*liveSource, maxUpdates, inputSink, 128, clipboardSink) :
             (serveUpdates ? server.ServeOneUpdates(maxUpdates, inputSink) : server.ServeOne());
     }
 

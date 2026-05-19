@@ -123,6 +123,10 @@ bool ServerConfig::Validate(std::string *error) const
             return false;
         }
     }
+    if (enableFileTransfer_) {
+        if (error) *error = "native Linux file transfer is not implemented; file-transfer protocol messages are rejected by default";
+        return false;
+    }
     return true;
 }
 
