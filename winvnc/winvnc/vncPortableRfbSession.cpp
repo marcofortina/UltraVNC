@@ -572,8 +572,16 @@ bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Frameb
         const bool ok = payload.empty() || socket.ReadExact(payload.data(), payload.size());
         if (ok && state) {
             state->SetEncodings(DecodeSetEncodingsPayload(payload));
-            if (state->SupportsCursorShapeUpdates() && !SendCursorShape(socket, *state)) {
-                return false;
+            if (state->SupportsCursorShapeUpdates()) {
+                CursorShape cursor;
+                CursorShape *cursorPtr = nullptr;
+                std::string cursorError;
+                if (cursorSource && cursorSource->GetCursorShape(cursor, &cursorError) && cursor.Valid()) {
+                    cursorPtr = &cursor;
+                }
+                if (!SendCursorShape(socket, *state, cursorPtr)) {
+                    return false;
+                }
             }
             if (!SendExtendedClipboardCaps(socket, *state, stats)) {
                 return false;
