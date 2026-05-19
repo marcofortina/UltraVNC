@@ -83,6 +83,23 @@ int main()
         return 1;
     }
     config.SetMaxSharedClients(4);
+    config.SetExtendedClipboardEnabled(false);
+    if (config.ExtendedClipboardEnabled()) {
+        std::cerr << "extended clipboard disable flag ignored\n";
+        return 1;
+    }
+    config.SetExtendedClipboardEnabled(true);
+    config.SetExtendedClipboardTextLimit(1024);
+    if (!config.Validate(&error)) {
+        std::cerr << "valid extended clipboard text limit rejected: " << error << "\n";
+        return 1;
+    }
+    config.SetExtendedClipboardTextLimit(0);
+    if (config.Validate(&error) || error.empty()) {
+        std::cerr << "invalid extended clipboard text limit accepted\n";
+        return 1;
+    }
+    config.SetExtendedClipboardTextLimit(10U * 1024U * 1024U);
     config.SetFileTransferRoot("/tmp");
     assert(config.Validate());
     config.SetFileTransferRoot("relative");
