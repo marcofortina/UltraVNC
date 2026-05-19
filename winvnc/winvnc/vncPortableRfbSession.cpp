@@ -139,6 +139,41 @@ bool SendDirectoryListing(RfbTransport& socket,
     return SendFileTransferPacketMessage(socket, rfbDirPacket, 0, 0, std::vector<CARD8>());
 }
 
+bool SendRecursiveDirectoryListing(RfbTransport& socket,
+                                   const std::string& root,
+                                   const std::string& requestedPath)
+{
+    std::vector<FileTransferRecursiveEntry> entries;
+    std::string reason;
+    if (!ListFileTransferDirectoryRecursive(root, requestedPath, 32, 16384, entries, &reason)) {
+        return SendFileTransferPacketMessage(socket, rfbDirPacket, rfbADirInaccessible, 0, std::vector<CARD8>());
+    }
+    for (std::vector<FileTransferRecursiveEntry>::const_iterator it = entries.begin(); it != entries.end(); ++it) {
+        const CARD16 param = it->inaccessible ? rfbADirInaccessible : (it->directory ? rfbADirectory : rfbADirRecursiveListItem);
+        if (!SendFileTransferPacketMessage(socket, rfbDirPacket, param, it->size, it->relativePath)) {
+            return false;
+        }
+    }
+    return SendFileTransferPacketMessage(socket, rfbDirPacket, 0, 0, std::vector<CARD8>());
+}
+
+bool SendRecursiveDirectorySize(RfbTransport& socket,
+                                const std::string& root,
+                                const std::string& requestedPath)
+{
+    FileTransferRecursiveSize size;
+    std::string reason;
+    if (!MeasureFileTransferDirectoryRecursive(root, requestedPath, 32, 16384, size, &reason)) {
+        return SendFileTransferPacketMessage(socket, rfbDirPacket, rfbADirInaccessible, 0, std::vector<CARD8>());
+    }
+    std::ostringstream payload;
+    payload << "files=" << size.files
+            << ";directories=" << size.directories
+            << ";bytes=" << size.bytesLow
+            << ";truncated=" << (size.truncated ? "true" : "false");
+    return SendFileTransferPacketMessage(socket, rfbDirPacket, rfbADirRecursiveSize, size.bytesLow, payload.str());
+}
+
 bool SendFileDownload(RfbTransport& socket, const std::string& path, const std::string& displayPath, CARD32 payloadLimit)
 {
     std::ifstream input(path.c_str(), std::ios::binary);
@@ -582,8 +617,11 @@ bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Frameb
             if (message.contentParam == rfbRDrivesList) {
                 return SendDirectoryListing(socket, state->FileTransferRoot(), requestedPath.empty() ? std::string(".") : requestedPath);
             }
-            if (message.contentParam == rfbRDirRecursiveList || message.contentParam == rfbRDirRecursiveSize) {
-                return SendFileTransferError(socket);
+            if (message.contentParam == rfbRDirRecursiveList) {
+                return SendRecursiveDirectoryListing(socket, state->FileTransferRoot(), requestedPath);
+            }
+            if (message.contentParam == rfbRDirRecursiveSize) {
+                return SendRecursiveDirectorySize(socket, state->FileTransferRoot(), requestedPath);
             }
             return SendDirectoryListing(socket, state->FileTransferRoot(), requestedPath);
         case rfbFileTransferRequest:
