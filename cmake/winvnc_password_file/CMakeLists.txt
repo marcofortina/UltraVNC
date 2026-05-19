@@ -1,0 +1,23 @@
+# // This file is part of UltraVNC
+# // https://github.com/ultravnc/UltraVNC
+# // https://uvnc.com/
+# //
+# // SPDX-License-Identifier: GPL-3.0-or-later
+# //
+# // SPDX-FileCopyrightText: Copyright (C) 2002-2025 UltraVNC Team Members. All Rights Reserved.
+
+project(winvnc_password_file LANGUAGES CXX)
+
+add_executable(uvnc_winvnc_password_file
+    "${CMAKE_SOURCE_DIR}/../winvnc/passwordfile/vncPasswordFileMain.cpp"
+)
+
+if(BUILD_TESTING)
+    add_test(NAME uvnc_winvnc_password_file_help COMMAND uvnc_winvnc_password_file --help)
+    set_tests_properties(uvnc_winvnc_password_file_help PROPERTIES LABELS "native-linux;winvnc-password-file" TIMEOUT 5)
+
+    add_test(NAME uvnc_winvnc_password_file_rejects_long_password COMMAND uvnc_winvnc_password_file --output /tmp/uvnc-password-file-too-long --password too-long-password)
+    set_tests_properties(uvnc_winvnc_password_file_rejects_long_password PROPERTIES LABELS "native-linux;winvnc-password-file" TIMEOUT 5 WILL_FAIL TRUE)
+endif()
+
+install(TARGETS uvnc_winvnc_password_file RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
