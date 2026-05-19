@@ -60,6 +60,7 @@ int main(int argc, char **argv)
     QTextEdit *preview = panel.findChild<QTextEdit *>("previewEdit");
     QTextEdit *runtimeOutput = panel.findChild<QTextEdit *>("runtimeOutputEdit");
     QLabel *title = panel.findChild<QLabel *>("serverSettingsTitle");
+    QLabel *classicParity = panel.findChild<QLabel *>("classicParityLabel");
     QTabWidget *tabs = panel.findChild<QTabWidget *>("serverSettingsTabs");
 
     assert(bind && bind->text() == "127.0.0.1");
@@ -92,6 +93,7 @@ int main(int argc, char **argv)
     assert(preview && preview->toPlainText().contains("auth=vnc-password"));
     assert(runtimeOutput && runtimeOutput->toPlainText().isEmpty());
     assert(title && title->text() == "UltraVNC Linux Server");
+    assert(classicParity && classicParity->text().contains("WinVNC-compatible settings layout"));
     assert(tabs && tabs->count() == 3);
     assert(tabs->tabText(0) == "Settings");
     assert(tabs->tabText(1) == "Runtime");

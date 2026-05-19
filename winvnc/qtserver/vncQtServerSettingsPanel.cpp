@@ -283,7 +283,12 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
     QLabel *title = new QLabel(QStringLiteral("UltraVNC Linux Server"));
     title->setObjectName(QStringLiteral("serverSettingsTitle"));
     title->setStyleSheet(QStringLiteral("font-weight: 600; font-size: 16px;"));
+    QLabel *classicParity = new QLabel(QStringLiteral("WinVNC-compatible settings layout: connections, authentication, transport, capture/input, file-transfer and service runtime"));
+    classicParity->setObjectName(QStringLiteral("classicParityLabel"));
+    classicParity->setWordWrap(true);
+    classicParity->setStyleSheet(QStringLiteral("color: #555;"));
     layout->addWidget(title);
+    layout->addWidget(classicParity);
     layout->addWidget(statusLabel_);
     layout->addWidget(tabs);
 
