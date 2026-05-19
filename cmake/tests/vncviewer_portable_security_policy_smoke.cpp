@@ -42,7 +42,7 @@ int main()
         assert(decision.error.find("VeNCrypt") != std::string::npos);
     }
     {
-        std::vector<CARD8> types(1, rfbMSLogon);
+        std::vector<CARD8> types(1, rfbUltraVNC_MsLogonIIAuth);
         ViewerSecurityDecision decision = SelectViewerSecurityType(types, true);
         assert(decision.selection == ViewerSecuritySelection::Unsupported);
         assert(decision.error.find("mslogon") != std::string::npos);

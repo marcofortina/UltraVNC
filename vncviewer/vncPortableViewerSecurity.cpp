@@ -29,14 +29,15 @@ const char *ViewerSecurityTypeName(CARD8 wireType)
         return "vnc-auth";
     case rfbVeNCypt:
         return "vencrypt";
-    case rfbMSLogon:
-        return "mslogon";
     case rfbUltraVNC:
         return "ultravnc";
-    case rfbSSPI:
-        return "sspi";
-    case rfbSSPIMSLogon:
-        return "sspi-mslogon";
+    case rfbUltraVNC_MsLogonIAuth:
+        return "mslogon-i";
+    case rfbUltraVNC_MsLogonIIAuth:
+        return "mslogon-ii";
+    case rfbUltraVNC_SecureVNCPluginAuth:
+    case rfbUltraVNC_SecureVNCPluginAuth_new:
+        return "securevnc-plugin";
     default:
         return "unknown";
     }
