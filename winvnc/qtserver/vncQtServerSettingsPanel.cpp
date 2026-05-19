@@ -18,8 +18,11 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QProcess>
 #include <QPushButton>
 #include <QSaveFile>
+#include <QStandardPaths>
+#include <QTemporaryFile>
 #include <QSpinBox>
 #include <QTextEdit>
 #include <QVBoxLayout>
@@ -80,8 +83,16 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
       validateButton_(new QPushButton(QStringLiteral("Validate"))),
       saveButton_(new QPushButton(QStringLiteral("Save config"))),
       refreshButton_(new QPushButton(QStringLiteral("Refresh preview"))),
+      serverExecutableEdit_(new QLineEdit(QStringLiteral("uvnc_winvnc_memory_server"))),
+      runtimeConfigPathEdit_(new QLineEdit()),
+      startButton_(new QPushButton(QStringLiteral("Start user server"))),
+      stopButton_(new QPushButton(QStringLiteral("Stop"))),
+      runtimeStatusButton_(new QPushButton(QStringLiteral("Refresh status"))),
+      runtimeLogButton_(new QPushButton(QStringLiteral("Refresh log"))),
       statusLabel_(new QLabel(QStringLiteral("Not validated"))),
-      previewEdit_(new QTextEdit())
+      previewEdit_(new QTextEdit()),
+      runtimeOutputEdit_(new QTextEdit()),
+      serverProcess_(new QProcess(this))
 {
     bindAddressEdit_->setObjectName(QStringLiteral("bindAddressEdit"));
     portSpin_->setObjectName(QStringLiteral("portSpin"));
@@ -115,8 +126,15 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
     validateButton_->setObjectName(QStringLiteral("validateButton"));
     saveButton_->setObjectName(QStringLiteral("saveButton"));
     refreshButton_->setObjectName(QStringLiteral("refreshButton"));
+    serverExecutableEdit_->setObjectName(QStringLiteral("serverExecutableEdit"));
+    runtimeConfigPathEdit_->setObjectName(QStringLiteral("runtimeConfigPathEdit"));
+    startButton_->setObjectName(QStringLiteral("startButton"));
+    stopButton_->setObjectName(QStringLiteral("stopButton"));
+    runtimeStatusButton_->setObjectName(QStringLiteral("runtimeStatusButton"));
+    runtimeLogButton_->setObjectName(QStringLiteral("runtimeLogButton"));
     statusLabel_->setObjectName(QStringLiteral("statusLabel"));
     previewEdit_->setObjectName(QStringLiteral("previewEdit"));
+    runtimeOutputEdit_->setObjectName(QStringLiteral("runtimeOutputEdit"));
 
     portSpin_->setRange(1, 65535);
     portSpin_->setValue(5900);
@@ -136,8 +154,11 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
     logFileEdit_->setPlaceholderText(QStringLiteral("/var/log/ultravnc/winvnc.log"));
     pidFileEdit_->setPlaceholderText(QStringLiteral("/run/ultravnc/winvnc.pid"));
     statusFileEdit_->setPlaceholderText(QStringLiteral("/run/ultravnc/winvnc.status"));
+    runtimeConfigPathEdit_->setPlaceholderText(QStringLiteral("empty = write a temporary runtime config"));
     previewEdit_->setReadOnly(true);
     previewEdit_->setMinimumHeight(220);
+    runtimeOutputEdit_->setReadOnly(true);
+    runtimeOutputEdit_->setMinimumHeight(120);
     extendedClipboardCheck_->setChecked(true);
 
     AddComboItem(authModeCombo_, QStringLiteral("No auth (lab only)"), static_cast<int>(portable::ServerAuthMode::NoAuth));
@@ -200,16 +221,33 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
     buttons->addWidget(saveButton_);
     buttons->addWidget(refreshButton_);
 
+    QHBoxLayout *runtimeButtons = new QHBoxLayout();
+    runtimeButtons->addWidget(startButton_);
+    runtimeButtons->addWidget(stopButton_);
+    runtimeButtons->addWidget(runtimeStatusButton_);
+    runtimeButtons->addWidget(runtimeLogButton_);
+
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->addLayout(form);
     layout->addLayout(flags);
     layout->addLayout(buttons);
+    layout->addLayout(runtimeButtons);
     layout->addWidget(statusLabel_);
     layout->addWidget(previewEdit_);
+    layout->addWidget(runtimeOutputEdit_);
 
     QObject::connect(validateButton_, &QPushButton::clicked, this, [this]() { ValidateConfig(true); });
     QObject::connect(saveButton_, &QPushButton::clicked, this, [this]() { SaveConfig(); });
     QObject::connect(refreshButton_, &QPushButton::clicked, this, [this]() { RefreshPreview(); });
+    QObject::connect(startButton_, &QPushButton::clicked, this, [this]() { StartServer(true); });
+    QObject::connect(stopButton_, &QPushButton::clicked, this, [this]() { StopServer(true); });
+    QObject::connect(runtimeStatusButton_, &QPushButton::clicked, this, [this]() { RefreshRuntimeStatus(); });
+    QObject::connect(runtimeLogButton_, &QPushButton::clicked, this, [this]() { RefreshRuntimeLog(); });
+    QObject::connect(serverProcess_, &QProcess::readyReadStandardOutput, this, [this]() { runtimeOutputEdit_->append(QString::fromUtf8(serverProcess_->readAllStandardOutput())); });
+    QObject::connect(serverProcess_, &QProcess::readyReadStandardError, this, [this]() { runtimeOutputEdit_->append(QString::fromUtf8(serverProcess_->readAllStandardError())); });
+    QObject::connect(serverProcess_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this](int code, QProcess::ExitStatus status) {
+        SetStatus(QStringLiteral("Server exited: code=%1 status=%2").arg(code).arg(status == QProcess::NormalExit ? QStringLiteral("normal") : QStringLiteral("crashed")));
+    });
     QObject::connect(authModeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int) { RefreshPreview(); });
     QObject::connect(transportSecurityCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int) { RefreshPreview(); });
     QObject::connect(fileTransferModeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int) { RefreshPreview(); });
@@ -311,6 +349,124 @@ QString QtServerSettingsPanel::GeneratedConfigText() const
 QString QtServerSettingsPanel::StatusText() const
 {
     return statusLabel_->text();
+}
+
+bool QtServerSettingsPanel::ServerRunning() const
+{
+    return serverProcess_->state() != QProcess::NotRunning;
+}
+
+
+QString QtServerSettingsPanel::WriteRuntimeConfig(QString *error) const
+{
+    QString path = runtimeConfigPathEdit_->text();
+    if (path.isEmpty()) {
+        QTemporaryFile tmp(QStringLiteral("/tmp/uvnc-qt-server-settings-XXXXXX.conf"));
+        tmp.setAutoRemove(false);
+        if (!tmp.open()) {
+            if (error) *error = QStringLiteral("Failed to create temporary config");
+            return QString();
+        }
+        path = tmp.fileName();
+        tmp.write(GeneratedConfigText().toUtf8());
+        tmp.close();
+        return path;
+    }
+    QSaveFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        if (error) *error = QStringLiteral("Failed to open runtime config for writing");
+        return QString();
+    }
+    file.write(GeneratedConfigText().toUtf8());
+    if (!file.commit()) {
+        if (error) *error = QStringLiteral("Failed to write runtime config");
+        return QString();
+    }
+    return path;
+}
+
+void QtServerSettingsPanel::StartServer(bool showDialog)
+{
+    if (ServerRunning()) {
+        ShowError(QStringLiteral("Server process is already running"), showDialog);
+        return;
+    }
+    ValidateConfig(false);
+    if (StatusText() != QStringLiteral("Configuration is valid")) {
+        return;
+    }
+    QString error;
+    const QString configPath = WriteRuntimeConfig(&error);
+    if (configPath.isEmpty()) {
+        ShowError(error, showDialog);
+        return;
+    }
+    QString executable = serverExecutableEdit_->text().trimmed();
+    if (executable.isEmpty()) {
+        executable = QStringLiteral("uvnc_winvnc_memory_server");
+    }
+    const QString resolved = QStandardPaths::findExecutable(executable);
+    if (!resolved.isEmpty()) {
+        executable = resolved;
+    }
+    runtimeOutputEdit_->clear();
+    serverProcess_->setProgram(executable);
+    serverProcess_->setArguments(QStringList() << QStringLiteral("--config") << configPath << QStringLiteral("--serve-forever"));
+    serverProcess_->start();
+    if (!serverProcess_->waitForStarted(3000)) {
+        ShowError(QStringLiteral("Failed to start server process"), showDialog);
+        return;
+    }
+    SetStatus(QStringLiteral("Server process started"));
+}
+
+void QtServerSettingsPanel::StopServer(bool showDialog)
+{
+    if (!ServerRunning()) {
+        SetStatus(QStringLiteral("Server process is not running"));
+        return;
+    }
+    serverProcess_->terminate();
+    if (!serverProcess_->waitForFinished(3000)) {
+        serverProcess_->kill();
+        serverProcess_->waitForFinished(3000);
+    }
+    SetStatus(QStringLiteral("Server process stopped"));
+    if (showDialog) {
+        QMessageBox::information(this, QStringLiteral("UltraVNC server settings"), QStringLiteral("Server process stopped."));
+    }
+}
+
+void QtServerSettingsPanel::RefreshRuntimeStatus()
+{
+    QString text;
+    text += QStringLiteral("process_running=%1\n").arg(ServerRunning() ? QStringLiteral("yes") : QStringLiteral("no"));
+    if (!statusFileEdit_->text().isEmpty()) {
+        QFile file(statusFileEdit_->text());
+        if (file.open(QIODevice::ReadOnly)) {
+            text += QStringLiteral("status_file:\n%1\n").arg(QString::fromUtf8(file.readAll()));
+        } else {
+            text += QStringLiteral("status_file=unreadable\n");
+        }
+    }
+    runtimeOutputEdit_->setPlainText(text);
+    SetStatus(QStringLiteral("Runtime status refreshed"));
+}
+
+void QtServerSettingsPanel::RefreshRuntimeLog()
+{
+    if (logFileEdit_->text().isEmpty()) {
+        ShowError(QStringLiteral("Log file path is empty"), false);
+        return;
+    }
+    QFile file(logFileEdit_->text());
+    if (!file.open(QIODevice::ReadOnly)) {
+        ShowError(QStringLiteral("Failed to open log file"), false);
+        return;
+    }
+    const QByteArray bytes = file.readAll();
+    runtimeOutputEdit_->setPlainText(QString::fromUtf8(bytes.right(64 * 1024)));
+    SetStatus(QStringLiteral("Runtime log refreshed"));
 }
 
 void QtServerSettingsPanel::ValidateConfig(bool showDialog)

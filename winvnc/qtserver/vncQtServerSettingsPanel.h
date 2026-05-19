@@ -13,6 +13,8 @@
 
 #include <QWidget>
 
+#include <QProcess>
+
 class QCheckBox;
 class QComboBox;
 class QLabel;
@@ -20,6 +22,7 @@ class QLineEdit;
 class QPushButton;
 class QSpinBox;
 class QTextEdit;
+class QProcess;
 
 namespace uvnc {
 namespace winvnc {
@@ -32,11 +35,17 @@ public:
     portable::ServerConfig CurrentConfig() const;
     QString GeneratedConfigText() const;
     QString StatusText() const;
+    bool ServerRunning() const;
 
 private:
     void ValidateConfig(bool showDialog);
     void SaveConfig();
     void RefreshPreview();
+    void StartServer(bool showDialog);
+    void StopServer(bool showDialog);
+    void RefreshRuntimeStatus();
+    void RefreshRuntimeLog();
+    QString WriteRuntimeConfig(QString *error) const;
     void SetStatus(const QString& status);
     void ShowError(const QString& message, bool showDialog);
     portable::ServerAuthMode SelectedAuthMode() const;
@@ -75,8 +84,16 @@ private:
     QPushButton *validateButton_;
     QPushButton *saveButton_;
     QPushButton *refreshButton_;
+    QLineEdit *serverExecutableEdit_;
+    QLineEdit *runtimeConfigPathEdit_;
+    QPushButton *startButton_;
+    QPushButton *stopButton_;
+    QPushButton *runtimeStatusButton_;
+    QPushButton *runtimeLogButton_;
     QLabel *statusLabel_;
     QTextEdit *previewEdit_;
+    QTextEdit *runtimeOutputEdit_;
+    QProcess *serverProcess_;
 };
 
 } // namespace qtserver
