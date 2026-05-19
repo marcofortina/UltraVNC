@@ -361,6 +361,18 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
         if (!payload.empty() && !socket.ReadExact(payload.data(), payload.size())) {
             return false;
         }
+        if (state && FileTransferMessageMayCarryPath(message.contentType) && !state->FileTransferRoot().empty()) {
+            const std::string requestedPath(reinterpret_cast<const char *>(payload.data()), payload.size());
+            std::string resolvedPath;
+            std::string pathError;
+            if (!ResolveFileTransferPath(state->FileTransferRoot(), requestedPath, resolvedPath, &pathError)) {
+                if (stats) {
+                    stats->fileTransferMessages += 1;
+                    stats->fileTransferBytesDiscarded += decision.payloadBytes;
+                }
+                return SendFileTransferAbort(socket, rfbRErrorCmd);
+            }
+        }
         if (stats) {
             stats->fileTransferMessages += 1;
             stats->fileTransferBytesDiscarded += decision.payloadBytes;
