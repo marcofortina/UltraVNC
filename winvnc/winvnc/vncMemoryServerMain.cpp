@@ -46,6 +46,9 @@ using uvnc::winvnc::portable::ServerAuthModeName;
 using uvnc::winvnc::portable::ParseServerAuthMode;
 using uvnc::winvnc::portable::TransportSecurityMode;
 using uvnc::winvnc::portable::TransportSecurityModeName;
+using uvnc::winvnc::portable::EvaluateSecurityExtension;
+using uvnc::winvnc::portable::ParseSecurityExtensionOption;
+using uvnc::winvnc::portable::SecurityExtensionDecision;
 using uvnc::winvnc::portable::ParseTransportSecurityMode;
 using uvnc::winvnc::linuxfb::CaptureBackend;
 using uvnc::winvnc::linuxfb::CaptureBackendName;
@@ -894,7 +897,9 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
             }
             config.SetFileTransferRecursiveMaxEntries(entries);
         } else if (arg == "--security-plugin" || arg == "--dsm-plugin" || arg == "--mslogon" || arg == "--http-java-viewer") {
-            std::cerr << arg << " is not supported by the native Linux server runtime yet\n";
+            const SecurityExtensionDecision decision = EvaluateSecurityExtension(ParseSecurityExtensionOption(arg));
+            std::cerr << arg << " is not supported by the native Linux server runtime: "
+                      << decision.reason << "; " << decision.replacement << "\n";
             return false;
         } else if (arg == "--pattern" && i + 1 < argc) {
             FramebufferPattern pattern = FramebufferPattern::Solid;
