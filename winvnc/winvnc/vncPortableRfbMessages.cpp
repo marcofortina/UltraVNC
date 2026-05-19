@@ -225,6 +225,43 @@ std::vector<CARD8> EncodeFileTransferAbort(CARD16 contentParam, CARD32 size)
     return bytes;
 }
 
+std::vector<CARD8> EncodeFileTransferAccess(bool allowed)
+{
+    rfbFileTransferMsg message;
+    std::memset(&message, 0, sizeof(message));
+    message.type = rfbFileTransfer;
+    message.contentType = rfbFileTransferAccess;
+    message.contentParam = Swap16IfLE(rfbFileTransferVersion);
+    message.size = Swap32IfLE(allowed ? 1U : static_cast<CARD32>(rfbRErrorCmd));
+
+    std::vector<CARD8> bytes(sz_rfbFileTransferMsg);
+    std::memcpy(bytes.data(), &message, sz_rfbFileTransferMsg);
+    return bytes;
+}
+
+std::vector<CARD8> EncodeFileTransferPacket(CARD8 contentType, CARD16 contentParam, CARD32 size, const std::vector<CARD8>& payload)
+{
+    rfbFileTransferMsg message;
+    std::memset(&message, 0, sizeof(message));
+    message.type = rfbFileTransfer;
+    message.contentType = contentType;
+    message.contentParam = Swap16IfLE(contentParam);
+    message.size = Swap32IfLE(size);
+    message.length = Swap32IfLE(static_cast<CARD32>(payload.size()));
+
+    std::vector<CARD8> bytes(sz_rfbFileTransferMsg + payload.size());
+    std::memcpy(bytes.data(), &message, sz_rfbFileTransferMsg);
+    if (!payload.empty()) {
+        std::memcpy(bytes.data() + sz_rfbFileTransferMsg, payload.data(), payload.size());
+    }
+    return bytes;
+}
+
+std::vector<CARD8> EncodeFileTransferPacket(CARD8 contentType, CARD16 contentParam, CARD32 size, const std::string& payload)
+{
+    return EncodeFileTransferPacket(contentType, contentParam, size, std::vector<CARD8>(payload.begin(), payload.end()));
+}
+
 } // namespace portable
 } // namespace winvnc
 } // namespace uvnc

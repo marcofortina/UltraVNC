@@ -62,6 +62,9 @@ std::vector<CARD8> EncodeServerCutText(const std::string& text);
 std::vector<CARD8> EncodeBell();
 bool DecodeFileTransferHeader(const rfbFileTransferMsg& message, FileTransferMessage& out);
 std::vector<CARD8> EncodeFileTransferAbort(CARD16 contentParam = 0, CARD32 size = 0);
+std::vector<CARD8> EncodeFileTransferAccess(bool allowed);
+std::vector<CARD8> EncodeFileTransferPacket(CARD8 contentType, CARD16 contentParam, CARD32 size, const std::vector<CARD8>& payload);
+std::vector<CARD8> EncodeFileTransferPacket(CARD8 contentType, CARD16 contentParam, CARD32 size, const std::string& payload);
 
 } // namespace portable
 } // namespace winvnc
