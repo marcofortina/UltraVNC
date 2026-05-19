@@ -391,6 +391,7 @@ void PrintUsage(const char *name)
               << "  --max-updates <count>  Number of updates for multi-update smoke/serve mode, default 3\n"
               << "  --serve-updates        Serve one client through --max-updates framebuffer updates\n"
               << "  --serve-forever        Keep accepting update clients until SIGINT/SIGTERM\n"
+              << "  --max-shared-clients <count> Maximum shared clients policy, default 8\n"
               << "  --pid-file <path>      Write process id while the server is running\n"
               << "  --status-file <path>   Write coarse runtime status transitions\n"
               << "  --log-file <path>      Append stdout/stderr logs to a file\n"
@@ -482,6 +483,8 @@ bool AddConfigOption(const std::string& key, const std::string& value, std::vect
         return false;
     } else if (key == "max_updates") {
         args.push_back("--max-updates");
+    } else if (key == "max_shared_clients") {
+        args.push_back("--max-shared-clients");
     } else if (key == "pid_file") {
         args.push_back("--pid-file");
     } else if (key == "status_file") {
@@ -703,6 +706,13 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
             statusFile = argv[++i];
         } else if (arg == "--log-file" && i + 1 < argc) {
             logFile = argv[++i];
+        } else if (arg == "--max-shared-clients" && i + 1 < argc) {
+            unsigned int maxClients = 0;
+            if (!ParseUnsigned(argv[++i], 1, 64, maxClients)) {
+                std::cerr << "invalid --max-shared-clients\n";
+                return false;
+            }
+            config.SetMaxSharedClients(maxClients);
         } else if (arg == "--max-updates" && i + 1 < argc) {
             if (!ParseUnsigned(argv[++i], 1, 1024, maxUpdates)) {
                 std::cerr << "invalid --max-updates\n";
@@ -994,6 +1004,7 @@ void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBac
               << "allow_unencrypted_public=" << (config.AllowUnencryptedPublic() ? "yes" : "no") << "\n"
               << "bell_on_connect=" << (config.BellOnConnect() ? "yes" : "no") << "\n"
               << "server_cut_text_bytes=" << config.ServerCutText().size() << "\n"
+              << "max_shared_clients=" << config.MaxSharedClients() << "\n"
               << "file_transfer_mode=" << FileTransferModeName(config.FileTransferModeValue()) << "\n"
               << "file_transfer_payload_limit=" << config.FileTransferPayloadLimit() << "\n"
               << "serve_updates=" << (serveUpdates ? "yes" : "no") << "\n"
