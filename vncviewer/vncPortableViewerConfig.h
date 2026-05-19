@@ -43,6 +43,7 @@ public:
     bool ViewOnly() const { return viewOnly_; }
     bool AllowNoAuth() const { return allowNoAuth_; }
     const std::string& Password() const { return password_; }
+    const std::string& Username() const { return username_; }
     bool ContinuousUpdates() const { return continuousUpdates_; }
     unsigned int UpdateIntervalMs() const { return updateIntervalMs_; }
     const std::vector<unsigned int>& Encodings() const { return encodings_; }
@@ -61,6 +62,7 @@ public:
     void SetViewOnly(bool viewOnly) { viewOnly_ = viewOnly; }
     void SetAllowNoAuth(bool allowNoAuth) { allowNoAuth_ = allowNoAuth; }
     void SetPassword(const std::string& password) { password_ = password; }
+    void SetUsername(const std::string& username) { username_ = username; }
     void SetContinuousUpdates(bool continuousUpdates) { continuousUpdates_ = continuousUpdates; }
     void SetUpdateIntervalMs(unsigned int updateIntervalMs) { updateIntervalMs_ = updateIntervalMs; }
     void SetEncodings(const std::vector<unsigned int>& encodings) { encodings_ = encodings; }
@@ -82,6 +84,7 @@ private:
     bool viewOnly_;
     bool allowNoAuth_;
     std::string password_;
+    std::string username_;
     bool continuousUpdates_;
     unsigned int updateIntervalMs_;
     std::vector<unsigned int> encodings_;

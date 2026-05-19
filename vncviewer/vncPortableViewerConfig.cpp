@@ -96,6 +96,7 @@ ViewerConfig::ViewerConfig()
       viewOnly_(false),
       allowNoAuth_(true),
       password_(),
+      username_(),
       continuousUpdates_(false),
       updateIntervalMs_(1000),
       encodings_(),
@@ -145,7 +146,16 @@ bool ViewerConfig::Validate(std::string *error) const
         if (error) *error = "viewer encoding list must not be empty";
         return false;
     }
-    if (securityExtension_ != ViewerSecurityExtensionMode::None) {
+    if (securityExtension_ == ViewerSecurityExtensionMode::MsLogon) {
+        if (username_.empty()) {
+            if (error) *error = "viewer MSLogon requires --username";
+            return false;
+        }
+        if (password_.empty()) {
+            if (error) *error = "viewer MSLogon requires a password";
+            return false;
+        }
+    } else if (securityExtension_ != ViewerSecurityExtensionMode::None) {
         if (error) *error = std::string("portable Linux viewer does not implement ") +
                            ViewerSecurityExtensionModeName(securityExtension_) +
                            "; use Windows viewer or wait for a native provider ABI";
@@ -178,6 +188,7 @@ std::string ViewerConfigSummary(const ViewerConfig& config)
         << "view_only=" << (config.ViewOnly() ? "yes" : "no") << "\n"
         << "allow_no_auth=" << (config.AllowNoAuth() ? "yes" : "no") << "\n"
         << "password_configured=" << (!config.Password().empty() ? "yes" : "no") << "\n"
+        << "username_configured=" << (!config.Username().empty() ? "yes" : "no") << "\n"
         << "transport_security=" << ViewerTransportSecurityModeName(config.TransportSecurity()) << "\n"
         << "tls_verify_peer=" << (config.TlsVerifyPeer() ? "yes" : "no") << "\n"
         << "tls_server_name=" << config.TlsServerName() << "\n"
