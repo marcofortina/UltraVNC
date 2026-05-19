@@ -81,6 +81,9 @@ int main()
     offerWorker.join();
     assert(serverOk);
     assert(state.FileUploadActive());
+    struct stat uploadStat;
+    assert(stat((root + "/upload.txt").c_str(), &uploadStat) != 0);
+    assert(stat((root + "/upload.txt.uvnc-upload.tmp").c_str(), &uploadStat) == 0);
 
     std::thread packetWorker([&]() { serverOk = ServeOne(session, serverSocket, framebuffer, stats, state); });
     SendFileTransferMessage(clientSocket, rfbFilePacket, 0, 0, "hello-");
@@ -98,6 +101,7 @@ int main()
     assert(serverOk);
     assert(!state.FileUploadActive());
     assert(ReadFile(root + "/upload.txt") == "hello-upload");
+    assert(stat((root + "/upload.txt.uvnc-upload.tmp").c_str(), &uploadStat) != 0);
 
     unlink((root + "/upload.txt").c_str());
     rmdir(root.c_str());
