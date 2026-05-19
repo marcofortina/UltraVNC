@@ -15,6 +15,7 @@
 using uvnc::winvnc::portable::DefaultFileTransferPayloadLimit;
 using uvnc::winvnc::portable::FileTransferMode;
 using uvnc::winvnc::portable::ServerConfig;
+using uvnc::winvnc::portable::ServerAuthMode;
 
 int main()
 {
@@ -101,6 +102,13 @@ int main()
     }
     config.SetExtendedClipboardTextLimit(10U * 1024U * 1024U);
     config.SetFileTransferRoot("/tmp");
+    config.SetAuthMode(ServerAuthMode::MsLogonII);
+    config.SetAuthHelperPath("/tmp/uvnc-auth-helper");
+    assert(config.Validate());
+    config.SetAuthHelperPath("relative-helper");
+    assert(!config.Validate());
+    config.SetAuthHelperPath("");
+    config.SetAuthMode(ServerAuthMode::NoAuth);
     assert(config.Validate());
     config.SetFileTransferRoot("relative");
     assert(!config.Validate());
