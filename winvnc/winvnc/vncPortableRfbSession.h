@@ -13,8 +13,11 @@
 #include "vncPortableFramebuffer.h"
 #include "vncPortableRfbClientState.h"
 #include "vncPortableRfbMessages.h"
+#include "vncPortableRfbTransport.h"
 #include "vncPortableServerConfig.h"
 #include "vncPortableTcp.h"
+
+#include <memory>
 
 namespace uvnc {
 namespace winvnc {
@@ -57,14 +60,25 @@ public:
 class RfbServerSession {
 public:
     bool RunHandshake(TcpSocket& socket, const ServerConfig& config, RfbClientState *state = nullptr) const;
+    bool RunHandshake(TcpSocket& socket, const ServerConfig& config, RfbClientState *state, std::unique_ptr<RfbTransport>& transport) const;
+    bool RunHandshake(RfbTransport& transport, const ServerConfig& config, RfbClientState *state = nullptr) const;
+
     bool ServeFramebufferUpdateRequest(TcpSocket& socket, const Framebuffer& framebuffer) const;
+    bool ServeFramebufferUpdateRequest(RfbTransport& transport, const Framebuffer& framebuffer) const;
     bool ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr, RfbInputSink *inputSink = nullptr, bool forceRawIncremental = false, RfbClipboardSink *clipboardSink = nullptr, RfbClipboardSource *clipboardSource = nullptr) const;
+    bool ServeNextClientMessage(RfbTransport& transport, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr, RfbInputSink *inputSink = nullptr, bool forceRawIncremental = false, RfbClipboardSink *clipboardSink = nullptr, RfbClipboardSource *clipboardSource = nullptr) const;
     bool ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages = 32, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr, RfbInputSink *inputSink = nullptr, bool forceRawIncremental = false, RfbClipboardSink *clipboardSink = nullptr, RfbClipboardSource *clipboardSource = nullptr) const;
+    bool ServeUntilFramebufferUpdate(RfbTransport& transport, const Framebuffer& framebuffer, unsigned int maxMessages = 32, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr, RfbInputSink *inputSink = nullptr, bool forceRawIncremental = false, RfbClipboardSink *clipboardSink = nullptr, RfbClipboardSource *clipboardSource = nullptr) const;
     bool ServeFramebufferUpdates(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages = 128, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr, RfbInputSink *inputSink = nullptr, bool forceRawIncremental = false, RfbClipboardSink *clipboardSink = nullptr, RfbClipboardSource *clipboardSource = nullptr) const;
+    bool ServeFramebufferUpdates(RfbTransport& transport, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages = 128, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr, RfbInputSink *inputSink = nullptr, bool forceRawIncremental = false, RfbClipboardSink *clipboardSink = nullptr, RfbClipboardSource *clipboardSource = nullptr) const;
     bool SendBell(TcpSocket& socket) const;
+    bool SendBell(RfbTransport& transport) const;
     bool SendServerCutText(TcpSocket& socket, const std::string& text) const;
+    bool SendServerCutText(RfbTransport& transport, const std::string& text) const;
     bool SendCursorShape(TcpSocket& socket, RfbClientState& state) const;
+    bool SendCursorShape(RfbTransport& transport, RfbClientState& state) const;
     bool SendFileTransferAbort(TcpSocket& socket, CARD16 contentParam = 0, CARD32 size = 0) const;
+    bool SendFileTransferAbort(RfbTransport& transport, CARD16 contentParam = 0, CARD32 size = 0) const;
 };
 
 } // namespace portable

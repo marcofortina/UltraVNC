@@ -13,10 +13,12 @@
 #include "vncPortableFileTransfer.h"
 #include "vncPortableRfbMessages.h"
 #include "vncPortableRfbUpdate.h"
+#include "vncPortableRfbTransport.h"
 
 #include <algorithm>
 #include <cstring>
 #include <fstream>
+#include <iostream>
 #include <limits>
 #include <random>
 #include <string>
@@ -45,7 +47,7 @@ void EncryptVncAuthChallenge(std::vector<CARD8>& challenge, const std::string& p
 }
 
 
-bool MaybeSendClipboardSource(TcpSocket& socket, RfbClientState *state, RfbClipboardSource *clipboardSource)
+bool MaybeSendClipboardSource(RfbTransport& socket, RfbClientState *state, RfbClipboardSource *clipboardSource)
 {
     if (!state || !clipboardSource) {
         return true;
@@ -86,31 +88,31 @@ bool IsWriteFileTransferMode(FileTransferMode mode)
     return mode == FileTransferMode::ReadWrite;
 }
 
-bool SendFileTransferAccess(TcpSocket& socket, bool allowed)
+bool SendFileTransferAccess(RfbTransport& socket, bool allowed)
 {
     const std::vector<CARD8> bytes = EncodeFileTransferAccess(allowed);
     return socket.WriteAll(bytes.data(), bytes.size());
 }
 
-bool SendFileTransferPacketMessage(TcpSocket& socket, CARD8 contentType, CARD16 contentParam, CARD32 size, const std::vector<CARD8>& payload)
+bool SendFileTransferPacketMessage(RfbTransport& socket, CARD8 contentType, CARD16 contentParam, CARD32 size, const std::vector<CARD8>& payload)
 {
     const std::vector<CARD8> bytes = EncodeFileTransferPacket(contentType, contentParam, size, payload);
     return socket.WriteAll(bytes.data(), bytes.size());
 }
 
-bool SendFileTransferPacketMessage(TcpSocket& socket, CARD8 contentType, CARD16 contentParam, CARD32 size, const std::string& payload)
+bool SendFileTransferPacketMessage(RfbTransport& socket, CARD8 contentType, CARD16 contentParam, CARD32 size, const std::string& payload)
 {
     const std::vector<CARD8> bytes = EncodeFileTransferPacket(contentType, contentParam, size, payload);
     return socket.WriteAll(bytes.data(), bytes.size());
 }
 
-bool SendFileTransferError(TcpSocket& socket)
+bool SendFileTransferError(RfbTransport& socket)
 {
     const std::vector<CARD8> bytes = EncodeFileTransferAbort(0, static_cast<CARD32>(rfbRErrorCmd));
     return socket.WriteAll(bytes.data(), bytes.size());
 }
 
-bool SendFileDownload(TcpSocket& socket, const std::string& path, const std::string& displayPath, CARD32 payloadLimit)
+bool SendFileDownload(RfbTransport& socket, const std::string& path, const std::string& displayPath, CARD32 payloadLimit)
 {
     std::ifstream input(path.c_str(), std::ios::binary);
     if (!input) {
@@ -168,7 +170,7 @@ bool AppendUploadPayload(const std::string& path, const std::vector<CARD8>& payl
     return static_cast<bool>(output);
 }
 
-bool RunVncPasswordAuthentication(TcpSocket& socket, const std::string& password)
+bool RunVncPasswordAuthentication(RfbTransport& socket, const std::string& password)
 {
     std::vector<CARD8> challenge = GenerateVncAuthChallenge();
     if (!socket.WriteAll(challenge.data(), challenge.size())) {
@@ -192,6 +194,72 @@ bool RunVncPasswordAuthentication(TcpSocket& socket, const std::string& password
 
 } // namespace
 
+
+
+namespace {
+
+bool RunVncPasswordSecurity(RfbTransport& transport, const ServerConfig& config)
+{
+    if (config.AuthMode() == ServerAuthMode::VncPassword) {
+        return RunVncPasswordAuthentication(transport, config.VncPassword());
+    }
+    const CARD32 authOk = AuthOkValue();
+    return transport.WriteAll(&authOk, sizeof(authOk));
+}
+
+bool RunClientInitAndServerInit(RfbTransport& transport, const ServerConfig& config, RfbClientState *state)
+{
+    rfbClientInitMsg clientInit;
+    if (!transport.ReadExact(&clientInit, sz_rfbClientInitMsg)) {
+        return false;
+    }
+    if (state) {
+        state->RecordClientInit((clientInit.flags & clientInitShared) != 0);
+    }
+
+    const std::vector<CARD8> init = ServerInitBytes(config.Width(), config.Height(), config.PixelFormat(), config.DesktopName());
+    return transport.WriteAll(init.data(), init.size());
+}
+
+bool RunVeNCryptX509VncNegotiation(RfbTransport& transport)
+{
+    const CARD16 version = Swap16IfLE(static_cast<CARD16>(kVeNCryptVersion));
+    if (!transport.WriteAll(&version, sizeof(version))) {
+        return false;
+    }
+
+    CARD16 selectedVersion = 0;
+    if (!transport.ReadExact(&selectedVersion, sizeof(selectedVersion)) ||
+        Swap16IfLE(selectedVersion) != kVeNCryptVersion) {
+        const CARD8 failed = 1;
+        transport.WriteAll(&failed, sizeof(failed));
+        return false;
+    }
+
+    const CARD8 ok = 0;
+    if (!transport.WriteAll(&ok, sizeof(ok))) {
+        return false;
+    }
+
+    const CARD8 subtypeCount = 1;
+    const CARD32 subtype = Swap32IfLE(kVeNCryptSubTypeX509Vnc);
+    if (!transport.WriteAll(&subtypeCount, sizeof(subtypeCount)) ||
+        !transport.WriteAll(&subtype, sizeof(subtype))) {
+        return false;
+    }
+
+    CARD32 selectedSubtype = 0;
+    if (!transport.ReadExact(&selectedSubtype, sizeof(selectedSubtype)) ||
+        Swap32IfLE(selectedSubtype) != kVeNCryptSubTypeX509Vnc) {
+        return false;
+    }
+
+    const CARD8 accepted = 1;
+    return transport.WriteAll(&accepted, sizeof(accepted));
+}
+
+} // namespace
+
 RfbSessionStats::RfbSessionStats()
     : messagesProcessed(0),
       framebufferUpdatesSent(0),
@@ -206,7 +274,7 @@ RfbSessionStats::RfbSessionStats()
 {
 }
 
-bool RfbServerSession::RunHandshake(TcpSocket& socket, const ServerConfig& config, RfbClientState *state) const
+bool RfbServerSession::RunHandshake(RfbTransport& socket, const ServerConfig& config, RfbClientState *state) const
 {
     std::string error;
     if (!config.Validate(&error)) {
@@ -226,6 +294,10 @@ bool RfbServerSession::RunHandshake(TcpSocket& socket, const ServerConfig& confi
         return false;
     }
 
+    if (config.TransportSecurity() != TransportSecurityMode::None) {
+        return false;
+    }
+
     const std::vector<CARD8> security = SecurityTypesForAuthMode(config.AuthMode());
     if (!socket.WriteAll(security.data(), security.size())) {
         return false;
@@ -237,30 +309,11 @@ bool RfbServerSession::RunHandshake(TcpSocket& socket, const ServerConfig& confi
         return false;
     }
 
-    if (config.AuthMode() == ServerAuthMode::VncPassword) {
-        if (!RunVncPasswordAuthentication(socket, config.VncPassword())) {
-            return false;
-        }
-    } else {
-        const CARD32 authOk = AuthOkValue();
-        if (!socket.WriteAll(&authOk, sizeof(authOk))) {
-            return false;
-        }
-    }
-
-    rfbClientInitMsg clientInit;
-    if (!socket.ReadExact(&clientInit, sz_rfbClientInitMsg)) {
-        return false;
-    }
-    if (state) {
-        state->RecordClientInit((clientInit.flags & clientInitShared) != 0);
-    }
-
-    const std::vector<CARD8> init = ServerInitBytes(config.Width(), config.Height(), config.PixelFormat(), config.DesktopName());
-    return socket.WriteAll(init.data(), init.size());
+    return RunVncPasswordSecurity(socket, config) &&
+           RunClientInitAndServerInit(socket, config, state);
 }
 
-bool RfbServerSession::ServeFramebufferUpdateRequest(TcpSocket& socket, const Framebuffer& framebuffer) const
+bool RfbServerSession::ServeFramebufferUpdateRequest(RfbTransport& socket, const Framebuffer& framebuffer) const
 {
     rfbFramebufferUpdateRequestMsg wire;
     if (!socket.ReadExact(&wire, sz_rfbFramebufferUpdateRequestMsg)) {
@@ -276,7 +329,7 @@ bool RfbServerSession::ServeFramebufferUpdateRequest(TcpSocket& socket, const Fr
     return socket.WriteAll(update.data(), update.size());
 }
 
-bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource) const
+bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource) const
 {
     updateSent = false;
     if (!MaybeSendClipboardSource(socket, state, clipboardSource)) {
@@ -537,7 +590,7 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
     }
 }
 
-bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource) const
+bool RfbServerSession::ServeUntilFramebufferUpdate(RfbTransport& socket, const Framebuffer& framebuffer, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource) const
 {
     for (unsigned int i = 0; i < maxMessages; ++i) {
         bool updateSent = false;
@@ -551,7 +604,7 @@ bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Fram
     return false;
 }
 
-bool RfbServerSession::ServeFramebufferUpdates(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource) const
+bool RfbServerSession::ServeFramebufferUpdates(RfbTransport& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource) const
 {
     if (updateCount == 0) {
         return true;
@@ -570,19 +623,19 @@ bool RfbServerSession::ServeFramebufferUpdates(TcpSocket& socket, const Framebuf
     return sent == updateCount;
 }
 
-bool RfbServerSession::SendBell(TcpSocket& socket) const
+bool RfbServerSession::SendBell(RfbTransport& socket) const
 {
     const std::vector<CARD8> bytes = EncodeBell();
     return socket.WriteAll(bytes.data(), bytes.size());
 }
 
-bool RfbServerSession::SendServerCutText(TcpSocket& socket, const std::string& text) const
+bool RfbServerSession::SendServerCutText(RfbTransport& socket, const std::string& text) const
 {
     const std::vector<CARD8> bytes = EncodeServerCutText(text);
     return socket.WriteAll(bytes.data(), bytes.size());
 }
 
-bool RfbServerSession::SendCursorShape(TcpSocket& socket, RfbClientState& state) const
+bool RfbServerSession::SendCursorShape(RfbTransport& socket, RfbClientState& state) const
 {
     if (!state.SupportsCursorShapeUpdates()) {
         return true;
@@ -604,10 +657,116 @@ bool RfbServerSession::SendCursorShape(TcpSocket& socket, RfbClientState& state)
     return true;
 }
 
-bool RfbServerSession::SendFileTransferAbort(TcpSocket& socket, CARD16 contentParam, CARD32 size) const
+bool RfbServerSession::SendFileTransferAbort(RfbTransport& socket, CARD16 contentParam, CARD32 size) const
 {
     const std::vector<CARD8> bytes = EncodeFileTransferAbort(contentParam, size);
     return socket.WriteAll(bytes.data(), bytes.size());
+}
+
+bool RfbServerSession::RunHandshake(TcpSocket& socket, const ServerConfig& config, RfbClientState *state) const
+{
+    std::unique_ptr<RfbTransport> transport;
+    return RunHandshake(socket, config, state, transport);
+}
+
+bool RfbServerSession::RunHandshake(TcpSocket& socket, const ServerConfig& config, RfbClientState *state, std::unique_ptr<RfbTransport>& transport) const
+{
+    transport.reset();
+    std::string error;
+    if (!config.Validate(&error)) {
+        return false;
+    }
+
+    std::unique_ptr<RfbTransport> clear(new TcpRfbTransport(socket));
+    if (config.TransportSecurity() == TransportSecurityMode::None) {
+        if (!RunHandshake(*clear, config, state)) {
+            return false;
+        }
+        transport = std::move(clear);
+        return true;
+    }
+
+    const std::string version = ProtocolVersion38();
+    if (!clear->WriteAll(version.data(), version.size())) {
+        return false;
+    }
+    char clientVersion[sz_rfbProtocolVersionMsg] = {};
+    if (!clear->ReadExact(clientVersion, sizeof(clientVersion)) ||
+        !IsProtocolVersionMessage(std::string(clientVersion, sizeof(clientVersion)))) {
+        return false;
+    }
+
+    const std::vector<CARD8> security = SecurityTypesForConfig(config);
+    if (!clear->WriteAll(security.data(), security.size())) {
+        return false;
+    }
+    CARD8 selectedSecurity = 0;
+    if (!clear->ReadExact(&selectedSecurity, sizeof(selectedSecurity)) || selectedSecurity != rfbVeNCypt) {
+        return false;
+    }
+    if (!RunVeNCryptX509VncNegotiation(*clear)) {
+        return false;
+    }
+
+    std::unique_ptr<RfbTransport> tls;
+    if (!CreateOpenSslServerTransport(socket, config.TlsCertificateFile(), config.TlsPrivateKeyFile(), tls, &error)) {
+        std::cerr << "TLS transport failed: " << error << "\n";
+        return false;
+    }
+    if (!RunVncPasswordSecurity(*tls, config) || !RunClientInitAndServerInit(*tls, config, state)) {
+        std::cerr << "TLS RFB authentication/client-init failed\n";
+        return false;
+    }
+    transport = std::move(tls);
+    return true;
+}
+
+bool RfbServerSession::ServeFramebufferUpdateRequest(TcpSocket& socket, const Framebuffer& framebuffer) const
+{
+    TcpRfbTransport transport(socket);
+    return ServeFramebufferUpdateRequest(transport, framebuffer);
+}
+
+bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource) const
+{
+    TcpRfbTransport transport(socket);
+    return ServeNextClientMessage(transport, framebuffer, updateSent, stats, state, inputSink, forceRawIncremental, clipboardSink, clipboardSource);
+}
+
+bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource) const
+{
+    TcpRfbTransport transport(socket);
+    return ServeUntilFramebufferUpdate(transport, framebuffer, maxMessages, stats, state, inputSink, forceRawIncremental, clipboardSink, clipboardSource);
+}
+
+bool RfbServerSession::ServeFramebufferUpdates(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource) const
+{
+    TcpRfbTransport transport(socket);
+    return ServeFramebufferUpdates(transport, framebuffer, updateCount, maxMessages, stats, state, inputSink, forceRawIncremental, clipboardSink, clipboardSource);
+}
+
+bool RfbServerSession::SendBell(TcpSocket& socket) const
+{
+    TcpRfbTransport transport(socket);
+    return SendBell(transport);
+}
+
+bool RfbServerSession::SendServerCutText(TcpSocket& socket, const std::string& text) const
+{
+    TcpRfbTransport transport(socket);
+    return SendServerCutText(transport, text);
+}
+
+bool RfbServerSession::SendCursorShape(TcpSocket& socket, RfbClientState& state) const
+{
+    TcpRfbTransport transport(socket);
+    return SendCursorShape(transport, state);
+}
+
+bool RfbServerSession::SendFileTransferAbort(TcpSocket& socket, CARD16 contentParam, CARD32 size) const
+{
+    TcpRfbTransport transport(socket);
+    return SendFileTransferAbort(transport, contentParam, size);
 }
 
 } // namespace portable

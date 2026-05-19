@@ -15,7 +15,7 @@ namespace portable {
 
 namespace {
 
-bool SendInitialServerMessages(RfbServerSession& session, TcpSocket& client, const ServerConfig& config, RfbClipboardSource *clipboardSource = nullptr, RfbClientState *state = nullptr)
+bool SendInitialServerMessages(RfbServerSession& session, RfbTransport& client, const ServerConfig& config, RfbClipboardSource *clipboardSource = nullptr, RfbClientState *state = nullptr)
 {
     if (config.BellOnConnect() && !session.SendBell(client)) {
         return false;
@@ -85,8 +85,9 @@ bool MemoryServer::ServeOne()
     }
     RfbServerSession session;
     RfbClientState state(config_);
-    return session.RunHandshake(client, config_, &state) &&
-           SendInitialServerMessages(session, client, config_, nullptr, &state);
+    std::unique_ptr<RfbTransport> transport;
+    return session.RunHandshake(client, config_, &state, transport) &&
+           SendInitialServerMessages(session, *transport, config_, nullptr, &state);
 }
 
 bool MemoryServer::ServeOneUpdate(RfbInputSink *inputSink)
@@ -100,9 +101,10 @@ bool MemoryServer::ServeOneUpdate(RfbInputSink *inputSink)
     }
     RfbServerSession session;
     RfbClientState state(config_);
-    return session.RunHandshake(client, config_, &state) &&
-           SendInitialServerMessages(session, client, config_, nullptr, &state) &&
-           session.ServeUntilFramebufferUpdate(client, framebuffer_, 32, nullptr, &state, inputSink);
+    std::unique_ptr<RfbTransport> transport;
+    return session.RunHandshake(client, config_, &state, transport) &&
+           SendInitialServerMessages(session, *transport, config_, nullptr, &state) &&
+           session.ServeUntilFramebufferUpdate(*transport, framebuffer_, 32, nullptr, &state, inputSink);
 }
 
 bool MemoryServer::ServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink)
@@ -131,15 +133,16 @@ bool MemoryServer::ServeConnectedUpdates(TcpSocket client, unsigned int updateCo
     }
     RfbServerSession session;
     RfbClientState state(config_);
-    if (!session.RunHandshake(client, config_, &state)) {
+    std::unique_ptr<RfbTransport> transport;
+    if (!session.RunHandshake(client, config_, &state, transport)) {
         return false;
     }
     ClientConnectionLease lease(clientPolicy, state.SharedClientRequested());
     if (clientPolicy && !lease.Acquire()) {
         return false;
     }
-    return SendInitialServerMessages(session, client, config_, clipboardSource, &state) &&
-        session.ServeFramebufferUpdates(client, framebuffer_, updateCount, 128, nullptr, &state, inputSink, false, clipboardSink, clipboardSource);
+    return SendInitialServerMessages(session, *transport, config_, clipboardSource, &state) &&
+        session.ServeFramebufferUpdates(*transport, framebuffer_, updateCount, 128, nullptr, &state, inputSink, false, clipboardSink, clipboardSource);
 }
 
 bool MemoryServer::TryServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy)
@@ -164,14 +167,15 @@ bool MemoryServer::ServeConnectedUpdatesFromSource(TcpSocket client, DesktopSour
     }
     RfbServerSession session;
     RfbClientState state(config_);
-    if (!session.RunHandshake(client, config_, &state)) {
+    std::unique_ptr<RfbTransport> transport;
+    if (!session.RunHandshake(client, config_, &state, transport)) {
         return false;
     }
     ClientConnectionLease lease(clientPolicy, state.SharedClientRequested());
     if (clientPolicy && !lease.Acquire()) {
         return false;
     }
-    if (!SendInitialServerMessages(session, client, config_, clipboardSource, &state)) {
+    if (!SendInitialServerMessages(session, *transport, config_, clipboardSource, &state)) {
         return false;
     }
 
@@ -187,7 +191,7 @@ bool MemoryServer::ServeConnectedUpdatesFromSource(TcpSocket client, DesktopSour
         }
 
         bool updateSent = false;
-        if (!session.ServeNextClientMessage(client, current, updateSent, &stats, &state, inputSink, true, clipboardSink, clipboardSource)) {
+        if (!session.ServeNextClientMessage(*transport, current, updateSent, &stats, &state, inputSink, true, clipboardSink, clipboardSource)) {
             return false;
         }
         if (updateSent) {
