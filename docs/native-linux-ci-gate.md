@@ -62,7 +62,9 @@ cmake/linux-server-user-service-smoke.sh \
 
 The server compatibility matrix with TigerVNC, LibVNC, RealVNC and the Windows
 UltraVNC viewer is also intentionally outside this CI gate because those clients
-must be installed and licensed/available explicitly.
+must be installed and licensed/available explicitly. Use
+`cmake/native-linux-final-readiness-smoke.sh` with a real external-viewer matrix
+file when those clients are available.
 
 ## GitHub Actions workflow
 
@@ -79,3 +81,21 @@ deferred until the end of the current native Linux hardening pass.
 
 Until a real PR exists and the workflow has completed there, do not claim that
 GitHub CI is green. The local gate can only be reported as local validation.
+
+
+## Final readiness gate
+
+The local CI gate is necessary but not sufficient for the final Linux claim.  The
+final readiness helper first runs the CI-safe gate and then requires an external
+viewer matrix file:
+
+```bash
+cmake/native-linux-final-readiness-smoke.sh \
+  /tmp/uvnc-native-linux-final-build \
+  /tmp/uvnc-native-linux-final-install \
+  docs/examples/native-linux-server-external-viewer-matrix.example
+```
+
+Rows marked `ready` can be executed automatically by setting
+`UVNC_EXTERNAL_VIEWER_MATRIX_PASSWORD_FILE`. Rows marked `manual` or `missing`
+keep the external compatibility claim open until real evidence is attached.

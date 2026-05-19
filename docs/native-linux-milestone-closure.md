@@ -96,7 +96,22 @@ The gate includes the closure helpers plus Linux server real-runtime checks in
 CI-safe mode, negative runtime checks, non-invasive user-service checks and the
 Qt viewer compressed-encoding smoke.
 
-Live X11 server runtime validation, live systemd user-service validation and the
-external VNC client/server compatibility matrix remain explicit manual gates.
+Live X11 server runtime validation and live systemd user-service validation remain explicit manual gates. The external VNC client/server compatibility matrix now has reproducible checker/runner helpers, but rows that require GUI/licensed/Windows clients still require real operator evidence.
 PR creation and GitHub check inspection are intentionally deferred until the end
 of the current native Linux hardening pass.
+
+
+## Final readiness helper
+
+Use this only when preparing the final issue/PR evidence bundle. It fails if the
+external viewer matrix file is missing:
+
+```bash
+cmake/native-linux-final-readiness-smoke.sh \
+  /tmp/uvnc-native-linux-final-build \
+  /tmp/uvnc-native-linux-final-install \
+  docs/examples/native-linux-server-external-viewer-matrix.example
+```
+
+Do not mark TigerVNC, LibVNC, RealVNC or Windows UltraVNC compatibility as closed
+until the matrix rows are either automated (`ready`) or backed by manual evidence.
