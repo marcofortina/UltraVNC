@@ -37,6 +37,9 @@ grep -q -- '--serve-forever' "${SERVICE_FILE}"
 grep -q -- '--pid-file %t/uvnc-winvnc-memory-server.pid' "${SERVICE_FILE}"
 grep -q -- '--status-file %t/uvnc-winvnc-memory-server.status' "${SERVICE_FILE}"
 grep -q -- '--log-file %t/uvnc-winvnc-memory-server.log' "${SERVICE_FILE}"
+grep -q '^UMask=0077$' "${SERVICE_FILE}"
+grep -q '^NoNewPrivileges=true$' "${SERVICE_FILE}"
+grep -q '^RestartPreventExitStatus=2$' "${SERVICE_FILE}"
 
 if command -v systemd-analyze >/dev/null 2>&1; then
   systemd-analyze verify "${SERVICE_FILE}" >/dev/null
