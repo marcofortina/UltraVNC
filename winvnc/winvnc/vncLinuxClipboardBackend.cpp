@@ -114,6 +114,10 @@ void X11ClipboardBackend::PumpSelectionRequests() const
     while (XPending(display_) > 0) {
         XEvent event;
         XNextEvent(display_, &event);
+        if (event.type == SelectionClear && event.xselectionclear.selection == clipboardAtom_) {
+            ownedText_.clear();
+            continue;
+        }
         if (event.type != SelectionRequest) {
             continue;
         }
@@ -155,61 +159,72 @@ bool X11ClipboardBackend::FetchExternalSelectionText(std::string& text, std::str
         return false;
     }
 
-    XDeleteProperty(display_, window_, selectionPropertyAtom_);
-    XConvertSelection(display_, clipboardAtom_, utf8StringAtom_, selectionPropertyAtom_, window_, CurrentTime);
-    XFlush(display_);
+    const Atom targets[2] = {utf8StringAtom_, XA_STRING};
+    std::string lastError;
+    for (unsigned int targetIndex = 0; targetIndex < 2; ++targetIndex) {
+        XDeleteProperty(display_, window_, selectionPropertyAtom_);
+        XConvertSelection(display_, clipboardAtom_, targets[targetIndex], selectionPropertyAtom_, window_, CurrentTime);
+        XFlush(display_);
 
-    for (int attempt = 0; attempt < 40; ++attempt) {
-        while (XPending(display_) > 0) {
-            XEvent event;
-            XNextEvent(display_, &event);
-            if (event.type == SelectionRequest) {
-                XPutBackEvent(display_, &event);
-                PumpSelectionRequests();
-                continue;
-            }
-            if (event.type != SelectionNotify) {
-                continue;
-            }
-            XSelectionEvent *selection = &event.xselection;
-            if (selection->selection != clipboardAtom_) {
-                continue;
-            }
-            if (selection->property == None) {
-                if (error) *error = "X11 clipboard owner refused UTF8_STRING";
-                return false;
-            }
+        for (int attempt = 0; attempt < 40; ++attempt) {
+            while (XPending(display_) > 0) {
+                XEvent event;
+                XNextEvent(display_, &event);
+                if (event.type == SelectionRequest) {
+                    XPutBackEvent(display_, &event);
+                    PumpSelectionRequests();
+                    continue;
+                }
+                if (event.type == SelectionClear && event.xselectionclear.selection == clipboardAtom_) {
+                    ownedText_.clear();
+                    continue;
+                }
+                if (event.type != SelectionNotify) {
+                    continue;
+                }
+                XSelectionEvent *selection = &event.xselection;
+                if (selection->selection != clipboardAtom_) {
+                    continue;
+                }
+                if (selection->property == None) {
+                    lastError = targetIndex == 0 ? "X11 clipboard owner refused UTF8_STRING" : "X11 clipboard owner refused XA_STRING";
+                    goto next_target;
+                }
 
-            Atom actualType = None;
-            int actualFormat = 0;
-            unsigned long itemCount = 0;
-            unsigned long bytesAfter = 0;
-            unsigned char *property = nullptr;
-            const int result = XGetWindowProperty(display_, window_, selectionPropertyAtom_, 0, 1024 * 1024,
-                                                  True, AnyPropertyType, &actualType, &actualFormat,
-                                                  &itemCount, &bytesAfter, &property);
-            if (result != Success) {
-                if (error) *error = "cannot read X11 clipboard selection property";
-                return false;
+                Atom actualType = None;
+                int actualFormat = 0;
+                unsigned long itemCount = 0;
+                unsigned long bytesAfter = 0;
+                unsigned char *property = nullptr;
+                const int result = XGetWindowProperty(display_, window_, selectionPropertyAtom_, 0, 1024 * 1024,
+                                                      True, AnyPropertyType, &actualType, &actualFormat,
+                                                      &itemCount, &bytesAfter, &property);
+                if (result != Success) {
+                    if (error) *error = "cannot read X11 clipboard selection property";
+                    return false;
+                }
+                if (actualType == incrAtom_) {
+                    if (property) XFree(property);
+                    if (error) *error = "X11 INCR clipboard transfers are not supported yet";
+                    return false;
+                }
+                if (actualFormat != 8 || property == nullptr) {
+                    if (property) XFree(property);
+                    lastError = "X11 clipboard selection is not byte text";
+                    goto next_target;
+                }
+                text.assign(reinterpret_cast<const char *>(property), itemCount);
+                XFree(property);
+                return true;
             }
-            if (actualType == incrAtom_) {
-                if (property) XFree(property);
-                if (error) *error = "X11 INCR clipboard transfers are not supported yet";
-                return false;
-            }
-            if (actualFormat != 8 || property == nullptr) {
-                if (property) XFree(property);
-                if (error) *error = "X11 clipboard selection is not byte text";
-                return false;
-            }
-            text.assign(reinterpret_cast<const char *>(property), itemCount);
-            XFree(property);
-            return true;
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        lastError = "timed out waiting for X11 clipboard selection";
+next_target:
+        continue;
     }
 
-    if (error) *error = "timed out waiting for X11 clipboard selection";
+    if (error) *error = lastError.empty() ? "cannot fetch X11 clipboard selection" : lastError;
     return false;
 }
 
