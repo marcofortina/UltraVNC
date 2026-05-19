@@ -40,6 +40,42 @@ bool ParseViewerTransportSecurityMode(const std::string& value, ViewerTransportS
     return false;
 }
 
+const char *ViewerSecurityExtensionModeName(ViewerSecurityExtensionMode mode)
+{
+    switch (mode) {
+    case ViewerSecurityExtensionMode::None:
+        return "none";
+    case ViewerSecurityExtensionMode::DsmPlugin:
+        return "dsm-plugin";
+    case ViewerSecurityExtensionMode::MsLogon:
+        return "mslogon";
+    case ViewerSecurityExtensionMode::SecureVncPlugin:
+        return "securevnc-plugin";
+    }
+    return "unknown";
+}
+
+bool ParseViewerSecurityExtensionMode(const std::string& value, ViewerSecurityExtensionMode& mode)
+{
+    if (value == "none") {
+        mode = ViewerSecurityExtensionMode::None;
+        return true;
+    }
+    if (value == "dsm" || value == "dsm-plugin") {
+        mode = ViewerSecurityExtensionMode::DsmPlugin;
+        return true;
+    }
+    if (value == "mslogon" || value == "mslogon-i" || value == "mslogon-ii") {
+        mode = ViewerSecurityExtensionMode::MsLogon;
+        return true;
+    }
+    if (value == "securevnc" || value == "securevnc-plugin") {
+        mode = ViewerSecurityExtensionMode::SecureVncPlugin;
+        return true;
+    }
+    return false;
+}
+
 namespace {
 
 bool FileExists(const std::string& path)
@@ -65,7 +101,9 @@ ViewerConfig::ViewerConfig()
       transportSecurity_(ViewerTransportSecurityMode::None),
       tlsCaFile_(),
       tlsServerName_(),
-      tlsVerifyPeer_(true)
+      tlsVerifyPeer_(true),
+      securityExtension_(ViewerSecurityExtensionMode::None),
+      securityExtensionName_()
 {
     encodings_.push_back(rfbEncodingRaw);
     encodings_.push_back(rfbEncodingCopyRect);
@@ -103,6 +141,12 @@ bool ViewerConfig::Validate(std::string *error) const
     }
     if (encodings_.empty()) {
         if (error) *error = "viewer encoding list must not be empty";
+        return false;
+    }
+    if (securityExtension_ != ViewerSecurityExtensionMode::None) {
+        if (error) *error = std::string("portable Linux viewer does not implement ") +
+                           ViewerSecurityExtensionModeName(securityExtension_) +
+                           "; use Windows viewer or wait for a native provider ABI";
         return false;
     }
     if (transportSecurity_ == ViewerTransportSecurityMode::VeNCryptX509Vnc) {

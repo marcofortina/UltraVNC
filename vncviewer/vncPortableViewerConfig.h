@@ -21,8 +21,17 @@ enum class ViewerTransportSecurityMode {
     VeNCryptX509Vnc
 };
 
+enum class ViewerSecurityExtensionMode {
+    None,
+    DsmPlugin,
+    MsLogon,
+    SecureVncPlugin
+};
+
 const char *ViewerTransportSecurityModeName(ViewerTransportSecurityMode mode);
 bool ParseViewerTransportSecurityMode(const std::string& value, ViewerTransportSecurityMode& mode);
+const char *ViewerSecurityExtensionModeName(ViewerSecurityExtensionMode mode);
+bool ParseViewerSecurityExtensionMode(const std::string& value, ViewerSecurityExtensionMode& mode);
 
 class ViewerConfig {
 public:
@@ -43,6 +52,8 @@ public:
     const std::string& TlsCaFile() const { return tlsCaFile_; }
     const std::string& TlsServerName() const { return tlsServerName_; }
     bool TlsVerifyPeer() const { return tlsVerifyPeer_; }
+    ViewerSecurityExtensionMode SecurityExtension() const { return securityExtension_; }
+    const std::string& SecurityExtensionName() const { return securityExtensionName_; }
 
     void SetHost(const std::string& host) { host_ = host; }
     void SetPort(unsigned short port) { port_ = port; }
@@ -59,6 +70,8 @@ public:
     void SetTlsCaFile(const std::string& path) { tlsCaFile_ = path; }
     void SetTlsServerName(const std::string& name) { tlsServerName_ = name; }
     void SetTlsVerifyPeer(bool verify) { tlsVerifyPeer_ = verify; }
+    void SetSecurityExtension(ViewerSecurityExtensionMode mode) { securityExtension_ = mode; }
+    void SetSecurityExtensionName(const std::string& name) { securityExtensionName_ = name; }
 
     bool Validate(std::string *error = nullptr) const;
 
@@ -78,6 +91,8 @@ private:
     std::string tlsCaFile_;
     std::string tlsServerName_;
     bool tlsVerifyPeer_;
+    ViewerSecurityExtensionMode securityExtension_;
+    std::string securityExtensionName_;
 };
 
 } // namespace portable
