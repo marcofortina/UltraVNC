@@ -139,6 +139,17 @@ bool SendDirectoryListing(RfbTransport& socket,
     return SendFileTransferPacketMessage(socket, rfbDirPacket, 0, 0, std::vector<CARD8>());
 }
 
+
+bool SendLinuxDrivesList(RfbTransport& socket, const std::string& root)
+{
+    // UltraVNC's Windows server returns drive roots. On Linux, expose the configured
+    // file-transfer root as the only traversable root and include / only as a label.
+    if (!SendFileTransferPacketMessage(socket, rfbDirPacket, rfbADrivesList, 0, root.empty() ? std::string("/") : root)) {
+        return false;
+    }
+    return SendFileTransferPacketMessage(socket, rfbDirPacket, 0, 0, std::vector<CARD8>());
+}
+
 bool SendRecursiveDirectoryListing(RfbTransport& socket,
                                    const std::string& root,
                                    const std::string& requestedPath)
@@ -615,7 +626,7 @@ bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Frameb
                 return SendFileTransferError(socket);
             }
             if (message.contentParam == rfbRDrivesList) {
-                return SendDirectoryListing(socket, state->FileTransferRoot(), requestedPath.empty() ? std::string(".") : requestedPath);
+                return SendLinuxDrivesList(socket, state->FileTransferRoot());
             }
             if (message.contentParam == rfbRDirRecursiveList) {
                 return SendRecursiveDirectoryListing(socket, state->FileTransferRoot(), requestedPath);
