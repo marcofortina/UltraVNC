@@ -25,6 +25,11 @@ std::vector<CARD8> EncodedFramebufferUpdateBytes(const Framebuffer& framebuffer,
                                                  const FramebufferUpdateRequest& request,
                                                  const rfbPixelFormat& remoteFormat,
                                                  const std::vector<CARD32>& preferredEncodings);
+std::vector<CARD8> EncodedFramebufferUpdateBytes(const Framebuffer& framebuffer,
+                                                 const FramebufferUpdateRequest& request,
+                                                 const rfb::Region2D& changed,
+                                                 const rfbPixelFormat& remoteFormat,
+                                                 const std::vector<CARD32>& preferredEncodings);
 std::vector<CARD8> PointerPositionUpdateBytes(unsigned int x, unsigned int y);
 
 } // namespace portable

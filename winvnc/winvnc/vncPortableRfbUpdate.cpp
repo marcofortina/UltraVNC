@@ -47,6 +47,18 @@ CARD32 SelectFramebufferEncoding(const std::vector<CARD32>& preferredEncodings)
     return rfbEncodingRaw;
 }
 
+bool RectToRequest(const rfb::Rect& rect, uvnc::winvnc::portable::FramebufferUpdateRequest& request)
+{
+    if (rect.is_empty()) {
+        return false;
+    }
+    request.x = static_cast<unsigned int>(rect.tl.x);
+    request.y = static_cast<unsigned int>(rect.tl.y);
+    request.width = static_cast<unsigned int>(rect.br.x - rect.tl.x);
+    request.height = static_cast<unsigned int>(rect.br.y - rect.tl.y);
+    return request.width > 0 && request.height > 0;
+}
+
 } // namespace
 
 namespace uvnc {
@@ -138,6 +150,36 @@ std::vector<CARD8> EncodedFramebufferUpdateBytes(const Framebuffer& framebuffer,
     std::memcpy(bytes.data(), &update, sz_rfbFramebufferUpdateMsg);
     std::memcpy(bytes.data() + sz_rfbFramebufferUpdateMsg, encodedRect.data(), encodedRect.size());
     return bytes;
+}
+
+
+std::vector<CARD8> EncodedFramebufferUpdateBytes(const Framebuffer& framebuffer,
+                                                 const FramebufferUpdateRequest& request,
+                                                 const rfb::Region2D& changed,
+                                                 const rfbPixelFormat& remoteFormat,
+                                                 const std::vector<CARD32>& preferredEncodings)
+{
+    if (changed.is_empty()) {
+        return EmptyFramebufferUpdateBytes();
+    }
+
+    rfb::Rect requested;
+    if (!ClipRequestToRect(framebuffer, request, requested)) {
+        return EmptyFramebufferUpdateBytes();
+    }
+
+    rfb::Region2D requestedRegion(requested);
+    rfb::Region2D dirty = changed.intersect(requestedRegion);
+    if (dirty.is_empty()) {
+        return EmptyFramebufferUpdateBytes();
+    }
+
+    FramebufferUpdateRequest dirtyRequest = request;
+    if (!RectToRequest(dirty.get_bounding_rect(), dirtyRequest)) {
+        return EmptyFramebufferUpdateBytes();
+    }
+    dirtyRequest.incremental = false;
+    return EncodedFramebufferUpdateBytes(framebuffer, dirtyRequest, remoteFormat, preferredEncodings);
 }
 
 std::vector<CARD8> PointerPositionUpdateBytes(unsigned int x, unsigned int y)
