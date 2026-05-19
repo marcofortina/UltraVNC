@@ -35,8 +35,10 @@ struct ViewerCliOptions {
     bool listRemoteDrives;
     bool downloadRemote;
     bool remoteChecksums;
+    bool uploadLocal;
     std::string remotePath;
     std::string downloadOutputPath;
+    std::string uploadLocalPath;
 };
 
 bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& options, std::string& error);

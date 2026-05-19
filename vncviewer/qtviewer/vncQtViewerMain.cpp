@@ -18,6 +18,7 @@
 #include <QWidget>
 
 #include <fstream>
+#include <iterator>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -133,6 +134,25 @@ int RunFileTransferOperation(const ViewerCliOptions& options)
             std::cout << (it->directory ? "dir" : (it->inaccessible ? "inaccessible" : "file"))
                       << "\t" << it->size << "\t" << it->name << "\n";
         }
+        return 0;
+    }
+
+    if (options.uploadLocal) {
+        std::ifstream input(options.uploadLocalPath.c_str(), std::ios::binary);
+        if (!input) {
+            std::cerr << "failed to open upload input path
+";
+            return 1;
+        }
+        std::vector<CARD8> payload((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+        if (!session.UploadRemoteFile(options.remotePath, payload, &error)) {
+            std::cerr << error << "
+";
+            return 1;
+        }
+        std::cout << "uploaded " << payload.size() << " bytes from " << options.uploadLocalPath
+                  << " to " << options.remotePath << "
+";
         return 0;
     }
 

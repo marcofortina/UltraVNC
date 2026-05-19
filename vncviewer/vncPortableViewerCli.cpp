@@ -33,8 +33,10 @@ ViewerCliOptions::ViewerCliOptions()
       listRemoteDrives(false),
       downloadRemote(false),
       remoteChecksums(false),
+      uploadLocal(false),
       remotePath(),
-      downloadOutputPath()
+      downloadOutputPath(),
+      uploadLocalPath()
 {
 }
 
@@ -220,6 +222,11 @@ bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& opti
         } else if (arg == "--remote-checksums" && i + 1 < args.size()) {
             options.remoteChecksums = true;
             options.remotePath = args[++i];
+        } else if (arg == "--upload-local" && i + 1 < args.size()) {
+            options.uploadLocal = true;
+            options.uploadLocalPath = args[++i];
+        } else if (arg == "--upload-remote" && i + 1 < args.size()) {
+            options.remotePath = args[++i];
         } else if (arg == "--continuous-updates") {
             options.config.SetContinuousUpdates(true);
         } else if (arg == "--encodings" && i + 1 < args.size()) {
@@ -252,13 +259,18 @@ bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& opti
     const unsigned int fileTransferActions = (options.listRemote ? 1u : 0u) +
                                              (options.listRemoteDrives ? 1u : 0u) +
                                              (options.downloadRemote ? 1u : 0u) +
-                                             (options.remoteChecksums ? 1u : 0u);
+                                             (options.remoteChecksums ? 1u : 0u) +
+                                             (options.uploadLocal ? 1u : 0u);
     if (fileTransferActions > 1) {
         error = "choose only one viewer file-transfer operation";
         return false;
     }
     if (options.downloadRemote && options.downloadOutputPath.empty()) {
         error = "--download-remote requires --download-output";
+        return false;
+    }
+    if (options.uploadLocal && options.remotePath.empty()) {
+        error = "--upload-local requires --upload-remote";
         return false;
     }
 
@@ -302,6 +314,8 @@ std::string ViewerCliUsage(const char *programName)
         << "  --download-remote <path> Download a remote file-transfer file and exit\n"
         << "  --download-output <path> Destination path for --download-remote\n"
         << "  --remote-checksums <path> Request remote file-transfer checksums and exit\n"
+        << "  --upload-local <path> Upload a local file through remote file-transfer and exit\n"
+        << "  --upload-remote <path> Remote destination path for --upload-local\n"
         << "  --encodings <list>     Comma-separated encodings: raw,copyrect,hextile,zlib,zrle,tight,rre,corre,newfbsize,richcursor,xcursor,pointerpos,lastrect,extendedclipboard\n"
         << "  --continuous-updates   Repeatedly request updates in the interactive Qt shell\n"
         << "  --socket-timeout-ms <ms> Socket read/write timeout, default 15000\n"
