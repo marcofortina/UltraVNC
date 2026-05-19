@@ -10,6 +10,7 @@
 #define UVNC_VNCVIEWER_PORTABLE_VIEWER_SESSION_H
 
 #include "vncPortableViewerConfig.h"
+#include "vncPortableViewerFileTransfer.h"
 
 #include "rfb.h"
 #include "vncPortableTcp.h"
@@ -102,6 +103,10 @@ public:
     bool SendKeyEvent(CARD32 keysym, bool down, std::string *error = nullptr);
     bool SendPointerEvent(CARD8 buttonMask, unsigned int x, unsigned int y, std::string *error = nullptr);
     bool SendClientCutText(const std::string& text, std::string *error = nullptr);
+    bool RequestRemoteDirectory(const std::string& path, std::vector<ViewerFileTransferEntry>& entries, std::string *error = nullptr);
+    bool RequestRemoteDrives(std::vector<ViewerFileTransferEntry>& entries, std::string *error = nullptr);
+    bool DownloadRemoteFile(const std::string& path, ViewerFileDownload& download, std::string *error = nullptr);
+    bool RequestRemoteFileChecksums(const std::string& path, std::vector<std::string>& checksums, std::string *error = nullptr);
 
 private:
     uvnc::winvnc::portable::TcpSocket socket_;

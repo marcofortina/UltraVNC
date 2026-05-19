@@ -9,6 +9,7 @@
 #include "vncPortableViewerSession.h"
 
 #include "vncPortableViewerSecurity.h"
+#include "vncPortableViewerFileTransfer.h"
 #include "vncPortableVncAuth.h"
 
 #include "vncPortableExtendedClipboard.h"
@@ -1856,6 +1857,42 @@ bool PersistentViewerSession::SendClientCutText(const std::string& text, std::st
         error->clear();
     }
     return true;
+}
+
+bool PersistentViewerSession::RequestRemoteDirectory(const std::string& path, std::vector<ViewerFileTransferEntry>& entries, std::string *error)
+{
+    if (!Connected()) {
+        SetError(error, "viewer is not connected");
+        return false;
+    }
+    return RequestViewerDirectoryListing(socket_, path, entries, error);
+}
+
+bool PersistentViewerSession::RequestRemoteDrives(std::vector<ViewerFileTransferEntry>& entries, std::string *error)
+{
+    if (!Connected()) {
+        SetError(error, "viewer is not connected");
+        return false;
+    }
+    return RequestViewerDrivesList(socket_, entries, error);
+}
+
+bool PersistentViewerSession::DownloadRemoteFile(const std::string& path, ViewerFileDownload& download, std::string *error)
+{
+    if (!Connected()) {
+        SetError(error, "viewer is not connected");
+        return false;
+    }
+    return RequestViewerFileDownload(socket_, path, download, error);
+}
+
+bool PersistentViewerSession::RequestRemoteFileChecksums(const std::string& path, std::vector<std::string>& checksums, std::string *error)
+{
+    if (!Connected()) {
+        SetError(error, "viewer is not connected");
+        return false;
+    }
+    return RequestViewerFileChecksums(socket_, path, checksums, error);
 }
 
 } // namespace portable
