@@ -75,3 +75,7 @@ $XDG_RUNTIME_DIR/uvnc-winvnc-memory-server.log
 - No HTTP Java viewer service is enabled.
 
 Those are not silently missing features: they are documented platform boundaries. Future Linux admin UI work should be a native Qt/admin tool or a separate management frontend, not a direct port of Windows tray/service UI code.
+
+## Qt server settings
+
+`uvnc_qt_server_settings` provides the native Linux Qt configuration GUI for `uvnc_winvnc_memory_server`. It is not a Win32 dialog shim; it writes the Linux server config model directly. See `docs/native-linux-qt-server-settings.md`.
