@@ -44,8 +44,8 @@ grep -q 'Manual X11 validation' "${INTEGRATION_DOC}"
 grep -q 'Manual PipeWire/XDG portal validation' "${INTEGRATION_DOC}"
 grep -q 'Manual XTest validation' "${INTEGRATION_DOC}"
 
-"${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --validate-config --config "${CONFIG_FILE}" --capture-backend memory --input-backend none
-"${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --print-config --config "${CONFIG_FILE}" --capture-backend auto --input-backend auto >/dev/null
+"${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --allow-no-auth --validate-config --config "${CONFIG_FILE}" --capture-backend memory --input-backend none
+"${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --allow-no-auth --print-config --config "${CONFIG_FILE}" --capture-backend auto --input-backend auto >/dev/null
 "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --smoke-pipewire-availability-test >/dev/null
 "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --smoke-xtest-availability-test >/dev/null
 

@@ -19,6 +19,7 @@ INSTALL_PREFIX="${2:-}"
 
 ctest --test-dir "${BUILD_DIR}" --output-on-failure -L 'winvnc-portable'
 "${BUILD_DIR}/winvnc_memory_server/uvnc_winvnc_memory_server" \
+    --allow-no-auth \
     --smoke-multi-update-test \
     --max-updates 3 \
     --fill-byte 119 \
@@ -31,6 +32,7 @@ if [[ -n "${INSTALL_PREFIX}" ]]; then
     cmake --install "${BUILD_DIR}" --prefix "${INSTALL_PREFIX}"
     "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --help >/dev/null
     "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" \
+        --allow-no-auth \
         --print-config \
         --pattern gradient-y \
         --fill-byte 42 \
@@ -38,6 +40,7 @@ if [[ -n "${INSTALL_PREFIX}" ]]; then
         --height 32 \
         --name installed-winvnc-portable-closure >/dev/null
     "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" \
+        --allow-no-auth \
         --smoke-multi-update-test \
         --max-updates 3 \
         --fill-byte 119 \

@@ -34,6 +34,7 @@ ctest --test-dir "${BUILD_DIR}" --output-on-failure -R "${memory_rfb_regex}"
 
 "${BUILD_DIR}/winvnc_memory_server/uvnc_winvnc_memory_server" --help >/dev/null
 "${BUILD_DIR}/winvnc_memory_server/uvnc_winvnc_memory_server" \
+    --allow-no-auth \
     --print-config \
     --pattern checker \
     --fill-byte 85 \
@@ -41,6 +42,7 @@ ctest --test-dir "${BUILD_DIR}" --output-on-failure -R "${memory_rfb_regex}"
     --height 32 \
     --name memory-rfb-closure >/dev/null
 "${BUILD_DIR}/winvnc_memory_server/uvnc_winvnc_memory_server" \
+    --allow-no-auth \
     --smoke-test \
     --pattern checker \
     --fill-byte 85 \
@@ -48,6 +50,7 @@ ctest --test-dir "${BUILD_DIR}" --output-on-failure -R "${memory_rfb_regex}"
     --height 32 \
     --name memory-rfb-handshake-closure
 "${BUILD_DIR}/winvnc_memory_server/uvnc_winvnc_memory_server" \
+    --allow-no-auth \
     --smoke-update-test \
     --pattern solid \
     --fill-byte 42 \
@@ -55,6 +58,7 @@ ctest --test-dir "${BUILD_DIR}" --output-on-failure -R "${memory_rfb_regex}"
     --height 32 \
     --name memory-rfb-update-closure
 "${BUILD_DIR}/winvnc_memory_server/uvnc_winvnc_memory_server" \
+    --allow-no-auth \
     --smoke-multi-update-test \
     --max-updates 3 \
     --pattern solid \
@@ -67,6 +71,7 @@ if [[ -n "${INSTALL_PREFIX}" ]]; then
     cmake --install "${BUILD_DIR}" --prefix "${INSTALL_PREFIX}"
     "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" --help >/dev/null
     "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" \
+        --allow-no-auth \
         --print-config \
         --pattern gradient-y \
         --fill-byte 42 \
@@ -74,6 +79,7 @@ if [[ -n "${INSTALL_PREFIX}" ]]; then
         --height 32 \
         --name installed-memory-rfb-closure >/dev/null
     "${INSTALL_PREFIX}/bin/uvnc_winvnc_memory_server" \
+        --allow-no-auth \
         --smoke-multi-update-test \
         --max-updates 3 \
         --pattern solid \
