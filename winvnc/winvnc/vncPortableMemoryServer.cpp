@@ -108,31 +108,44 @@ bool MemoryServer::ServeOneUpdates(unsigned int updateCount, RfbInputSink *input
     return TryServeOneUpdates(updateCount, inputSink, 0, accepted) && accepted;
 }
 
-bool MemoryServer::TryServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy)
+bool MemoryServer::TryAccept(TcpSocket& client, unsigned int acceptTimeoutMs, bool& accepted)
 {
     accepted = false;
     if (!listener_.Valid()) {
         return false;
     }
-    TcpSocket client;
     if (!listener_.AcceptWithTimeoutMs(client, acceptTimeoutMs)) {
         return true;
     }
     accepted = true;
+    return true;
+}
+
+bool MemoryServer::ServeConnectedUpdates(TcpSocket client, unsigned int updateCount, RfbInputSink *inputSink, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy)
+{
+    if (!client.Valid()) {
+        return false;
+    }
     RfbServerSession session;
     RfbClientState state(config_);
     if (!session.RunHandshake(client, config_, &state)) {
         return false;
     }
-    if (clientPolicy && !clientPolicy->RegisterClient(state.SharedClientRequested())) {
+    ClientConnectionLease lease(clientPolicy, state.SharedClientRequested());
+    if (clientPolicy && !lease.Acquire()) {
         return false;
     }
-    const bool ok = SendInitialServerMessages(session, client, config_, clipboardSource) &&
+    return SendInitialServerMessages(session, client, config_, clipboardSource) &&
         session.ServeFramebufferUpdates(client, framebuffer_, updateCount, 128, nullptr, &state, inputSink, false, clipboardSink);
-    if (clientPolicy) {
-        clientPolicy->UnregisterClient(state.SharedClientRequested());
+}
+
+bool MemoryServer::TryServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy)
+{
+    TcpSocket client;
+    if (!TryAccept(client, acceptTimeoutMs, accepted) || !accepted) {
+        return !accepted;
     }
-    return ok;
+    return ServeConnectedUpdates(std::move(client), updateCount, inputSink, clipboardSink, clipboardSource, clientPolicy);
 }
 
 bool MemoryServer::ServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy)
@@ -141,30 +154,21 @@ bool MemoryServer::ServeOneUpdatesFromSource(DesktopSource& source, unsigned int
     return TryServeOneUpdatesFromSource(source, updateCount, inputSink, maxMessages, 0, accepted, clipboardSink, clipboardSource, clientPolicy) && accepted;
 }
 
-bool MemoryServer::TryServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy)
+bool MemoryServer::ServeConnectedUpdatesFromSource(TcpSocket client, DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy)
 {
-    accepted = false;
-    if (!listener_.Valid()) {
+    if (!client.Valid()) {
         return false;
     }
-    TcpSocket client;
-    if (!listener_.AcceptWithTimeoutMs(client, acceptTimeoutMs)) {
-        return true;
-    }
-    accepted = true;
-
     RfbServerSession session;
     RfbClientState state(config_);
     if (!session.RunHandshake(client, config_, &state)) {
         return false;
     }
-    if (clientPolicy && !clientPolicy->RegisterClient(state.SharedClientRequested())) {
+    ClientConnectionLease lease(clientPolicy, state.SharedClientRequested());
+    if (clientPolicy && !lease.Acquire()) {
         return false;
     }
     if (!SendInitialServerMessages(session, client, config_, clipboardSource)) {
-        if (clientPolicy) {
-            clientPolicy->UnregisterClient(state.SharedClientRequested());
-        }
         return false;
     }
 
@@ -176,27 +180,27 @@ bool MemoryServer::TryServeOneUpdatesFromSource(DesktopSource& source, unsigned 
         if (!source.Snapshot(current, changed) ||
             current.Width() != config_.Width() ||
             current.Height() != config_.Height()) {
-            if (clientPolicy) {
-                clientPolicy->UnregisterClient(state.SharedClientRequested());
-            }
             return false;
         }
 
         bool updateSent = false;
         if (!session.ServeNextClientMessage(client, current, updateSent, &stats, &state, inputSink, true, clipboardSink)) {
-            if (clientPolicy) {
-                clientPolicy->UnregisterClient(state.SharedClientRequested());
-            }
             return false;
         }
         if (updateSent) {
             sent += 1;
         }
     }
-    if (clientPolicy) {
-        clientPolicy->UnregisterClient(state.SharedClientRequested());
-    }
     return sent == updateCount;
+}
+
+bool MemoryServer::TryServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, ClientConnectionPolicy *clientPolicy)
+{
+    TcpSocket client;
+    if (!TryAccept(client, acceptTimeoutMs, accepted) || !accepted) {
+        return !accepted;
+    }
+    return ServeConnectedUpdatesFromSource(std::move(client), source, updateCount, inputSink, maxMessages, clipboardSink, clipboardSource, clientPolicy);
 }
 
 void MemoryServer::Stop()

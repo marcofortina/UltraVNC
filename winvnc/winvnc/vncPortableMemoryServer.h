@@ -29,8 +29,11 @@ public:
     bool ServeOne();
     bool ServeOneUpdate(RfbInputSink *inputSink = nullptr);
     bool ServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink = nullptr);
+    bool TryAccept(TcpSocket& client, unsigned int acceptTimeoutMs, bool& accepted);
+    bool ServeConnectedUpdates(TcpSocket client, unsigned int updateCount, RfbInputSink *inputSink = nullptr, RfbClipboardSink *clipboardSink = nullptr, RfbClipboardSource *clipboardSource = nullptr, ClientConnectionPolicy *clientPolicy = nullptr);
     bool TryServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink = nullptr, RfbClipboardSource *clipboardSource = nullptr, ClientConnectionPolicy *clientPolicy = nullptr);
     bool ServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink = nullptr, unsigned int maxMessages = 128, RfbClipboardSink *clipboardSink = nullptr, RfbClipboardSource *clipboardSource = nullptr, ClientConnectionPolicy *clientPolicy = nullptr);
+    bool ServeConnectedUpdatesFromSource(TcpSocket client, DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink = nullptr, unsigned int maxMessages = 128, RfbClipboardSink *clipboardSink = nullptr, RfbClipboardSource *clipboardSource = nullptr, ClientConnectionPolicy *clientPolicy = nullptr);
     bool TryServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink = nullptr, RfbClipboardSource *clipboardSource = nullptr, ClientConnectionPolicy *clientPolicy = nullptr);
     void Stop();
     bool Running() const { return listener_.Valid(); }
