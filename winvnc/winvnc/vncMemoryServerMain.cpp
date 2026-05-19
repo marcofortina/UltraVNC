@@ -169,7 +169,7 @@ bool EnforceLinuxServerSecurityPolicy(const ServerConfig& config, std::string *e
     const bool loopback = IsLoopbackBindAddress(config.BindAddress());
     if (config.AuthMode() == ServerAuthMode::NoAuth) {
         if (!config.AllowNoAuth()) {
-            if (error) *error = "no-auth is disabled by default; use --allow-no-auth only for loopback/lab use or configure --auth vnc-password --password-file";
+            if (error) *error = "no-auth is disabled by default; use --allow-no-auth only for loopback/lab use, configure --auth vnc-password --password-file, or configure --auth mslogon-ii --auth-helper";
             return false;
         }
         if (!loopback && !config.AllowPublicNoAuth()) {
@@ -1200,7 +1200,7 @@ void PrintLinuxAdminSummary(const ServerConfig& config,
               << "dsm_plugin=legacy-windows-abi-disabled\n"
               << "securevnc_plugin=legacy-dsm-plugin-disabled\n"
               << "mslogon_i=legacy-windows-auth-disabled\n"
-              << "mslogon_ii=server-disabled-viewer-supported\n"
+              << "mslogon_ii=server-external-helper-viewer-supported\n"
               << "capture_backend=" << CaptureBackendName(requestedBackend) << "\n"
               << "resolved_capture_backend=" << CaptureBackendName(resolvedBackend) << "\n"
               << "input_backend=" << InputBackendName(requestedInputBackend) << "\n"
