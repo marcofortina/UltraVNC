@@ -185,8 +185,11 @@ bool ServerConfig::Validate(std::string *error) const
             return false;
         }
     }
-    if (!dsmProviderPath_.empty() && !ValidateDsmProviderPath(dsmProviderPath_, error)) {
-        return false;
+    if (!dsmProviderPath_.empty()) {
+        DsmProvider provider;
+        if (!provider.Load(dsmProviderPath_, error)) {
+            return false;
+        }
     }
     if (fileTransferPayloadLimit_ == 0 || fileTransferPayloadLimit_ > 16U * 1024U * 1024U) {
         if (error) *error = "file-transfer payload guard limit must be between 1 and 16777216 bytes";
