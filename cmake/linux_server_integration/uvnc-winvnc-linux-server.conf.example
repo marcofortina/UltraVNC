@@ -31,10 +31,16 @@ serve_updates=true
 # auth=vnc-password
 # password_file=/home/USER/.config/ultravnc/vnc-password
 
-# VNCAuth is legacy RFB password authentication: max 8 bytes and no transport
-# encryption. It is still better than no-auth, but non-loopback binds require
-# an explicit allow_unencrypted_public=true opt-in until TLS/security-type work
-# lands. Use host firewalls, trusted networks or tunnels for any exposure.
+# VNCAuth is legacy RFB password authentication: max 8 bytes. For LAN/WAN
+# exposure, prefer VeNCrypt/X509Vnc TLS transport instead of unencrypted VNCAuth.
+# Generate/install private certificate material with 0600 permissions, then set:
+#
+# transport_security=vencrypt-x509-vnc
+# tls_certificate_file=/home/USER/.config/ultravnc/server.crt
+# tls_private_key_file=/home/USER/.config/ultravnc/server.key
+#
+# Non-loopback VNCAuth without TLS is still disabled by default and requires
+# explicit allow_unencrypted_public=true only for controlled legacy/lab exposure.
 
 # Local loopback/lab no-auth, not production:
 # auth=none

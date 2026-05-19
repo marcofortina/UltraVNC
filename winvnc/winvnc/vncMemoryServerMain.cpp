@@ -43,6 +43,9 @@ using uvnc::winvnc::portable::ServerConfig;
 using uvnc::winvnc::portable::ServerAuthMode;
 using uvnc::winvnc::portable::ServerAuthModeName;
 using uvnc::winvnc::portable::ParseServerAuthMode;
+using uvnc::winvnc::portable::TransportSecurityMode;
+using uvnc::winvnc::portable::TransportSecurityModeName;
+using uvnc::winvnc::portable::ParseTransportSecurityMode;
 using uvnc::winvnc::linuxfb::CaptureBackend;
 using uvnc::winvnc::linuxfb::CaptureBackendName;
 using uvnc::winvnc::linuxfb::LoadRawFramebufferFile;
@@ -68,6 +71,7 @@ using uvnc::winvnc::portable::RfbClipboardSink;
 using uvnc::winvnc::portable::RfbClipboardSource;
 using uvnc::winvnc::portable::ClientConnectionPolicy;
 using uvnc::winvnc::portable::TcpSocket;
+using uvnc::winvnc::portable::OpenSslTransportAvailable;
 using uvnc::winvnc::portable::FramebufferPattern;
 using uvnc::winvnc::portable::FileTransferMode;
 using uvnc::winvnc::portable::FileTransferModeName;
@@ -166,7 +170,7 @@ bool EnforceLinuxServerSecurityPolicy(const ServerConfig& config, std::string *e
             return false;
         }
     }
-    if (config.AuthMode() == ServerAuthMode::VncPassword && !loopback && !config.AllowUnencryptedPublic()) {
+    if (config.AuthMode() == ServerAuthMode::VncPassword && config.TransportSecurity() == TransportSecurityMode::None && !loopback && !config.AllowUnencryptedPublic()) {
         if (error) *error = "refusing VNCAuth on a non-loopback bind without transport encryption; use loopback/tunnel/firewall or --allow-unencrypted-public for explicit controlled exposure";
         return false;
     }
@@ -184,9 +188,9 @@ void HardenRuntimeFileCreationUmask()
 void PrintSecurityWarnings(const ServerConfig& config)
 {
     if (IsAllInterfacesBindAddress(config.BindAddress())) {
-        std::cerr << "warning: listening on 0.0.0.0; this experimental Linux server has no transport encryption yet" << "\n";
+        std::cerr << "warning: listening on 0.0.0.0" << "\n";
     }
-    if (config.AuthMode() == ServerAuthMode::VncPassword) {
+    if (config.AuthMode() == ServerAuthMode::VncPassword && config.TransportSecurity() == TransportSecurityMode::None) {
         std::cerr << "warning: VNCAuth protects the handshake but does not encrypt framebuffer/input traffic" << "\n";
     }
 }
@@ -409,6 +413,9 @@ void PrintUsage(const char *name)
               << "  --file-transfer-payload-limit <bytes> Max file-transfer payload accepted for discard\n"
               << "  --allow-no-auth         Explicitly allow no-auth loopback/lab mode\n"
               << "  --allow-public-no-auth  Explicitly allow no-auth on non-loopback lab binds\n"
+              << "  --transport-security <mode> Transport security: none, vencrypt-x509-vnc\n"
+              << "  --tls-cert-file <path> PEM certificate for VeNCrypt/X509Vnc\n"
+              << "  --tls-key-file <path> PEM private key for VeNCrypt/X509Vnc\n"
               << "  --allow-unencrypted-public Explicitly allow non-loopback VNCAuth without transport encryption\n"
               << "  --validate-config       Validate options and exit\n"
               << "  --print-config          Print resolved configuration and exit\n"
@@ -508,6 +515,12 @@ bool AddConfigOption(const std::string& key, const std::string& value, std::vect
         args.push_back("--file-transfer-payload-limit");
     } else if (key == "file_transfer_root") {
         args.push_back("--file-transfer-root");
+    } else if (key == "transport_security") {
+        args.push_back("--transport-security");
+    } else if (key == "tls_certificate_file") {
+        args.push_back("--tls-cert-file");
+    } else if (key == "tls_private_key_file") {
+        args.push_back("--tls-key-file");
     } else if (key == "allow_unencrypted_public") {
         if (value == "true" || value == "1" || value == "yes") {
             args.push_back("--allow-unencrypted-public");
@@ -732,6 +745,17 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
             config.SetAuthMode(mode);
         } else if (arg == "--password-file" && i + 1 < argc) {
             passwordFile = argv[++i];
+        } else if (arg == "--transport-security" && i + 1 < argc) {
+            TransportSecurityMode mode = TransportSecurityMode::None;
+            if (!ParseTransportSecurityMode(argv[++i], mode)) {
+                std::cerr << "invalid --transport-security\n";
+                return false;
+            }
+            config.SetTransportSecurity(mode);
+        } else if (arg == "--tls-cert-file" && i + 1 < argc) {
+            config.SetTlsCertificateFile(argv[++i]);
+        } else if (arg == "--tls-key-file" && i + 1 < argc) {
+            config.SetTlsPrivateKeyFile(argv[++i]);
         } else if (arg == "--bell-on-connect") {
             config.SetBellOnConnect(true);
         } else if (arg == "--server-cut-text" && i + 1 < argc) {
@@ -1049,6 +1073,9 @@ void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBac
               << "allow_no_auth=" << (config.AllowNoAuth() ? "yes" : "no") << "\n"
               << "allow_public_no_auth=" << (config.AllowPublicNoAuth() ? "yes" : "no") << "\n"
               << "allow_unencrypted_public=" << (config.AllowUnencryptedPublic() ? "yes" : "no") << "\n"
+              << "transport_security=" << TransportSecurityModeName(config.TransportSecurity()) << "\n"
+              << "tls_certificate_file=" << config.TlsCertificateFile() << "\n"
+              << "tls_private_key_file=" << (config.TlsPrivateKeyFile().empty() ? "" : "<configured>") << "\n"
               << "bell_on_connect=" << (config.BellOnConnect() ? "yes" : "no") << "\n"
               << "server_cut_text_bytes=" << config.ServerCutText().size() << "\n"
               << "max_shared_clients=" << config.MaxSharedClients() << "\n"
@@ -1409,6 +1436,17 @@ int main(int argc, char **argv)
     if (!config.Validate(&error)) {
         std::cerr << "invalid config: " << error << "\n";
         return 2;
+    }
+    if (config.TransportSecurity() == TransportSecurityMode::VeNCryptX509Vnc) {
+        if (!OpenSslTransportAvailable()) {
+            std::cerr << "invalid config: OpenSSL transport support is not compiled in\n";
+            return 2;
+        }
+        if (!ValidateRegularFilePermissions(config.TlsCertificateFile(), false, &error) ||
+            !ValidateRegularFilePermissions(config.TlsPrivateKeyFile(), true, &error)) {
+            std::cerr << "invalid config: " << error << "\n";
+            return 2;
+        }
     }
     if (smokeX11AvailabilityTest) {
         return RunSmokeX11AvailabilityTest();

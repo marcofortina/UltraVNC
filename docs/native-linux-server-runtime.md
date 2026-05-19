@@ -136,29 +136,43 @@ TLS is not implemented in this milestone.
 
 ## TLS/security-type strategy
 
-TLS is not silently claimed by this Linux milestone. The current production-safe
-position is:
+The native Linux server now supports a real TLS transport security path using
+VeNCrypt with the X509Vnc subtype. This is not DSM/MSLogon emulation and it does
+not pretend that legacy VNCAuth encrypts traffic. The production baseline is:
 
-1. no-auth is explicit loopback/lab-only;
-2. VNCAuth is supported for interoperability but is legacy and unencrypted;
-3. non-loopback VNCAuth requires `allow_unencrypted_public=true`;
-4. non-loopback deployments should use a trusted network, firewall and/or tunnel;
-5. a future milestone should add a real transport-security strategy instead of
-   pretending that VNCAuth is strong encryption.
+1. `transport_security=vencrypt-x509-vnc`;
+2. `auth=vnc-password` with a private `password_file`;
+3. absolute `tls_certificate_file` and `tls_private_key_file` paths;
+4. TLS private key permissions not accessible by group/other;
+5. non-loopback unencrypted VNCAuth still refused unless explicitly overridden.
 
-Validate and inspect the resolved runtime config:
+Example:
 
-```sh
-uvnc_winvnc_memory_server \
-  --config ~/.config/ultravnc/uvnc-winvnc-linux-server.conf \
-  --validate-config
-
-uvnc_winvnc_memory_server \
-  --config ~/.config/ultravnc/uvnc-winvnc-linux-server.conf \
-  --print-config
+```ini
+auth=vnc-password
+password_file=/home/USER/.config/ultravnc/vnc-password
+transport_security=vencrypt-x509-vnc
+tls_certificate_file=/home/USER/.config/ultravnc/server.crt
+tls_private_key_file=/home/USER/.config/ultravnc/server.key
 ```
 
+For self-signed lab certificates, generate the key locally and keep it private:
 
+```bash
+install -m 0700 -d ~/.config/ultravnc
+openssl req -x509 -newkey rsa:3072 -nodes \
+  -keyout ~/.config/ultravnc/server.key \
+  -out ~/.config/ultravnc/server.crt \
+  -subj "/CN=$(hostname -f)" \
+  -days 397
+chmod 0600 ~/.config/ultravnc/server.key
+chmod 0644 ~/.config/ultravnc/server.crt
+```
+
+Client trust is still an operator responsibility: use a client that implements
+VeNCrypt/X509Vnc and validate or pin the server certificate according to your
+environment. DSM/security plugins and MSLogon remain Windows-specific legacy
+features and are not loaded by the native Linux server.
 
 ## Secure runtime validation helper
 
