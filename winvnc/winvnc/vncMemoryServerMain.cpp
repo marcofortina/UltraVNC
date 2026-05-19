@@ -411,6 +411,7 @@ void PrintUsage(const char *name)
               << "  --server-cut-text <text> Send initial ServerCutText clipboard text after handshake\n"
               << "  --file-transfer-mode <mode> File transfer policy: disabled, reject-only\n"
               << "  --file-transfer-payload-limit <bytes> Max file-transfer payload accepted for discard\n"
+              << "  --file-transfer-allow-overwrite Allow uploads to replace existing files\n"
               << "  --allow-no-auth         Explicitly allow no-auth loopback/lab mode\n"
               << "  --allow-public-no-auth  Explicitly allow no-auth on non-loopback lab binds\n"
               << "  --transport-security <mode> Transport security: none, vencrypt-x509-vnc\n"
@@ -515,6 +516,16 @@ bool AddConfigOption(const std::string& key, const std::string& value, std::vect
         args.push_back("--file-transfer-payload-limit");
     } else if (key == "file_transfer_root") {
         args.push_back("--file-transfer-root");
+    } else if (key == "file_transfer_allow_overwrite") {
+        if (value == "true" || value == "1" || value == "yes") {
+            args.push_back("--file-transfer-allow-overwrite");
+            return true;
+        }
+        if (value == "false" || value == "0" || value == "no") {
+            return true;
+        }
+        if (error) *error = "invalid boolean value for file_transfer_allow_overwrite";
+        return false;
     } else if (key == "transport_security") {
         args.push_back("--transport-security");
     } else if (key == "tls_certificate_file") {
@@ -827,6 +838,8 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
             config.SetFileTransferPayloadLimit(limit);
         } else if (arg == "--file-transfer-root" && i + 1 < argc) {
             config.SetFileTransferRoot(argv[++i]);
+        } else if (arg == "--file-transfer-allow-overwrite") {
+            config.SetFileTransferAllowOverwrite(true);
         } else if (arg == "--security-plugin" || arg == "--dsm-plugin" || arg == "--mslogon" || arg == "--http-java-viewer") {
             std::cerr << arg << " is not supported by the native Linux server runtime yet\n";
             return false;
@@ -1082,6 +1095,7 @@ void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBac
               << "file_transfer_mode=" << FileTransferModeName(config.FileTransferModeValue()) << "\n"
               << "file_transfer_payload_limit=" << config.FileTransferPayloadLimit() << "\n"
               << "file_transfer_root=" << config.FileTransferRoot() << "\n"
+              << "file_transfer_allow_overwrite=" << (config.FileTransferAllowOverwrite() ? "true" : "false") << "\n"
               << "client_mode=" << ClientServiceModeName(clientMode) << "\n"
               << "serve_updates=" << (serveUpdates ? "yes" : "no") << "\n"
               << "serve_forever=" << (serveForever ? "yes" : "no") << "\n"
