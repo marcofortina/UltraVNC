@@ -20,6 +20,7 @@ ViewerConfig::ViewerConfig()
       shared_(true),
       requestUpdate_(false),
       viewOnly_(false),
+      allowNoAuth_(true),
       password_(),
       continuousUpdates_(false),
       updateIntervalMs_(1000),

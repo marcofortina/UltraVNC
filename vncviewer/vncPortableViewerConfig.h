@@ -25,6 +25,7 @@ public:
     bool Shared() const { return shared_; }
     bool RequestUpdate() const { return requestUpdate_; }
     bool ViewOnly() const { return viewOnly_; }
+    bool AllowNoAuth() const { return allowNoAuth_; }
     const std::string& Password() const { return password_; }
     bool ContinuousUpdates() const { return continuousUpdates_; }
     unsigned int UpdateIntervalMs() const { return updateIntervalMs_; }
@@ -36,6 +37,7 @@ public:
     void SetShared(bool shared) { shared_ = shared; }
     void SetRequestUpdate(bool requestUpdate) { requestUpdate_ = requestUpdate; }
     void SetViewOnly(bool viewOnly) { viewOnly_ = viewOnly; }
+    void SetAllowNoAuth(bool allowNoAuth) { allowNoAuth_ = allowNoAuth; }
     void SetPassword(const std::string& password) { password_ = password; }
     void SetContinuousUpdates(bool continuousUpdates) { continuousUpdates_ = continuousUpdates; }
     void SetUpdateIntervalMs(unsigned int updateIntervalMs) { updateIntervalMs_ = updateIntervalMs; }
@@ -50,6 +52,7 @@ private:
     bool shared_;
     bool requestUpdate_;
     bool viewOnly_;
+    bool allowNoAuth_;
     std::string password_;
     bool continuousUpdates_;
     unsigned int updateIntervalMs_;

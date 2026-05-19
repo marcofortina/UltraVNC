@@ -121,7 +121,7 @@ bool RunHandshakeOnSocket(TcpSocket& socket, const ViewerConfig& config, ViewerS
         return false;
     }
 
-    const ViewerSecurityDecision security = SelectViewerSecurityType(securityTypes, !config.Password().empty());
+    const ViewerSecurityDecision security = SelectViewerSecurityType(securityTypes, !config.Password().empty(), config.AllowNoAuth());
     if (security.selection == ViewerSecuritySelection::Unsupported) {
         SetError(error, security.error);
         return false;
