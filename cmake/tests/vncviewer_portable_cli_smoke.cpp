@@ -89,6 +89,48 @@ int main()
     assert(options.config.RequestUpdate());
 
     args.clear();
+    args.push_back("--list-remote");
+    args.push_back("/");
+    assert(ParseViewerCli(args, options, error));
+    assert(options.listRemote);
+    assert(options.remotePath == "/");
+
+    args.clear();
+    args.push_back("--list-drives");
+    assert(ParseViewerCli(args, options, error));
+    assert(options.listRemoteDrives);
+
+    args.clear();
+    args.push_back("--download-remote");
+    args.push_back("remote.txt");
+    args.push_back("--download-output");
+    args.push_back("/tmp/uvnc-viewer-download.txt");
+    assert(ParseViewerCli(args, options, error));
+    assert(options.downloadRemote);
+    assert(options.remotePath == "remote.txt");
+    assert(options.downloadOutputPath == "/tmp/uvnc-viewer-download.txt");
+
+    args.clear();
+    args.push_back("--remote-checksums");
+    args.push_back("remote.txt");
+    assert(ParseViewerCli(args, options, error));
+    assert(options.remoteChecksums);
+    assert(options.remotePath == "remote.txt");
+
+    args.clear();
+    args.push_back("--download-remote");
+    args.push_back("remote.txt");
+    assert(!ParseViewerCli(args, options, error));
+    assert(error == "--download-remote requires --download-output");
+
+    args.clear();
+    args.push_back("--list-drives");
+    args.push_back("--remote-checksums");
+    args.push_back("remote.txt");
+    assert(!ParseViewerCli(args, options, error));
+    assert(error == "choose only one viewer file-transfer operation");
+
+    args.clear();
     args.push_back("--port");
     args.push_back("70000");
     assert(!ParseViewerCli(args, options, error));
@@ -146,5 +188,7 @@ int main()
     assert(usage.find("--disable-no-auth") != std::string::npos);
     assert(usage.find("--connect-update-smoke") != std::string::npos);
     assert(usage.find("--persistent-input-smoke") != std::string::npos);
+    assert(usage.find("--list-remote") != std::string::npos);
+    assert(usage.find("--download-remote") != std::string::npos);
     return 0;
 }
