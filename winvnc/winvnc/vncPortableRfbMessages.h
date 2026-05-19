@@ -61,7 +61,7 @@ bool DecodeClientCutTextHeader(const rfbClientCutTextMsg& message, unsigned int&
 std::vector<CARD8> EncodeServerCutText(const std::string& text);
 std::vector<CARD8> EncodeBell();
 bool DecodeFileTransferHeader(const rfbFileTransferMsg& message, FileTransferMessage& out);
-std::vector<CARD8> EncodeFileTransferAbort(CARD16 contentParam = 0);
+std::vector<CARD8> EncodeFileTransferAbort(CARD16 contentParam = 0, CARD32 size = 0);
 
 } // namespace portable
 } // namespace winvnc

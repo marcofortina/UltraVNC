@@ -370,7 +370,7 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
                     stats->fileTransferMessages += 1;
                     stats->fileTransferBytesDiscarded += decision.payloadBytes;
                 }
-                return SendFileTransferAbort(socket, rfbRErrorCmd);
+                return SendFileTransferAbort(socket, 0, rfbRErrorCmd);
             }
         }
         if (stats) {
@@ -451,9 +451,9 @@ bool RfbServerSession::SendCursorShape(TcpSocket& socket, RfbClientState& state)
     return true;
 }
 
-bool RfbServerSession::SendFileTransferAbort(TcpSocket& socket, CARD16 contentParam) const
+bool RfbServerSession::SendFileTransferAbort(TcpSocket& socket, CARD16 contentParam, CARD32 size) const
 {
-    const std::vector<CARD8> bytes = EncodeFileTransferAbort(contentParam);
+    const std::vector<CARD8> bytes = EncodeFileTransferAbort(contentParam, size);
     return socket.WriteAll(bytes.data(), bytes.size());
 }
 

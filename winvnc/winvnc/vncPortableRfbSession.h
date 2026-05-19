@@ -64,7 +64,7 @@ public:
     bool SendBell(TcpSocket& socket) const;
     bool SendServerCutText(TcpSocket& socket, const std::string& text) const;
     bool SendCursorShape(TcpSocket& socket, RfbClientState& state) const;
-    bool SendFileTransferAbort(TcpSocket& socket, CARD16 contentParam = 0) const;
+    bool SendFileTransferAbort(TcpSocket& socket, CARD16 contentParam = 0, CARD32 size = 0) const;
 };
 
 } // namespace portable

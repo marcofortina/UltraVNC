@@ -211,13 +211,14 @@ bool DecodeFileTransferHeader(const rfbFileTransferMsg& message, FileTransferMes
     return true;
 }
 
-std::vector<CARD8> EncodeFileTransferAbort(CARD16 contentParam)
+std::vector<CARD8> EncodeFileTransferAbort(CARD16 contentParam, CARD32 size)
 {
     rfbFileTransferMsg message;
     std::memset(&message, 0, sizeof(message));
     message.type = rfbFileTransfer;
     message.contentType = rfbAbortFileTransfer;
     message.contentParam = Swap16IfLE(contentParam);
+    message.size = Swap32IfLE(size);
 
     std::vector<CARD8> bytes(sz_rfbFileTransferMsg);
     std::memcpy(bytes.data(), &message, sz_rfbFileTransferMsg);
