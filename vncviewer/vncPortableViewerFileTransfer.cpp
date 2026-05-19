@@ -58,6 +58,51 @@ bool DrainServerCutText(uvnc::winvnc::portable::RfbTransport& transport, std::st
     return true;
 }
 
+
+bool DrainFramebufferUpdate(uvnc::winvnc::portable::RfbTransport& transport, std::string *error)
+{
+    rfbFramebufferUpdateMsg update;
+    std::memset(&update, 0, sizeof(update));
+    update.type = rfbFramebufferUpdate;
+    if (!transport.ReadExact(reinterpret_cast<char *>(&update) + 1, sz_rfbFramebufferUpdateMsg - 1)) {
+        SetError(error, "failed to read framebuffer update while waiting for file-transfer data");
+        return false;
+    }
+    const CARD16 rects = Swap16IfLE(update.nRects);
+    for (CARD16 i = 0; i < rects; ++i) {
+        rfbFramebufferUpdateRectHeader rect;
+        if (!transport.ReadExact(&rect, sz_rfbFramebufferUpdateRectHeader)) {
+            SetError(error, "failed to read framebuffer update rectangle while waiting for file-transfer data");
+            return false;
+        }
+        const CARD32 encoding = Swap32IfLE(rect.encoding);
+        const CARD16 width = Swap16IfLE(rect.r.w);
+        const CARD16 height = Swap16IfLE(rect.r.h);
+        if (encoding == rfbEncodingLastRect || encoding == rfbEncodingPointerPos || encoding == rfbEncodingNewFBSize) {
+            continue;
+        }
+        if (encoding == rfbEncodingRichCursor) {
+            const CARD32 mask = ((width + 7) / 8) * height;
+            if (!DrainBytes(transport, static_cast<CARD32>(width) * height * 4 + mask)) {
+                SetError(error, "failed to drain RichCursor while waiting for file-transfer data");
+                return false;
+            }
+            continue;
+        }
+        if (encoding == rfbEncodingXCursor) {
+            const CARD32 plane = ((width + 7) / 8) * height;
+            if (!DrainBytes(transport, sz_rfbXCursorColors + plane + plane)) {
+                SetError(error, "failed to drain XCursor while waiting for file-transfer data");
+                return false;
+            }
+            continue;
+        }
+        SetError(error, "framebuffer update contained drawable data while waiting for file-transfer data");
+        return false;
+    }
+    return true;
+}
+
 bool ReadPacket(uvnc::winvnc::portable::RfbTransport& transport,
                 rfbFileTransferMsg& message,
                 std::vector<CARD8>& payload,
@@ -74,6 +119,12 @@ bool ReadPacket(uvnc::winvnc::portable::RfbTransport& transport,
         }
         if (type == rfbServerCutText) {
             if (!DrainServerCutText(transport, error)) {
+                return false;
+            }
+            continue;
+        }
+        if (type == rfbFramebufferUpdate) {
+            if (!DrainFramebufferUpdate(transport, error)) {
                 return false;
             }
             continue;
