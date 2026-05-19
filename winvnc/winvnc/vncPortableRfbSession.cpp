@@ -630,6 +630,9 @@ bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Frameb
             return false;
         }
         if (IsExtendedClipboardWireLength(wire.length)) {
+            if (!state || !state->SupportsExtendedClipboard()) {
+                return false;
+            }
             const unsigned int length = ExtendedClipboardPayloadLength(wire.length);
             if (length == 0 || length > kExtendedClipboardDefaultTextLimit + 4096U) {
                 return false;
