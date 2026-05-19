@@ -14,6 +14,8 @@
 #include <QLineEdit>
 #include <QSpinBox>
 #include <QPushButton>
+#include <QLabel>
+#include <QTabWidget>
 #include <QTextEdit>
 
 #include <cassert>
@@ -52,6 +54,8 @@ int main(int argc, char **argv)
     QPushButton *runtimeLogButton = panel.findChild<QPushButton *>("runtimeLogButton");
     QTextEdit *preview = panel.findChild<QTextEdit *>("previewEdit");
     QTextEdit *runtimeOutput = panel.findChild<QTextEdit *>("runtimeOutputEdit");
+    QLabel *title = panel.findChild<QLabel *>("serverSettingsTitle");
+    QTabWidget *tabs = panel.findChild<QTabWidget *>("serverSettingsTabs");
 
     assert(bind && bind->text() == "127.0.0.1");
     assert(port && port->value() == 5900);
@@ -76,6 +80,11 @@ int main(int argc, char **argv)
     assert(runtimeLogButton && runtimeLogButton->text() == "Refresh log");
     assert(preview && preview->toPlainText().contains("auth=vnc-password"));
     assert(runtimeOutput && runtimeOutput->toPlainText().isEmpty());
+    assert(title && title->text() == "UltraVNC Linux Server");
+    assert(tabs && tabs->count() == 3);
+    assert(tabs->tabText(0) == "Settings");
+    assert(tabs->tabText(1) == "Runtime");
+    assert(tabs->tabText(2) == "Config preview");
     assert(!panel.ServerRunning());
 
     password->setText("secret");
