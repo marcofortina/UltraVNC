@@ -50,6 +50,7 @@ cleanup() {
 trap cleanup EXIT
 
 "$server_bin" \
+  --allow-no-auth \
   --bind-address 127.0.0.1 \
   --port "$port" \
   --width 64 \

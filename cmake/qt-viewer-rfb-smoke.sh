@@ -41,6 +41,7 @@ viewer_bin="$install_prefix/bin/uvnc_qt_viewer"
 
 server_log="$(mktemp)"
 "$server_bin" \
+  --allow-no-auth \
   --bind-address 127.0.0.1 \
   --port "$port" \
   --width 64 \
@@ -115,6 +116,7 @@ wait "$server_pid"
 # Run a second server for the Qt display smoke, because the memory server above
 # exits after serving one update.
 "$server_bin" \
+  --allow-no-auth \
   --bind-address 127.0.0.1 \
   --port "$port" \
   --width 64 \
