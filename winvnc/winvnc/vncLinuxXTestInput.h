@@ -23,6 +23,14 @@ struct ButtonTransition {
     bool down;
 };
 
+struct KeyModifierPlan {
+    CARD32 keysym;
+    bool shift;
+    bool altGr;
+
+    KeyModifierPlan() : keysym(0), shift(false), altGr(false) {}
+};
+
 class XTestInputBackend {
 public:
     explicit XTestInputBackend(const std::string& displayName = std::string());
@@ -37,6 +45,7 @@ public:
     static bool IsAvailable(const std::string& displayName = std::string());
     static const char *UnavailableReason();
     static std::vector<ButtonTransition> ButtonTransitions(CARD8 previousMask, CARD8 nextMask);
+    static KeyModifierPlan PortableModifierPlan(CARD32 keysym);
 
 private:
     bool Initialize(std::string *error = nullptr);

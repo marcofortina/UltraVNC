@@ -13,6 +13,7 @@
 #include <X11/keysym.h>
 #include <X11/extensions/XTest.h>
 #include <X11/Xutil.h>
+#include <cctype>
 #endif
 
 namespace uvnc {
@@ -21,6 +22,9 @@ namespace linuxinput {
 namespace {
 
 #if defined(UVNC_HAVE_XTEST)
+
+const KeySym kShiftKeySym = XK_Shift_L;
+const KeySym kAltGrKeySym = XK_ISO_Level3_Shift;
 
 Display *OpenDisplay(const std::string& displayName)
 {
@@ -62,12 +66,36 @@ bool XTestInputBackend::InjectKeySym(CARD32 keysym, bool down, std::string *erro
         return false;
     }
     Display *display = static_cast<Display *>(display_);
-    const KeyCode keycode = XKeysymToKeycode(display, static_cast<KeySym>(keysym));
+    const KeyModifierPlan plan = PortableModifierPlan(keysym);
+    const KeyCode keycode = XKeysymToKeycode(display, static_cast<KeySym>(plan.keysym));
     if (keycode == 0) {
         SetError(error, "XTest cannot translate keysym to keycode");
         return false;
     }
-    const bool ok = XTestFakeKeyEvent(display, keycode, down ? True : False, CurrentTime) != 0;
+
+    KeyCode shiftKeycode = 0;
+    KeyCode altGrKeycode = 0;
+    if (plan.shift) {
+        shiftKeycode = XKeysymToKeycode(display, kShiftKeySym);
+        if (shiftKeycode == 0) {
+            SetError(error, "XTest cannot translate Shift modifier");
+            return false;
+        }
+    }
+    if (plan.altGr) {
+        altGrKeycode = XKeysymToKeycode(display, kAltGrKeySym);
+        if (altGrKeycode == 0) {
+            SetError(error, "XTest cannot translate AltGr modifier");
+            return false;
+        }
+    }
+
+    bool ok = true;
+    if (down && altGrKeycode != 0) ok = ok && XTestFakeKeyEvent(display, altGrKeycode, True, CurrentTime) != 0;
+    if (down && shiftKeycode != 0) ok = ok && XTestFakeKeyEvent(display, shiftKeycode, True, CurrentTime) != 0;
+    ok = ok && XTestFakeKeyEvent(display, keycode, down ? True : False, CurrentTime) != 0;
+    if (!down && shiftKeycode != 0) ok = ok && XTestFakeKeyEvent(display, shiftKeycode, False, CurrentTime) != 0;
+    if (!down && altGrKeycode != 0) ok = ok && XTestFakeKeyEvent(display, altGrKeycode, False, CurrentTime) != 0;
     XSync(display, False);
     if (!ok) {
         SetError(error, "XTest key injection failed");
@@ -209,6 +237,44 @@ const char *XTestInputBackend::UnavailableReason()
 #else
     return "XTest input backend was not built because XTest development files were not available";
 #endif
+}
+
+
+KeyModifierPlan XTestInputBackend::PortableModifierPlan(CARD32 keysym)
+{
+    KeyModifierPlan plan;
+    plan.keysym = keysym;
+    if (keysym >= 'A' && keysym <= 'Z') {
+        plan.keysym = static_cast<CARD32>(std::tolower(static_cast<unsigned char>(keysym)));
+        plan.shift = true;
+        return plan;
+    }
+
+    switch (keysym) {
+    case '!': plan.keysym = '1'; plan.shift = true; break;
+    case '@': plan.keysym = '2'; plan.shift = true; break;
+    case '#': plan.keysym = '3'; plan.shift = true; break;
+    case '$': plan.keysym = '4'; plan.shift = true; break;
+    case '%': plan.keysym = '5'; plan.shift = true; break;
+    case '^': plan.keysym = '6'; plan.shift = true; break;
+    case '&': plan.keysym = '7'; plan.shift = true; break;
+    case '*': plan.keysym = '8'; plan.shift = true; break;
+    case '(': plan.keysym = '9'; plan.shift = true; break;
+    case ')': plan.keysym = '0'; plan.shift = true; break;
+    case '_': plan.keysym = '-'; plan.shift = true; break;
+    case '+': plan.keysym = '='; plan.shift = true; break;
+    case '{': plan.keysym = '['; plan.shift = true; break;
+    case '}': plan.keysym = ']'; plan.shift = true; break;
+    case '|': plan.keysym = '\\'; plan.shift = true; break;
+    case ':': plan.keysym = ';'; plan.shift = true; break;
+    case '"': plan.keysym = '''; plan.shift = true; break;
+    case '<': plan.keysym = ','; plan.shift = true; break;
+    case '>': plan.keysym = '.'; plan.shift = true; break;
+    case '?': plan.keysym = '/'; plan.shift = true; break;
+    case '~': plan.keysym = '`'; plan.shift = true; break;
+    default: break;
+    }
+    return plan;
 }
 
 std::vector<ButtonTransition> XTestInputBackend::ButtonTransitions(CARD8 previousMask, CARD8 nextMask)
