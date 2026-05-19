@@ -16,6 +16,14 @@ namespace uvnc {
 namespace vncviewer {
 namespace portable {
 
+enum class ViewerTransportSecurityMode {
+    None,
+    VeNCryptX509Vnc
+};
+
+const char *ViewerTransportSecurityModeName(ViewerTransportSecurityMode mode);
+bool ParseViewerTransportSecurityMode(const std::string& value, ViewerTransportSecurityMode& mode);
+
 class ViewerConfig {
 public:
     ViewerConfig();
@@ -31,6 +39,9 @@ public:
     unsigned int UpdateIntervalMs() const { return updateIntervalMs_; }
     const std::vector<unsigned int>& Encodings() const { return encodings_; }
     unsigned int SocketTimeoutMs() const { return socketTimeoutMs_; }
+    ViewerTransportSecurityMode TransportSecurity() const { return transportSecurity_; }
+    const std::string& TlsCaFile() const { return tlsCaFile_; }
+    bool TlsVerifyPeer() const { return tlsVerifyPeer_; }
 
     void SetHost(const std::string& host) { host_ = host; }
     void SetPort(unsigned short port) { port_ = port; }
@@ -43,6 +54,9 @@ public:
     void SetUpdateIntervalMs(unsigned int updateIntervalMs) { updateIntervalMs_ = updateIntervalMs; }
     void SetEncodings(const std::vector<unsigned int>& encodings) { encodings_ = encodings; }
     void SetSocketTimeoutMs(unsigned int socketTimeoutMs) { socketTimeoutMs_ = socketTimeoutMs; }
+    void SetTransportSecurity(ViewerTransportSecurityMode mode) { transportSecurity_ = mode; }
+    void SetTlsCaFile(const std::string& path) { tlsCaFile_ = path; }
+    void SetTlsVerifyPeer(bool verify) { tlsVerifyPeer_ = verify; }
 
     bool Validate(std::string *error = nullptr) const;
 
@@ -58,6 +72,9 @@ private:
     unsigned int updateIntervalMs_;
     std::vector<unsigned int> encodings_;
     unsigned int socketTimeoutMs_;
+    ViewerTransportSecurityMode transportSecurity_;
+    std::string tlsCaFile_;
+    bool tlsVerifyPeer_;
 };
 
 } // namespace portable
