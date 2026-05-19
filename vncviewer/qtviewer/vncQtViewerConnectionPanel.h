@@ -39,6 +39,9 @@ private:
     void SendQtKeyEvent(int key, bool down);
     void SendQtPointerEvent(Qt::MouseButtons buttons, const QPoint& position);
     void SendClipboardText(bool showDialogOnError);
+    void ListRemotePath(bool showDialogOnError);
+    void ListRemoteDrives(bool showDialogOnError);
+    void DownloadRemoteFile(bool showDialogOnError);
     void LoadProfile();
     void SaveProfile();
     void StartContinuousUpdatesIfRequested();
@@ -63,8 +66,14 @@ private:
     QPushButton *saveProfileButton_;
     QLineEdit *clipboardEdit_;
     QPushButton *sendClipboardButton_;
+    QLineEdit *remotePathEdit_;
+    QLineEdit *downloadOutputEdit_;
+    QPushButton *remoteListButton_;
+    QPushButton *remoteDrivesButton_;
+    QPushButton *remoteDownloadButton_;
     QLabel *statusLabel_;
     QLabel *serverClipboardLabel_;
+    QLabel *remoteListingLabel_;
     QtViewerSurface *surface_;
     QTimer *continuousTimer_;
     QTimer *reconnectTimer_;

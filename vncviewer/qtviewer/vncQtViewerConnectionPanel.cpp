@@ -12,6 +12,7 @@
 
 #include <QCheckBox>
 #include <QClipboard>
+#include <QFile>
 #include <QFormLayout>
 #include <QGuiApplication>
 #include <QHBoxLayout>
@@ -159,8 +160,14 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
       saveProfileButton_(new QPushButton(QStringLiteral("Save profile"))),
       clipboardEdit_(new QLineEdit()),
       sendClipboardButton_(new QPushButton(QStringLiteral("Send clipboard"))),
+      remotePathEdit_(new QLineEdit(QStringLiteral("/"))),
+      downloadOutputEdit_(new QLineEdit()),
+      remoteListButton_(new QPushButton(QStringLiteral("List remote"))),
+      remoteDrivesButton_(new QPushButton(QStringLiteral("List roots"))),
+      remoteDownloadButton_(new QPushButton(QStringLiteral("Download"))),
       statusLabel_(new QLabel(QStringLiteral("Disconnected"))),
       serverClipboardLabel_(new QLabel(QStringLiteral("Server clipboard: <none>"))),
+      remoteListingLabel_(new QLabel(QStringLiteral("Remote files: <none>"))),
       surface_(new QtViewerSurface()),
       continuousTimer_(new QTimer(this)),
       reconnectTimer_(new QTimer(this))
@@ -176,10 +183,16 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     intervalSpin_->setObjectName(QStringLiteral("intervalSpin"));
     clipboardEdit_->setObjectName(QStringLiteral("clipboardEdit"));
     sendClipboardButton_->setObjectName(QStringLiteral("sendClipboardButton"));
+    remotePathEdit_->setObjectName(QStringLiteral("remotePathEdit"));
+    downloadOutputEdit_->setObjectName(QStringLiteral("downloadOutputEdit"));
+    remoteListButton_->setObjectName(QStringLiteral("remoteListButton"));
+    remoteDrivesButton_->setObjectName(QStringLiteral("remoteDrivesButton"));
+    remoteDownloadButton_->setObjectName(QStringLiteral("remoteDownloadButton"));
     loadProfileButton_->setObjectName(QStringLiteral("loadProfileButton"));
     saveProfileButton_->setObjectName(QStringLiteral("saveProfileButton"));
     statusLabel_->setObjectName(QStringLiteral("statusLabel"));
     serverClipboardLabel_->setObjectName(QStringLiteral("serverClipboardLabel"));
+    remoteListingLabel_->setObjectName(QStringLiteral("remoteListingLabel"));
 
     portSpin_->setRange(1, 65535);
     portSpin_->setValue(initialConfig.Port());
@@ -219,14 +232,23 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     clipboard->addWidget(clipboardEdit_, 1);
     clipboard->addWidget(sendClipboardButton_);
 
+    QHBoxLayout *fileTransfer = new QHBoxLayout();
+    fileTransfer->addWidget(remotePathEdit_, 1);
+    fileTransfer->addWidget(remoteListButton_);
+    fileTransfer->addWidget(remoteDrivesButton_);
+    fileTransfer->addWidget(downloadOutputEdit_, 1);
+    fileTransfer->addWidget(remoteDownloadButton_);
+
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->addLayout(form);
     layout->addLayout(options);
     layout->addLayout(buttons);
     layout->addLayout(profiles);
     layout->addLayout(clipboard);
+    layout->addLayout(fileTransfer);
     layout->addWidget(statusLabel_);
     layout->addWidget(serverClipboardLabel_);
+    layout->addWidget(remoteListingLabel_);
     layout->addWidget(surface_, 1);
     setLayout(layout);
 
@@ -250,6 +272,15 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     });
     QObject::connect(sendClipboardButton_, &QPushButton::clicked, this, [this]() {
         SendClipboardText(true);
+    });
+    QObject::connect(remoteListButton_, &QPushButton::clicked, this, [this]() {
+        ListRemotePath(true);
+    });
+    QObject::connect(remoteDrivesButton_, &QPushButton::clicked, this, [this]() {
+        ListRemoteDrives(true);
+    });
+    QObject::connect(remoteDownloadButton_, &QPushButton::clicked, this, [this]() {
+        DownloadRemoteFile(true);
     });
     QObject::connect(loadProfileButton_, &QPushButton::clicked, this, [this]() {
         LoadProfile();
@@ -424,6 +455,67 @@ void QtViewerConnectionPanel::SendClipboardText(bool showDialogOnError)
         return;
     }
     SetStatus(QStringLiteral("Clipboard sent"));
+}
+
+
+void QtViewerConnectionPanel::ListRemotePath(bool showDialogOnError)
+{
+    if (!session_.Connected()) {
+        RequestUpdate(showDialogOnError);
+        if (!session_.Connected()) return;
+    }
+    std::vector<portable::ViewerFileTransferEntry> entries;
+    std::string error;
+    if (!session_.RequestRemoteDirectory(remotePathEdit_->text().toStdString(), entries, &error)) {
+        ShowError(QString::fromStdString(error), showDialogOnError);
+        return;
+    }
+    remoteListingLabel_->setText(QStringLiteral("Remote files: %1 entries").arg(entries.size()));
+    SetStatus(QStringLiteral("Remote directory listed"));
+}
+
+void QtViewerConnectionPanel::ListRemoteDrives(bool showDialogOnError)
+{
+    if (!session_.Connected()) {
+        RequestUpdate(showDialogOnError);
+        if (!session_.Connected()) return;
+    }
+    std::vector<portable::ViewerFileTransferEntry> entries;
+    std::string error;
+    if (!session_.RequestRemoteDrives(entries, &error)) {
+        ShowError(QString::fromStdString(error), showDialogOnError);
+        return;
+    }
+    remoteListingLabel_->setText(QStringLiteral("Remote roots: %1 entries").arg(entries.size()));
+    SetStatus(QStringLiteral("Remote roots listed"));
+}
+
+void QtViewerConnectionPanel::DownloadRemoteFile(bool showDialogOnError)
+{
+    if (downloadOutputEdit_->text().isEmpty()) {
+        ShowError(QStringLiteral("Download output path is required"), showDialogOnError);
+        return;
+    }
+    if (!session_.Connected()) {
+        RequestUpdate(showDialogOnError);
+        if (!session_.Connected()) return;
+    }
+    portable::ViewerFileDownload download;
+    std::string error;
+    if (!session_.DownloadRemoteFile(remotePathEdit_->text().toStdString(), download, &error)) {
+        ShowError(QString::fromStdString(error), showDialogOnError);
+        return;
+    }
+    QFile out(downloadOutputEdit_->text());
+    if (!out.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        ShowError(QStringLiteral("Failed to open download output path"), showDialogOnError);
+        return;
+    }
+    if (!download.payload.empty()) {
+        out.write(reinterpret_cast<const char *>(download.payload.data()), static_cast<qint64>(download.payload.size()));
+    }
+    remoteListingLabel_->setText(QStringLiteral("Downloaded %1 bytes").arg(download.payload.size()));
+    SetStatus(QStringLiteral("Remote file downloaded"));
 }
 
 void QtViewerConnectionPanel::StartContinuousUpdatesIfRequested()
