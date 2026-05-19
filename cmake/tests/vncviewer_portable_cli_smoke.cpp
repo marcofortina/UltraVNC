@@ -131,6 +131,18 @@ int main()
     assert(error == "choose only one viewer file-transfer operation");
 
     args.clear();
+    args.push_back("--security-extension");
+    args.push_back("dsm-plugin");
+    assert(!ParseViewerCli(args, options, error));
+    assert(error.find("dsm-plugin") != std::string::npos);
+
+    args.clear();
+    args.push_back("--security-extension");
+    args.push_back("bad-plugin");
+    assert(!ParseViewerCli(args, options, error));
+    assert(error == "invalid --security-extension");
+
+    args.clear();
     args.push_back("--port");
     args.push_back("70000");
     assert(!ParseViewerCli(args, options, error));
@@ -190,5 +202,6 @@ int main()
     assert(usage.find("--persistent-input-smoke") != std::string::npos);
     assert(usage.find("--list-remote") != std::string::npos);
     assert(usage.find("--download-remote") != std::string::npos);
+    assert(usage.find("--security-extension") != std::string::npos);
     return 0;
 }

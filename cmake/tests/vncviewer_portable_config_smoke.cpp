@@ -63,5 +63,12 @@ int main()
     assert(config.RequestUpdate());
     assert(config.ViewOnly());
     assert(!config.AllowNoAuth());
+
+    config.SetSecurityExtension(ViewerSecurityExtensionMode::DsmPlugin);
+    assert(!config.Validate(&error));
+    assert(error.find("dsm-plugin") != std::string::npos);
+    config.SetSecurityExtension(ViewerSecurityExtensionMode::None);
+    assert(config.Validate(&error));
+
     return 0;
 }
