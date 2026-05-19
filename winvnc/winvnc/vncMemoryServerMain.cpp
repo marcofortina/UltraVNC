@@ -28,6 +28,7 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -318,6 +319,36 @@ private:
 };
 
 
+
+enum class ClientServiceMode {
+    Sequential,
+    Threaded
+};
+
+const char *ClientServiceModeName(ClientServiceMode mode)
+{
+    switch (mode) {
+    case ClientServiceMode::Sequential:
+        return "sequential";
+    case ClientServiceMode::Threaded:
+        return "threaded";
+    }
+    return "unknown";
+}
+
+bool ParseClientServiceMode(const std::string& value, ClientServiceMode& mode)
+{
+    if (value == "sequential") {
+        mode = ClientServiceMode::Sequential;
+        return true;
+    }
+    if (value == "threaded") {
+        mode = ClientServiceMode::Threaded;
+        return true;
+    }
+    return false;
+}
+
 enum class ClipboardBackend {
     None,
     X11
@@ -485,6 +516,8 @@ bool AddConfigOption(const std::string& key, const std::string& value, std::vect
         args.push_back("--max-updates");
     } else if (key == "max_shared_clients") {
         args.push_back("--max-shared-clients");
+    } else if (key == "client_mode") {
+        args.push_back("--client-mode");
     } else if (key == "pid_file") {
         args.push_back("--pid-file");
     } else if (key == "status_file") {
@@ -608,7 +641,7 @@ bool ParseUnsigned(const char *value, unsigned int min, unsigned int max, unsign
     return true;
 }
 
-bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& captureBackend, InputBackend& inputBackend, ClipboardBackend& clipboardBackend, std::string& rawFramebufferFile, std::string& passwordFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& smokeX11UpdateTest, bool& smokeX11AvailabilityTest, bool& smokePipeWireAvailabilityTest, bool& smokeXTestAvailabilityTest, bool& smokeXTestInputTest, bool& allowInputInjection, bool& serveUpdates, bool& serveForever, unsigned int& maxUpdates, std::string& pidFile, std::string& statusFile, std::string& logFile)
+bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& captureBackend, InputBackend& inputBackend, ClipboardBackend& clipboardBackend, ClientServiceMode& clientMode, std::string& rawFramebufferFile, std::string& passwordFile, bool& validateOnly, bool& printConfig, bool& smokeTest, bool& smokeUpdateTest, bool& smokeMultiUpdateTest, bool& smokeRawFileUpdateTest, bool& smokeX11UpdateTest, bool& smokeX11AvailabilityTest, bool& smokePipeWireAvailabilityTest, bool& smokeXTestAvailabilityTest, bool& smokeXTestInputTest, bool& allowInputInjection, bool& serveUpdates, bool& serveForever, unsigned int& maxUpdates, std::string& pidFile, std::string& statusFile, std::string& logFile)
 {
     validateOnly = false;
     printConfig = false;
@@ -633,6 +666,7 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
     clipboardBackend = ClipboardBackend::None;
     rawFramebufferFile.clear();
     passwordFile.clear();
+    clientMode = ClientServiceMode::Sequential;
     for (int i = 1; i < argc; ++i) {
         const std::string arg(argv[i]);
         if (arg == "--help") {
@@ -713,6 +747,11 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
                 return false;
             }
             config.SetMaxSharedClients(maxClients);
+        } else if (arg == "--client-mode" && i + 1 < argc) {
+            if (!ParseClientServiceMode(argv[++i], clientMode)) {
+                std::cerr << "invalid --client-mode\n";
+                return false;
+            }
         } else if (arg == "--max-updates" && i + 1 < argc) {
             if (!ParseUnsigned(argv[++i], 1, 1024, maxUpdates)) {
                 std::cerr << "invalid --max-updates\n";
@@ -984,7 +1023,7 @@ bool RunSmokeMultiUpdateTest(const ServerConfig& config, unsigned int maxUpdates
     return clientOk && serverOk;
 }
 
-void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBackend, CaptureBackend resolvedBackend, InputBackend requestedInputBackend, InputBackend resolvedInputBackend, ClipboardBackend clipboardBackend, bool serveUpdates, bool serveForever, unsigned int maxUpdates, const std::string& pidFile, const std::string& statusFile, const std::string& logFile)
+void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBackend, CaptureBackend resolvedBackend, InputBackend requestedInputBackend, InputBackend resolvedInputBackend, ClipboardBackend clipboardBackend, ClientServiceMode clientMode, bool serveUpdates, bool serveForever, unsigned int maxUpdates, const std::string& pidFile, const std::string& statusFile, const std::string& logFile)
 {
     std::cout << "bind_address=" << config.BindAddress() << "\n"
               << "port=" << config.Port() << "\n"
@@ -1007,6 +1046,7 @@ void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBac
               << "max_shared_clients=" << config.MaxSharedClients() << "\n"
               << "file_transfer_mode=" << FileTransferModeName(config.FileTransferModeValue()) << "\n"
               << "file_transfer_payload_limit=" << config.FileTransferPayloadLimit() << "\n"
+              << "client_mode=" << ClientServiceModeName(clientMode) << "\n"
               << "serve_updates=" << (serveUpdates ? "yes" : "no") << "\n"
               << "serve_forever=" << (serveForever ? "yes" : "no") << "\n"
               << "max_updates=" << maxUpdates << "\n"
@@ -1206,6 +1246,7 @@ int main(int argc, char **argv)
     InputBackend inputBackend = InputBackend::Auto;
     InputBackend resolvedInputBackend = InputBackend::None;
     ClipboardBackend clipboardBackend = ClipboardBackend::None;
+    ClientServiceMode clientMode = ClientServiceMode::Sequential;
     std::string rawFramebufferFile;
     std::string passwordFile;
     bool validateOnly = false;
@@ -1237,7 +1278,7 @@ int main(int argc, char **argv)
         mergedArgv.push_back(&mergedArgs[i][0]);
     }
 
-    if (!ParseArgs(static_cast<int>(mergedArgv.size()), mergedArgv.data(), config, captureBackend, inputBackend, clipboardBackend, rawFramebufferFile, passwordFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, smokeX11AvailabilityTest, smokePipeWireAvailabilityTest, smokeXTestAvailabilityTest, smokeXTestInputTest, allowInputInjection, serveUpdates, serveForever, maxUpdates, pidFile, statusFile, logFile)) {
+    if (!ParseArgs(static_cast<int>(mergedArgv.size()), mergedArgv.data(), config, captureBackend, inputBackend, clipboardBackend, clientMode, rawFramebufferFile, passwordFile, validateOnly, printConfig, smokeTest, smokeUpdateTest, smokeMultiUpdateTest, smokeRawFileUpdateTest, smokeX11UpdateTest, smokeX11AvailabilityTest, smokePipeWireAvailabilityTest, smokeXTestAvailabilityTest, smokeXTestInputTest, allowInputInjection, serveUpdates, serveForever, maxUpdates, pidFile, statusFile, logFile)) {
         return 2;
     }
 
@@ -1293,7 +1334,7 @@ int main(int argc, char **argv)
         return 0;
     }
     if (printConfig) {
-        PrintResolvedConfig(config, captureBackend, resolvedCaptureBackend, inputBackend, resolvedInputBackend, clipboardBackend, serveUpdates, serveForever, maxUpdates, pidFile, statusFile, logFile);
+        PrintResolvedConfig(config, captureBackend, resolvedCaptureBackend, inputBackend, resolvedInputBackend, clipboardBackend, clientMode, serveUpdates, serveForever, maxUpdates, pidFile, statusFile, logFile);
         return 0;
     }
     if (smokeTest) {
