@@ -90,6 +90,8 @@ bool WriteExtendedClipboard(TcpSocket& socket)
 
 bool WritePointerPos(TcpSocket& socket)
 {
+    rfbFramebufferUpdateRequestMsg request;
+    if (!socket.ReadExact(&request, sz_rfbFramebufferUpdateRequestMsg)) return false;
     rfbFramebufferUpdateMsg update;
     std::memset(&update, 0, sizeof(update));
     update.type = rfbFramebufferUpdate;
@@ -104,6 +106,8 @@ bool WritePointerPos(TcpSocket& socket)
 
 bool WriteRichCursor(TcpSocket& socket)
 {
+    rfbFramebufferUpdateRequestMsg request;
+    if (!socket.ReadExact(&request, sz_rfbFramebufferUpdateRequestMsg)) return false;
     CursorShape shape = DefaultArrowCursorShape();
     shape.width = 2;
     shape.height = 2;
@@ -160,11 +164,15 @@ int main()
     assert(result.pointerPositionReceived);
     assert(result.pointerX == 3);
     assert(result.pointerY == 2);
+    assert(session.RequestFramebufferUpdate(false, result, &error));
     assert(result.cursorShape.received);
     assert(result.cursorShape.width == 2);
     assert(result.cursorShape.height == 2);
     assert(result.cursorShape.hotspotX == 1);
     assert(result.cursorShape.hotspotY == 1);
+    assert(session.RequestFramebufferUpdate(false, result, &error));
+    assert(!result.rectangles.empty());
+    assert(result.rectangles.back().encoding == rfbEncodingLastRect);
     session.Disconnect();
 
     server.join();
