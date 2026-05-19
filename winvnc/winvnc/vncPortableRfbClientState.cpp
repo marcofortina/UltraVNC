@@ -31,7 +31,10 @@ RfbClientState::RfbClientState(const ServerConfig& config)
       clientInitReceived_(false),
       fileTransferMode_(config.FileTransferModeValue()),
       fileTransferPayloadLimit_(config.FileTransferPayloadLimit()),
-      fileTransferRoot_(config.FileTransferRoot())
+      fileTransferRoot_(config.FileTransferRoot()),
+      fileUploadActive_(false),
+      fileUploadPath_(),
+      fileUploadBytes_(0)
 {
     std::memset(&lastKeyEvent_, 0, sizeof(lastKeyEvent_));
     std::memset(&lastPointerEvent_, 0, sizeof(lastPointerEvent_));
@@ -113,6 +116,25 @@ void RfbClientState::RecordClientCutText(const std::string& text)
 void RfbClientState::RecordServerCutTextSent(const std::string& text)
 {
     lastServerCutText_ = text;
+}
+
+void RfbClientState::BeginFileUpload(const std::string& path)
+{
+    fileUploadActive_ = true;
+    fileUploadPath_ = path;
+    fileUploadBytes_ = 0;
+}
+
+void RfbClientState::AddFileUploadBytes(CARD32 bytes)
+{
+    fileUploadBytes_ += bytes;
+}
+
+void RfbClientState::EndFileUpload()
+{
+    fileUploadActive_ = false;
+    fileUploadPath_.clear();
+    fileUploadBytes_ = 0;
 }
 
 } // namespace portable

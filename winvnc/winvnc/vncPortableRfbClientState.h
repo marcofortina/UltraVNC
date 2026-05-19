@@ -44,6 +44,9 @@ public:
     FileTransferMode FileTransferModeValue() const { return fileTransferMode_; }
     unsigned int FileTransferPayloadLimit() const { return fileTransferPayloadLimit_; }
     const std::string& FileTransferRoot() const { return fileTransferRoot_; }
+    bool FileUploadActive() const { return fileUploadActive_; }
+    const std::string& FileUploadPath() const { return fileUploadPath_; }
+    CARD32 FileUploadBytes() const { return fileUploadBytes_; }
 
     void SetPixelFormat(const rfbPixelFormat& format);
     void SetEncodings(const std::vector<CARD32>& encodings);
@@ -54,6 +57,9 @@ public:
     void RecordClientCutText(unsigned int bytes);
     void RecordClientCutText(const std::string& text);
     void RecordServerCutTextSent(const std::string& text);
+    void BeginFileUpload(const std::string& path);
+    void AddFileUploadBytes(CARD32 bytes);
+    void EndFileUpload();
 
 private:
     rfbPixelFormat pixelFormat_;
@@ -72,6 +78,9 @@ private:
     FileTransferMode fileTransferMode_;
     unsigned int fileTransferPayloadLimit_;
     std::string fileTransferRoot_;
+    bool fileUploadActive_;
+    std::string fileUploadPath_;
+    CARD32 fileUploadBytes_;
 };
 
 } // namespace portable
