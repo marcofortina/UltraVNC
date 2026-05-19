@@ -109,6 +109,8 @@ int main()
     const std::vector<CARD8> request = EncodeExtendedClientCutText(EncodeExtendedClipboardRequest());
     assert(clientSocket.WriteAll(request.data(), request.size()));
     assert(ReadExtendedServerCutText(clientSocket, serverPayload));
+    assert((serverPayload.flags & clipNotify) != 0);
+    assert(ReadExtendedServerCutText(clientSocket, serverPayload));
     assert((serverPayload.flags & clipProvide) != 0);
     assert(serverPayload.textPresent);
     assert(serverPayload.text == "server extended text");
