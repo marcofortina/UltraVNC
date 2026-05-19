@@ -624,6 +624,63 @@ bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Frameb
         if (!socket.ReadExact(reinterpret_cast<char *>(&wire) + 1, sz_rfbClientCutTextMsg - 1)) {
             return false;
         }
+        if (IsExtendedClipboardWireLength(wire.length)) {
+            const unsigned int length = ExtendedClipboardPayloadLength(wire.length);
+            if (length == 0 || length > kExtendedClipboardDefaultTextLimit + 4096U) {
+                return false;
+            }
+            std::vector<CARD8> payload(length);
+            const bool ok = payload.empty() || socket.ReadExact(payload.data(), payload.size());
+            if (!ok) {
+                return false;
+            }
+            ExtendedClipboardPayload extended;
+            if (!DecodeExtendedClipboardPayload(payload, extended)) {
+                return false;
+            }
+            const CARD32 action = extended.flags & clipActionMask;
+            if (state) {
+                if (action == clipCaps || (extended.flags & clipCaps)) {
+                    state->RecordExtendedClipboardRemoteCaps(extended.flags);
+                } else if (action == clipNotify) {
+                    state->RecordExtendedClipboardNotify(extended.flags);
+                }
+            }
+            if (action == clipProvide && extended.textPresent) {
+                if (state) {
+                    state->RecordClientCutText(extended.text);
+                }
+                if (clipboardSink) {
+                    std::string clipboardError;
+                    if (!clipboardSink->SetText(extended.text, &clipboardError)) {
+                        return false;
+                    }
+                }
+            } else if ((action == clipRequest || action == clipPeek) && clipboardSource) {
+                std::string text;
+                std::string clipboardError;
+                if (!clipboardSource->GetText(text, &clipboardError)) {
+                    return false;
+                }
+                if (action == clipPeek) {
+                    if (!SendExtendedClipboardNotify(socket, !text.empty(), stats)) {
+                        return false;
+                    }
+                } else if (!text.empty()) {
+                    if (!SendExtendedClipboardProvide(socket, text, stats)) {
+                        return false;
+                    }
+                    if (state) {
+                        state->RecordServerCutTextSent(text);
+                    }
+                }
+            }
+            if (stats) {
+                stats->clientCutTextMessages += 1;
+                stats->extendedClipboardMessages += 1;
+            }
+            return true;
+        }
         const CARD32 length = Swap32IfLE(wire.length);
         std::vector<CARD8> payload(length);
         const bool ok = payload.empty() || socket.ReadExact(payload.data(), payload.size());
