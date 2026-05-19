@@ -415,6 +415,7 @@ void PrintUsage(const char *name)
               << "  --auth <mode>           Auth mode: none, vnc-password, mslogon-ii\n"
               << "  --password-file <path>  Read VNCAuth password from a private file, max 8 bytes\n"
               << "  --auth-helper <path>   External auth helper for MSLogonII/PAM-style validation\n"
+              << "  --dsm-provider <path>  Native Linux DSM/SecureVNC provider shared object\n"
               << "  --bell-on-connect     Send an RFB Bell message after client handshake\n"
               << "  --server-cut-text <text> Send initial ServerCutText clipboard text after handshake\n"
               << "  --file-transfer-mode <mode> File transfer policy: disabled, reject-only\n"
@@ -492,6 +493,8 @@ bool AddConfigOption(const std::string& key, const std::string& value, std::vect
         args.push_back("--password-file");
     } else if (key == "auth_helper") {
         args.push_back("--auth-helper");
+    } else if (key == "dsm_provider") {
+        args.push_back("--dsm-provider");
     } else if (key == "allow_no_auth") {
         if (value == "true" || value == "1" || value == "yes") {
             args.push_back("--allow-no-auth");
@@ -793,6 +796,8 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
             passwordFile = argv[++i];
         } else if (arg == "--auth-helper" && i + 1 < argc) {
             config.SetAuthHelperPath(argv[++i]);
+        } else if (arg == "--dsm-provider" && i + 1 < argc) {
+            config.SetDsmProviderPath(argv[++i]);
         } else if (arg == "--transport-security" && i + 1 < argc) {
             TransportSecurityMode mode = TransportSecurityMode::None;
             if (!ParseTransportSecurityMode(argv[++i], mode)) {
@@ -907,7 +912,10 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
                 return false;
             }
             config.SetFileTransferRecursiveMaxEntries(entries);
-        } else if (arg == "--security-plugin" || arg == "--dsm-plugin" || arg == "--securevnc-plugin" || arg == "--mslogon" || arg == "--mslogon-i" || arg == "--mslogon-ii" || arg == "--http-java-viewer") {
+        } else if (arg == "--security-plugin" || arg == "--dsm-plugin" || arg == "--securevnc-plugin") {
+            std::cerr << arg << " is legacy syntax; use --dsm-provider /absolute/provider.so for the native Linux DSM provider ABI\n";
+            return false;
+        } else if (arg == "--mslogon" || arg == "--mslogon-i" || arg == "--mslogon-ii" || arg == "--http-java-viewer") {
             const SecurityExtensionDecision decision = EvaluateSecurityExtension(ParseSecurityExtensionOption(arg));
             std::cerr << arg << " is not supported by the native Linux server runtime: "
                       << decision.reason << "; " << decision.replacement
@@ -1154,6 +1162,7 @@ void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBac
               << "clipboard_backend=" << ClipboardBackendName(clipboardBackend) << "\n"
               << "auth=" << ServerAuthModeName(config.AuthMode()) << "\n"
               << "auth_helper=" << (config.AuthHelperPath().empty() ? "" : "<configured>") << "\n"
+              << "dsm_provider=" << (config.DsmProviderPath().empty() ? "" : "<configured>") << "\n"
               << "allow_no_auth=" << (config.AllowNoAuth() ? "yes" : "no") << "\n"
               << "allow_public_no_auth=" << (config.AllowPublicNoAuth() ? "yes" : "no") << "\n"
               << "allow_unencrypted_public=" << (config.AllowUnencryptedPublic() ? "yes" : "no") << "\n"
@@ -1171,6 +1180,7 @@ void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBac
               << "file_transfer_allow_overwrite=" << (config.FileTransferAllowOverwrite() ? "true" : "false") << "\n"
               << "file_transfer_recursive_max_depth=" << config.FileTransferRecursiveMaxDepth() << "\n"
               << "file_transfer_recursive_max_entries=" << config.FileTransferRecursiveMaxEntries() << "\n"
+              << "dsm_provider=" << (config.DsmProviderPath().empty() ? "" : "<configured>") << "\n"
               << "client_mode=" << ClientServiceModeName(clientMode) << "\n"
               << "serve_updates=" << (serveUpdates ? "yes" : "no") << "\n"
               << "serve_forever=" << (serveForever ? "yes" : "no") << "\n"
@@ -1197,8 +1207,8 @@ void PrintLinuxAdminSummary(const ServerConfig& config,
               << "windows_tray_ui_equivalent=not-ported-linux-use-status-files-and-journal\n"
               << "windows_settings_ui_equivalent=config-file-plus-validate-config\n"
               << "http_java_viewer=legacy-disabled\n"
-              << "dsm_plugin=legacy-windows-abi-disabled\n"
-              << "securevnc_plugin=legacy-dsm-plugin-disabled\n"
+              << "dsm_plugin=native-provider-abi-available\n"
+              << "securevnc_plugin=native-dsm-provider-required\n"
               << "mslogon_i=legacy-windows-auth-disabled\n"
               << "mslogon_ii=server-external-helper-viewer-supported\n"
               << "capture_backend=" << CaptureBackendName(requestedBackend) << "\n"
@@ -1208,6 +1218,7 @@ void PrintLinuxAdminSummary(const ServerConfig& config,
               << "clipboard_backend=" << ClipboardBackendName(clipboardBackend) << "\n"
               << "auth=" << ServerAuthModeName(config.AuthMode()) << "\n"
               << "auth_helper=" << (config.AuthHelperPath().empty() ? "" : "<configured>") << "\n"
+              << "dsm_provider=" << (config.DsmProviderPath().empty() ? "" : "<configured>") << "\n"
               << "transport_security=" << TransportSecurityModeName(config.TransportSecurity()) << "\n"
               << "client_mode=" << ClientServiceModeName(clientMode) << "\n"
               << "pid_file=" << pidFile << "\n"
