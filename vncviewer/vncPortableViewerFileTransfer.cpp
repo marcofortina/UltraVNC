@@ -273,6 +273,56 @@ bool RequestViewerFileChecksums(uvnc::winvnc::portable::TcpSocket& socket,
     return RequestViewerFileChecksums(transport, path, checksums, error);
 }
 
+bool UploadViewerFile(uvnc::winvnc::portable::TcpSocket& socket,
+                      const std::string& remotePath,
+                      const std::vector<CARD8>& payload,
+                      std::string *error)
+{
+    uvnc::winvnc::portable::TcpRfbTransport transport(socket);
+    return UploadViewerFile(transport, remotePath, payload, error);
+}
+
+bool UploadViewerFile(uvnc::winvnc::portable::RfbTransport& transport,
+                      const std::string& remotePath,
+                      const std::vector<CARD8>& payload,
+                      std::string *error)
+{
+    if (remotePath.empty()) {
+        SetError(error, "remote upload path must not be empty");
+        return false;
+    }
+    if (!WritePacket(transport, rfbFileTransferOffer, 0, static_cast<CARD32>(payload.size()), remotePath)) {
+        SetError(error, "failed to offer RFB file upload");
+        return false;
+    }
+    rfbFileTransferMsg response;
+    std::vector<CARD8> responsePayload;
+    if (!ReadPacket(transport, response, responsePayload, error)) {
+        return false;
+    }
+    if (response.contentType != rfbFileAcceptHeader) {
+        SetError(error, "RFB server did not accept file upload");
+        return false;
+    }
+    CARD32 offset = 0;
+    while (offset < payload.size()) {
+        const CARD32 chunk = static_cast<CARD32>(std::min<std::size_t>(payload.size() - offset, sz_rfbBlockSize));
+        std::string bytes(reinterpret_cast<const char *>(payload.data() + offset), chunk);
+        if (!WritePacket(transport, rfbFilePacket, 0, offset, bytes)) {
+            SetError(error, "failed to write RFB file upload packet");
+            return false;
+        }
+        offset += chunk;
+    }
+    if (!WritePacket(transport, rfbEndOfFile, 0, static_cast<CARD32>(payload.size()), std::string())) {
+        SetError(error, "failed to finish RFB file upload");
+        return false;
+    }
+    if (error) error->clear();
+    return true;
+}
+
+
 } // namespace portable
 } // namespace vncviewer
 } // namespace uvnc

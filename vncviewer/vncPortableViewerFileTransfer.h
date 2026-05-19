@@ -59,6 +59,10 @@ bool RequestViewerFileChecksums(uvnc::winvnc::portable::RfbTransport& transport,
                                 const std::string& path,
                                 std::vector<std::string>& checksums,
                                 std::string *error = nullptr);
+bool UploadViewerFile(uvnc::winvnc::portable::RfbTransport& transport,
+                      const std::string& remotePath,
+                      const std::vector<CARD8>& payload,
+                      std::string *error = nullptr);
 
 bool ReadViewerDirectoryListing(uvnc::winvnc::portable::TcpSocket& socket,
                                 std::vector<ViewerFileTransferEntry>& entries,
@@ -78,6 +82,10 @@ bool RequestViewerFileChecksums(uvnc::winvnc::portable::TcpSocket& socket,
                                 const std::string& path,
                                 std::vector<std::string>& checksums,
                                 std::string *error = nullptr);
+bool UploadViewerFile(uvnc::winvnc::portable::TcpSocket& socket,
+                      const std::string& remotePath,
+                      const std::vector<CARD8>& payload,
+                      std::string *error = nullptr);
 
 } // namespace portable
 } // namespace vncviewer

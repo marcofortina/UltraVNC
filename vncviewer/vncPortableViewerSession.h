@@ -109,6 +109,7 @@ public:
     bool RequestRemoteDrives(std::vector<ViewerFileTransferEntry>& entries, std::string *error = nullptr);
     bool DownloadRemoteFile(const std::string& path, ViewerFileDownload& download, std::string *error = nullptr);
     bool RequestRemoteFileChecksums(const std::string& path, std::vector<std::string>& checksums, std::string *error = nullptr);
+    bool UploadRemoteFile(const std::string& path, const std::vector<CARD8>& payload, std::string *error = nullptr);
 
 private:
     uvnc::winvnc::portable::TcpSocket socket_;

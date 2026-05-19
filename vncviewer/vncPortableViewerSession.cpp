@@ -1998,6 +1998,15 @@ bool PersistentViewerSession::RequestRemoteFileChecksums(const std::string& path
     return RequestViewerFileChecksums(*transport_, path, checksums, error);
 }
 
+bool PersistentViewerSession::UploadRemoteFile(const std::string& path, const std::vector<CARD8>& payload, std::string *error)
+{
+    if (!Connected()) {
+        SetError(error, "viewer is not connected");
+        return false;
+    }
+    return UploadViewerFile(*transport_, path, payload, error);
+}
+
 } // namespace portable
 } // namespace vncviewer
 } // namespace uvnc
