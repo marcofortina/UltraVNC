@@ -151,6 +151,10 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
       continuousCheck_(new QCheckBox(QStringLiteral("Continuous updates"))),
       autoReconnectCheck_(new QCheckBox(QStringLiteral("Auto reconnect"))),
       rememberPasswordCheck_(new QCheckBox(QStringLiteral("Remember password"))),
+      tlsCheck_(new QCheckBox(QStringLiteral("VeNCrypt TLS"))),
+      tlsInsecureCheck_(new QCheckBox(QStringLiteral("TLS insecure lab mode"))),
+      tlsCaFileEdit_(new QLineEdit(QString::fromStdString(initialConfig.TlsCaFile()))),
+      tlsServerNameEdit_(new QLineEdit(QString::fromStdString(initialConfig.TlsServerName()))),
       intervalSpin_(new QSpinBox()),
       connectButton_(new QPushButton(QStringLiteral("Connect"))),
       updateButton_(new QPushButton(QStringLiteral("Update once"))),
@@ -180,6 +184,10 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     continuousCheck_->setObjectName(QStringLiteral("continuousCheck"));
     autoReconnectCheck_->setObjectName(QStringLiteral("autoReconnectCheck"));
     rememberPasswordCheck_->setObjectName(QStringLiteral("rememberPasswordCheck"));
+    tlsCheck_->setObjectName(QStringLiteral("tlsCheck"));
+    tlsInsecureCheck_->setObjectName(QStringLiteral("tlsInsecureCheck"));
+    tlsCaFileEdit_->setObjectName(QStringLiteral("tlsCaFileEdit"));
+    tlsServerNameEdit_->setObjectName(QStringLiteral("tlsServerNameEdit"));
     intervalSpin_->setObjectName(QStringLiteral("intervalSpin"));
     clipboardEdit_->setObjectName(QStringLiteral("clipboardEdit"));
     sendClipboardButton_->setObjectName(QStringLiteral("sendClipboardButton"));
@@ -202,6 +210,8 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     continuousCheck_->setChecked(initialConfig.ContinuousUpdates());
     intervalSpin_->setRange(100, 60000);
     intervalSpin_->setValue(static_cast<int>(initialConfig.UpdateIntervalMs()));
+    tlsCheck_->setChecked(initialConfig.TransportSecurity() == portable::ViewerTransportSecurityMode::VeNCryptX509Vnc);
+    tlsInsecureCheck_->setChecked(!initialConfig.TlsVerifyPeer());
     continuousTimer_->setSingleShot(false);
     reconnectTimer_->setSingleShot(true);
 
@@ -209,6 +219,8 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     form->addRow(QStringLiteral("Host"), hostEdit_);
     form->addRow(QStringLiteral("Port"), portSpin_);
     form->addRow(QStringLiteral("Password"), passwordEdit_);
+    form->addRow(QStringLiteral("TLS CA file"), tlsCaFileEdit_);
+    form->addRow(QStringLiteral("TLS server name"), tlsServerNameEdit_);
     form->addRow(QStringLiteral("Update interval ms"), intervalSpin_);
 
     QHBoxLayout *options = new QHBoxLayout();
@@ -217,6 +229,8 @@ QtViewerConnectionPanel::QtViewerConnectionPanel(const portable::ViewerConfig& i
     options->addWidget(continuousCheck_);
     options->addWidget(autoReconnectCheck_);
     options->addWidget(rememberPasswordCheck_);
+    options->addWidget(tlsCheck_);
+    options->addWidget(tlsInsecureCheck_);
 
     QHBoxLayout *buttons = new QHBoxLayout();
     buttons->addWidget(connectButton_);
@@ -321,6 +335,10 @@ portable::ViewerConfig QtViewerConnectionPanel::CurrentConfig() const
     config.SetViewOnly(viewOnlyCheck_->isChecked());
     config.SetContinuousUpdates(continuousCheck_->isChecked());
     config.SetUpdateIntervalMs(static_cast<unsigned int>(intervalSpin_->value()));
+    config.SetTransportSecurity(tlsCheck_->isChecked() ? portable::ViewerTransportSecurityMode::VeNCryptX509Vnc : portable::ViewerTransportSecurityMode::None);
+    config.SetTlsCaFile(tlsCaFileEdit_->text().toStdString());
+    config.SetTlsServerName(tlsServerNameEdit_->text().toStdString());
+    config.SetTlsVerifyPeer(!tlsInsecureCheck_->isChecked());
     return config;
 }
 
@@ -338,6 +356,10 @@ void QtViewerConnectionPanel::LoadProfile()
     viewOnlyCheck_->setChecked(settings.value(QStringLiteral("viewOnly"), viewOnlyCheck_->isChecked()).toBool());
     continuousCheck_->setChecked(settings.value(QStringLiteral("continuousUpdates"), continuousCheck_->isChecked()).toBool());
     autoReconnectCheck_->setChecked(settings.value(QStringLiteral("autoReconnect"), autoReconnectCheck_->isChecked()).toBool());
+    tlsCheck_->setChecked(settings.value(QStringLiteral("tls"), tlsCheck_->isChecked()).toBool());
+    tlsInsecureCheck_->setChecked(settings.value(QStringLiteral("tlsInsecure"), tlsInsecureCheck_->isChecked()).toBool());
+    tlsCaFileEdit_->setText(settings.value(QStringLiteral("tlsCaFile"), tlsCaFileEdit_->text()).toString());
+    tlsServerNameEdit_->setText(settings.value(QStringLiteral("tlsServerName"), tlsServerNameEdit_->text()).toString());
     intervalSpin_->setValue(settings.value(QStringLiteral("updateIntervalMs"), intervalSpin_->value()).toInt());
     SetStatus(QStringLiteral("Profile loaded"));
 }
@@ -357,6 +379,10 @@ void QtViewerConnectionPanel::SaveProfile()
     settings.setValue(QStringLiteral("viewOnly"), viewOnlyCheck_->isChecked());
     settings.setValue(QStringLiteral("continuousUpdates"), continuousCheck_->isChecked());
     settings.setValue(QStringLiteral("autoReconnect"), autoReconnectCheck_->isChecked());
+    settings.setValue(QStringLiteral("tls"), tlsCheck_->isChecked());
+    settings.setValue(QStringLiteral("tlsInsecure"), tlsInsecureCheck_->isChecked());
+    settings.setValue(QStringLiteral("tlsCaFile"), tlsCaFileEdit_->text());
+    settings.setValue(QStringLiteral("tlsServerName"), tlsServerNameEdit_->text());
     settings.setValue(QStringLiteral("updateIntervalMs"), intervalSpin_->value());
     settings.sync();
     SetStatus(QStringLiteral("Profile saved"));

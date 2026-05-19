@@ -57,6 +57,10 @@ private:
     QCheckBox *continuousCheck_;
     QCheckBox *autoReconnectCheck_;
     QCheckBox *rememberPasswordCheck_;
+    QCheckBox *tlsCheck_;
+    QCheckBox *tlsInsecureCheck_;
+    QLineEdit *tlsCaFileEdit_;
+    QLineEdit *tlsServerNameEdit_;
     QSpinBox *intervalSpin_;
     QPushButton *connectButton_;
     QPushButton *updateButton_;
