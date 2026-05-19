@@ -20,6 +20,8 @@ Production-ready scope currently covered:
 - multi-rectangle FramebufferUpdate handling;
 - ClientCutText clipboard send path;
 - ServerCutText receive display;
+- UltraVNC ExtendedClipboard UTF-8 receive path;
+- RichCursor/XCursor/PointerPos/LastRect pseudo-encoding handling;
 - Bell tolerance;
 - keyboard/pointer forwarding path;
 - desktop entry/icon/docs install artifacts;
@@ -28,7 +30,6 @@ Production-ready scope currently covered:
 Known limits still outside the current production baseline:
 
 - compressed encoding decoders not yet implemented for Tight JPEG/gradient, ZlibHex and vendor-specific extensions;
-- extended clipboard protocol;
 - encrypted transport/TLS security types;
 - broad vendor interoperability matrix beyond the real servers explicitly tested by the helper scripts.
 

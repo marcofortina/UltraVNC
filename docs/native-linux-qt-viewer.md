@@ -116,7 +116,10 @@ Implemented in this milestone:
 Not implemented in this milestone:
 
 - Continuous live remote framebuffer updates against broad real-world VNC servers.
-- Clipboard and file transfer.
+- Native file transfer UI.
+- Encrypted transport/TLS security types.
+- DSM/MSLogon/security plugin auth.
+- Full RTF/HTML/DIB clipboard format conversion.
 
 ## Current protocol coverage
 
@@ -124,17 +127,22 @@ Implemented in the portable Qt viewer session path:
 
 - RFB 3.8 no-auth handshake.
 - RFB VNCAuth challenge/response when a password is provided.
-- SetEncodings negotiation for raw, CopyRect, RRE, CoRRE, Hextile, Zlib, ZRLE, Tight and NewFBSize.
+- SetEncodings negotiation for raw, CopyRect, RRE, CoRRE, Hextile, Zlib, ZRLE, Tight, NewFBSize, RichCursor, XCursor, PointerPos, LastRect and ExtendedClipboard.
 - Raw framebuffer update handling.
 - RRE/CoRRE/Hextile/Zlib/ZRLE/Tight framebuffer update decoding, including raw, solid, packed-palette and RLE tiles.
 - CopyRect/NewFBSize metadata handling.
+- RichCursor/XCursor metadata and payload receive path.
+- PointerPos pseudo-encoding receive path.
+- LastRect pseudo-encoding handling.
+- Extended clipboard receive path for UltraVNC zlib-compressed UTF-8 text.
 - ClientCutText clipboard send path.
 - Keyboard and pointer event forwarding over the persistent RFB session.
 
 Still follow-up work:
 
 - Full decoders for Tight JPEG/gradient, ZlibHex and vendor-specific compressed encodings.
-- ServerCutText/extended clipboard receive UI.
+- ServerCutText/extended clipboard receive UI presentation beyond internal state.
+- Native file transfer UI and protocol integration.
 - Real-server interoperability matrix across multiple VNC servers.
 
 Known-server smoke can also pass a VNCAuth password as the fifth argument:
@@ -178,9 +186,11 @@ cmake/qt-viewer-real-server-matrix-smoke.sh \
   <VNC_PASSWORD>
 ```
 
-Current validated real-server scope covers RFB 3.8 no-auth/VNCAuth, raw updates,
+Current validated portable scope covers RFB 3.8 no-auth/VNCAuth, raw updates,
 CopyRect metadata, NewFBSize metadata, multi-rectangle framebuffer updates,
-ServerCutText/Bell tolerance before updates, and ClientCutText send.
+RichCursor/XCursor metadata, PointerPos, LastRect, ServerCutText/Bell tolerance before
+updates, ExtendedClipboard UTF-8 receive, and ClientCutText send. Real-server matrix
+coverage remains the final promotion gate.
 
 ## Multi-server matrix smoke
 
