@@ -8,6 +8,8 @@
 
 #include "vncLinuxX11FramebufferSource.h"
 
+#include "vncPortableFramebufferDiff.h"
+
 #include <cstring>
 #if defined(UVNC_HAVE_X11_XSHM)
 #include <sys/ipc.h>
@@ -257,6 +259,7 @@ bool X11DesktopSource::Snapshot(portable::Framebuffer& destination, rfb::Region2
 #if defined(UVNC_HAVE_X11_XSHM)
     if (IsXShmRuntimeAvailable(displayName_) &&
         SnapshotViaXShm(display, static_cast<Drawable>(root_), width_, height_, destination, changed, format_)) {
+        RefineChangedRegion(destination, changed);
         return true;
     }
 #endif
@@ -289,6 +292,7 @@ bool X11DesktopSource::Snapshot(portable::Framebuffer& destination, rfb::Region2
     bool ok = CopyImageToFramebuffer(image, width_, height_, destination, changed);
     if (ok) {
         format_ = PixelFormatFromImage(image);
+        RefineChangedRegion(destination, changed);
         lastError_.clear();
     } else {
         lastError_ = "failed to copy X11 image into the portable framebuffer";
@@ -302,6 +306,17 @@ bool X11DesktopSource::Snapshot(portable::Framebuffer& destination, rfb::Region2
     changed.clear();
     return false;
 #endif
+}
+
+
+void X11DesktopSource::RefineChangedRegion(portable::Framebuffer& destination, rfb::Region2D& changed)
+{
+    if (!previousFrame_.Empty() && portable::FramebufferDiff::Compatible(previousFrame_, destination)) {
+        changed = portable::FramebufferDiff::FindChangedRows(previousFrame_, destination);
+    } else {
+        changed.reset(destination.Bounds());
+    }
+    previousFrame_ = destination;
 }
 
 bool X11DesktopSource::IsBuildAvailable()

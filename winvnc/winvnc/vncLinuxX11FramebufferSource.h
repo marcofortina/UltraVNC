@@ -36,6 +36,7 @@ public:
 
 private:
     bool Initialize(std::string *error = nullptr);
+    void RefineChangedRegion(portable::Framebuffer& destination, rfb::Region2D& changed);
 
     std::string displayName_;
     unsigned int width_;
@@ -46,6 +47,7 @@ private:
     int screen_;
     bool initialized_;
     std::string lastError_;
+    portable::Framebuffer previousFrame_;
 };
 
 } // namespace linuxfb
