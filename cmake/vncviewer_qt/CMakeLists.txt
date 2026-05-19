@@ -179,3 +179,4 @@ install(FILES "${CMAKE_SOURCE_DIR}/../docs/native-linux-qt-viewer-production-che
 install(FILES "${CMAKE_SOURCE_DIR}/../docs/examples/native-linux-qt-viewer-real-server-matrix.example" DESTINATION share/doc/ultravnc/examples)
 install(FILES "${CMAKE_SOURCE_DIR}/../docs/native-linux-qt-server-settings.md" DESTINATION share/doc/ultravnc)
 install(FILES "${CMAKE_SOURCE_DIR}/../docs/native-linux-dsm-provider-abi.md" DESTINATION share/doc/ultravnc)
+install(FILES "${CMAKE_SOURCE_DIR}/../docs/native-linux-legacy-parity.md" DESTINATION share/doc/ultravnc)
