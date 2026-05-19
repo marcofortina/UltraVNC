@@ -38,3 +38,7 @@ A future Linux security design should use explicit Linux-native authentication a
 The Windows server ships legacy Java viewer resources and HTTP serving code. The native Linux server does not expose that path. It rejects `--http-java-viewer` so operators do not assume that the Windows-only HTTP viewer is active.
 
 The preferred Linux direction is a real native viewer or documented external web gateway, not a silent partial Java viewer port.
+
+## Security extensions
+
+DSM/security plugins, MSLogon and the legacy HTTP Java viewer are explicitly rejected on native Linux. See `native-linux-security-extensions.md` for the fail-closed policy and replacement direction.
