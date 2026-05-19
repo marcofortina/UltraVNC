@@ -24,6 +24,7 @@ RfbClientState::RfbClientState(const ServerConfig& config)
       pointerEventCount_(0),
       clientCutTextMessages_(0),
       clientCutTextBytes_(0),
+      lastClientCutText_(),
       cursorShapeSent_(false)
 {
     std::memset(&lastKeyEvent_, 0, sizeof(lastKeyEvent_));
@@ -87,6 +88,14 @@ void RfbClientState::RecordClientCutText(unsigned int bytes)
 {
     clientCutTextMessages_ += 1;
     clientCutTextBytes_ += bytes;
+    lastClientCutText_.clear();
+}
+
+void RfbClientState::RecordClientCutText(const std::string& text)
+{
+    clientCutTextMessages_ += 1;
+    clientCutTextBytes_ += static_cast<unsigned int>(text.size());
+    lastClientCutText_ = text;
 }
 
 } // namespace portable

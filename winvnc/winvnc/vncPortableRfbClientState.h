@@ -13,6 +13,7 @@
 #include "vncPortableServerConfig.h"
 
 #include <vector>
+#include <string>
 
 namespace uvnc {
 namespace winvnc {
@@ -36,6 +37,7 @@ public:
     unsigned int PointerEventCount() const { return pointerEventCount_; }
     unsigned int ClientCutTextMessages() const { return clientCutTextMessages_; }
     unsigned int ClientCutTextBytes() const { return clientCutTextBytes_; }
+    const std::string& LastClientCutText() const { return lastClientCutText_; }
 
     void SetPixelFormat(const rfbPixelFormat& format);
     void SetEncodings(const std::vector<CARD32>& encodings);
@@ -43,6 +45,7 @@ public:
     void RecordKeyEvent(const KeyEvent& event);
     void RecordPointerEvent(const PointerEvent& event);
     void RecordClientCutText(unsigned int bytes);
+    void RecordClientCutText(const std::string& text);
 
 private:
     rfbPixelFormat pixelFormat_;
@@ -53,6 +56,7 @@ private:
     unsigned int pointerEventCount_;
     unsigned int clientCutTextMessages_;
     unsigned int clientCutTextBytes_;
+    std::string lastClientCutText_;
     bool cursorShapeSent_;
 };
 

@@ -155,7 +155,7 @@ bool RfbServerSession::ServeFramebufferUpdateRequest(TcpSocket& socket, const Fr
     return socket.WriteAll(update.data(), update.size());
 }
 
-bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental) const
+bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink) const
 {
     updateSent = false;
     CARD8 type = 0;
@@ -295,7 +295,14 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
         std::vector<CARD8> payload(length);
         const bool ok = payload.empty() || socket.ReadExact(payload.data(), payload.size());
         if (ok && state) {
-            state->RecordClientCutText(length);
+            const std::string text(reinterpret_cast<const char *>(payload.data()), payload.size());
+            state->RecordClientCutText(text);
+            if (clipboardSink) {
+                std::string clipboardError;
+                if (!clipboardSink->SetText(text, &clipboardError)) {
+                    return false;
+                }
+            }
         }
         if (ok && stats) {
             stats->clientCutTextMessages += 1;
@@ -327,11 +334,11 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
     }
 }
 
-bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental) const
+bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink) const
 {
     for (unsigned int i = 0; i < maxMessages; ++i) {
         bool updateSent = false;
-        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state, inputSink, forceRawIncremental)) {
+        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state, inputSink, forceRawIncremental, clipboardSink)) {
             return false;
         }
         if (updateSent) {
@@ -341,7 +348,7 @@ bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Fram
     return false;
 }
 
-bool RfbServerSession::ServeFramebufferUpdates(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental) const
+bool RfbServerSession::ServeFramebufferUpdates(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink) const
 {
     if (updateCount == 0) {
         return true;
@@ -350,7 +357,7 @@ bool RfbServerSession::ServeFramebufferUpdates(TcpSocket& socket, const Framebuf
     unsigned int sent = 0;
     for (unsigned int i = 0; i < maxMessages && sent < updateCount; ++i) {
         bool updateSent = false;
-        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state, inputSink, forceRawIncremental)) {
+        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state, inputSink, forceRawIncremental, clipboardSink)) {
             return false;
         }
         if (updateSent) {

@@ -42,13 +42,19 @@ public:
     virtual bool InjectPointer(const PointerEvent& event, std::string *error = nullptr) = 0;
 };
 
+class RfbClipboardSink {
+public:
+    virtual ~RfbClipboardSink() {}
+    virtual bool SetText(const std::string& text, std::string *error = nullptr) = 0;
+};
+
 class RfbServerSession {
 public:
     bool RunHandshake(TcpSocket& socket, const ServerConfig& config) const;
     bool ServeFramebufferUpdateRequest(TcpSocket& socket, const Framebuffer& framebuffer) const;
-    bool ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr, RfbInputSink *inputSink = nullptr, bool forceRawIncremental = false) const;
-    bool ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages = 32, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr, RfbInputSink *inputSink = nullptr, bool forceRawIncremental = false) const;
-    bool ServeFramebufferUpdates(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages = 128, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr, RfbInputSink *inputSink = nullptr, bool forceRawIncremental = false) const;
+    bool ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr, RfbInputSink *inputSink = nullptr, bool forceRawIncremental = false, RfbClipboardSink *clipboardSink = nullptr) const;
+    bool ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages = 32, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr, RfbInputSink *inputSink = nullptr, bool forceRawIncremental = false, RfbClipboardSink *clipboardSink = nullptr) const;
+    bool ServeFramebufferUpdates(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages = 128, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr, RfbInputSink *inputSink = nullptr, bool forceRawIncremental = false, RfbClipboardSink *clipboardSink = nullptr) const;
     bool SendBell(TcpSocket& socket) const;
     bool SendServerCutText(TcpSocket& socket, const std::string& text) const;
     bool SendCursorShape(TcpSocket& socket, RfbClientState& state) const;
