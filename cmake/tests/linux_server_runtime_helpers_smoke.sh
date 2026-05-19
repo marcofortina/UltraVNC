@@ -49,3 +49,4 @@ grep -q 'print-config must not expose password material' "${SECURE_RUNTIME_HELPE
 grep -q 'operator LAN config without transport opt-in unexpectedly passed' "${OPERATOR_CONFIG_HELPER}"
 grep -q 'allow_unencrypted_public=true' "${OPERATOR_CONFIG_HELPER}"
 grep -q 'Linux server operator config smoke passed' "${OPERATOR_CONFIG_HELPER}"
+grep -q -- '--print-admin-summary' "${OPERATOR_CONFIG_HELPER}"
