@@ -84,7 +84,7 @@ int main()
     const rfbSetPixelFormatMsg setFormat = EncodeSetPixelFormat(wireFormat);
     assert(client.WriteAll(&setFormat, sz_rfbSetPixelFormatMsg));
 
-    const std::vector<CARD8> encodings = EncodeSetEncodings(std::vector<CARD32>{rfbEncodingTight, rfbEncodingRaw});
+    const std::vector<CARD8> encodings = EncodeSetEncodings(std::vector<CARD32>{rfbEncodingRaw, rfbEncodingTight});
     assert(client.WriteAll(encodings.data(), encodings.size()));
 
     const KeyEvent key{false, 0xff1b};
@@ -110,7 +110,9 @@ int main()
     assert(client.ReadExact(&update, sz_rfbFramebufferUpdateMsg));
     rfbFramebufferUpdateRectHeader rect;
     assert(client.ReadExact(&rect, sz_rfbFramebufferUpdateRectHeader));
-    std::string pixels(4 * 4 * 4, '\0');
+    assert(Swap32IfLE(rect.encoding) == rfbEncodingRaw);
+    const unsigned int bytesPerPixel = wireFormat.bitsPerPixel / 8;
+    std::string pixels(4 * 4 * bytesPerPixel, '\0');
     assert(client.ReadExact(&pixels[0], pixels.size()));
 
     server.join();
@@ -118,7 +120,8 @@ int main()
     assert(serverOk);
     assert(state.PixelFormat().bitsPerPixel == 16);
     assert(state.Encodings().size() == 2);
-    assert(state.Encodings()[0] == rfbEncodingTight);
+    assert(state.Encodings()[0] == rfbEncodingRaw);
+    assert(state.Encodings()[1] == rfbEncodingTight);
     assert(state.KeyEventCount() == 1);
     assert(state.LastKeyEvent().keysym == 0xff1b);
     assert(state.PointerEventCount() == 1);
