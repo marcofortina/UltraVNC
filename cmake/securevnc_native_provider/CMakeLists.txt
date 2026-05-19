@@ -24,7 +24,9 @@ target_include_directories(uvnc_securevnc_provider PRIVATE
 )
 target_link_libraries(uvnc_securevnc_provider PRIVATE OpenSSL::Crypto)
 set_target_properties(uvnc_securevnc_provider PROPERTIES
-    OUTPUT_NAME "uvnc_securevnc_provider"
+    PREFIX ""
+    SUFFIX ".dsm"
+    OUTPUT_NAME "SecureVNCPlugin"
 )
 
 install(TARGETS uvnc_securevnc_provider
