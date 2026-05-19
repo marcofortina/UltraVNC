@@ -32,6 +32,10 @@ public:
     bool SupportsCursorShapeUpdates() const;
     bool SupportsExtendedClipboard() const;
 bool SupportsNewFramebufferSizeUpdates() const;
+    bool SupportsLastRect() const;
+    int QualityLevel() const { return qualityLevel_; }
+    int CompressLevel() const { return compressLevel_; }
+    unsigned int ScaleFactor() const { return scaleFactor_; }
     bool ExtendedClipboardCapsSent() const { return extendedClipboardCapsSent_; }
     CARD32 ExtendedClipboardRemoteCaps() const { return extendedClipboardRemoteCaps_; }
     unsigned int ExtendedClipboardRemoteTextLimit() const { return extendedClipboardRemoteTextLimit_; }
@@ -68,6 +72,7 @@ bool FramebufferSizeChanged(unsigned int width, unsigned int height) const;
 
     void SetPixelFormat(const rfbPixelFormat& format);
     void SetEncodings(const std::vector<CARD32>& encodings);
+    void SetScaleFactor(unsigned int scale);
     void MarkCursorShapeSent();
     void MarkCursorShapeSent(CARD32 fingerprint);
     void MarkExtendedClipboardCapsSent();
@@ -108,6 +113,9 @@ private:
     bool clientInitReceived_;
 unsigned int lastFramebufferWidth_;
 unsigned int lastFramebufferHeight_;
+    int qualityLevel_;
+    int compressLevel_;
+    unsigned int scaleFactor_;
     FileTransferMode fileTransferMode_;
     unsigned int fileTransferPayloadLimit_;
     std::string fileTransferRoot_;

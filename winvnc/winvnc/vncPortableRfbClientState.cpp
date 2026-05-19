@@ -38,6 +38,9 @@ RfbClientState::RfbClientState(const ServerConfig& config)
       clientInitReceived_(false),
       lastFramebufferWidth_(config.Width()),
       lastFramebufferHeight_(config.Height()),
+      qualityLevel_(-1),
+      compressLevel_(-1),
+      scaleFactor_(1),
       fileTransferMode_(config.FileTransferModeValue()),
       fileTransferPayloadLimit_(config.FileTransferPayloadLimit()),
       fileTransferRoot_(config.FileTransferRoot()),
@@ -89,6 +92,11 @@ bool RfbClientState::SupportsNewFramebufferSizeUpdates() const
     return SupportsEncoding(rfbEncodingNewFBSize);
 }
 
+bool RfbClientState::SupportsLastRect() const
+{
+    return SupportsEncoding(rfbEncodingLastRect);
+}
+
 void RfbClientState::SetPixelFormat(const rfbPixelFormat& format)
 {
     pixelFormat_ = format;
@@ -97,9 +105,23 @@ void RfbClientState::SetPixelFormat(const rfbPixelFormat& format)
 void RfbClientState::SetEncodings(const std::vector<CARD32>& encodings)
 {
     encodings_ = encodings;
+    qualityLevel_ = -1;
+    compressLevel_ = -1;
+    for (std::vector<CARD32>::const_iterator it = encodings_.begin(); it != encodings_.end(); ++it) {
+        if (*it >= rfbEncodingQualityLevel0 && *it <= rfbEncodingQualityLevel9) {
+            qualityLevel_ = static_cast<int>(*it - rfbEncodingQualityLevel0);
+        } else if (*it >= rfbEncodingCompressLevel0 && *it <= rfbEncodingCompressLevel9) {
+            compressLevel_ = static_cast<int>(*it - rfbEncodingCompressLevel0);
+        }
+    }
     cursorShapeSent_ = false;
     lastCursorShapeFingerprint_ = 0;
     extendedClipboardCapsSent_ = false;
+}
+
+void RfbClientState::SetScaleFactor(unsigned int scale)
+{
+    scaleFactor_ = scale == 0 ? 1 : scale;
 }
 
 bool RfbClientState::CursorShapeChanged(CARD32 fingerprint) const
