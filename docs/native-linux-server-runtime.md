@@ -150,6 +150,32 @@ uvnc_winvnc_memory_server \
 ```
 
 
+
+## Secure runtime validation helper
+
+Use this helper for the production-like local gate. It creates a private
+VNCAuth password file, verifies that group-readable password files are rejected,
+checks that `--print-config` does not expose password material, and exercises
+RFB VNCAuth handshake/update paths without enabling no-auth:
+
+```sh
+cmake/linux-server-secure-runtime-smoke.sh \
+  /tmp/uvnc-linux-server-secure-runtime-build \
+  /tmp/uvnc-linux-server-secure-runtime-install
+```
+
+To combine VNCAuth with real X11 capture, run from a local X11 graphical
+session and opt in explicitly:
+
+```sh
+UVNC_RUN_SECURE_X11_SERVER=1 cmake/linux-server-secure-runtime-smoke.sh \
+  /tmp/uvnc-linux-server-secure-runtime-build \
+  /tmp/uvnc-linux-server-secure-runtime-install
+```
+
+This is the preferred validation path for production-like server runs in this
+milestone. The older no-auth live runtime smoke remains loopback/lab-only.
+
 ## Real runtime validation helper
 
 Use the repository helper below for the next server milestone validation. By

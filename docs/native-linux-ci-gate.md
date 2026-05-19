@@ -20,6 +20,7 @@ The gate covers:
 - Linux input backend and XTest availability checks.
 - Linux server integration template/install checks.
 - Linux server real-runtime checks in CI-safe mode.
+- Linux server secure VNCAuth runtime checks in CI-safe mode.
 - Linux server negative runtime/failure-mode checks.
 - Linux user-service template checks in non-invasive mode.
 - Qt viewer startup/RFB/persistent-input/compressed-encoding smoke coverage.
@@ -43,6 +44,12 @@ headless CI:
 UVNC_RUN_REAL_X11_SERVER=1 cmake/linux-server-real-runtime-smoke.sh \
   /tmp/uvnc-linux-server-real-runtime-build \
   /tmp/uvnc-linux-server-real-runtime-install
+```
+
+```bash
+UVNC_RUN_SECURE_X11_SERVER=1 cmake/linux-server-secure-runtime-smoke.sh \
+  /tmp/uvnc-linux-server-secure-runtime-build \
+  /tmp/uvnc-linux-server-secure-runtime-install
 ```
 
 ```bash
