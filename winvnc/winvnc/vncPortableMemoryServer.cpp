@@ -15,7 +15,7 @@ namespace portable {
 
 namespace {
 
-bool SendInitialServerMessages(RfbServerSession& session, TcpSocket& client, const ServerConfig& config, RfbClipboardSource *clipboardSource = nullptr)
+bool SendInitialServerMessages(RfbServerSession& session, TcpSocket& client, const ServerConfig& config, RfbClipboardSource *clipboardSource = nullptr, RfbClientState *state = nullptr)
 {
     if (config.BellOnConnect() && !session.SendBell(client)) {
         return false;
@@ -31,6 +31,9 @@ bool SendInitialServerMessages(RfbServerSession& session, TcpSocket& client, con
         }
         if (!text.empty() && !session.SendServerCutText(client, text)) {
             return false;
+        }
+        if (!text.empty() && state) {
+            state->RecordServerCutTextSent(text);
         }
     }
     return true;
@@ -83,7 +86,7 @@ bool MemoryServer::ServeOne()
     RfbServerSession session;
     RfbClientState state(config_);
     return session.RunHandshake(client, config_, &state) &&
-           SendInitialServerMessages(session, client, config_);
+           SendInitialServerMessages(session, client, config_, nullptr, &state);
 }
 
 bool MemoryServer::ServeOneUpdate(RfbInputSink *inputSink)
@@ -98,7 +101,7 @@ bool MemoryServer::ServeOneUpdate(RfbInputSink *inputSink)
     RfbServerSession session;
     RfbClientState state(config_);
     return session.RunHandshake(client, config_, &state) &&
-           SendInitialServerMessages(session, client, config_) &&
+           SendInitialServerMessages(session, client, config_, nullptr, &state) &&
            session.ServeUntilFramebufferUpdate(client, framebuffer_, 32, nullptr, &state, inputSink);
 }
 
@@ -135,7 +138,7 @@ bool MemoryServer::ServeConnectedUpdates(TcpSocket client, unsigned int updateCo
     if (clientPolicy && !lease.Acquire()) {
         return false;
     }
-    return SendInitialServerMessages(session, client, config_, clipboardSource) &&
+    return SendInitialServerMessages(session, client, config_, clipboardSource, &state) &&
         session.ServeFramebufferUpdates(client, framebuffer_, updateCount, 128, nullptr, &state, inputSink, false, clipboardSink, clipboardSource);
 }
 
@@ -168,7 +171,7 @@ bool MemoryServer::ServeConnectedUpdatesFromSource(TcpSocket client, DesktopSour
     if (clientPolicy && !lease.Acquire()) {
         return false;
     }
-    if (!SendInitialServerMessages(session, client, config_, clipboardSource)) {
+    if (!SendInitialServerMessages(session, client, config_, clipboardSource, &state)) {
         return false;
     }
 
