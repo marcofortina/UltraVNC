@@ -30,6 +30,11 @@ serve_forever=true
 pid_file=/tmp/uvnc-config-file-smoke.pid
 status_file=/tmp/uvnc-config-file-smoke.status
 log_file=/tmp/uvnc-config-file-smoke.log
+file_transfer_mode=read-only
+file_transfer_root=/tmp
+file_transfer_allow_overwrite=false
+file_transfer_recursive_max_depth=9
+file_transfer_recursive_max_entries=123
 EOF
 chmod 0600 "${config}"
 
@@ -49,6 +54,11 @@ grep -q '^serve_forever=yes$' <<<"${output}"
 grep -q '^pid_file=/tmp/uvnc-config-file-smoke.pid$' <<<"${output}"
 grep -q '^status_file=/tmp/uvnc-config-file-smoke.status$' <<<"${output}"
 grep -q '^log_file=/tmp/uvnc-config-file-smoke.log$' <<<"${output}"
+grep -q '^file_transfer_mode=read-only$' <<<"${output}"
+grep -q '^file_transfer_root=/tmp$' <<<"${output}"
+grep -q '^file_transfer_allow_overwrite=false$' <<<"${output}"
+grep -q '^file_transfer_recursive_max_depth=9$' <<<"${output}"
+grep -q '^file_transfer_recursive_max_entries=123$' <<<"${output}"
 
 cat >"${config}" <<'EOF'
 unknown_key=value

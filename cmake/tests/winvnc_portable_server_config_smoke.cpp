@@ -53,6 +53,24 @@ int main()
         return 1;
     }
     config.SetFileTransferPayloadLimit(DefaultFileTransferPayloadLimit());
+    config.SetFileTransferRecursiveMaxDepth(8);
+    config.SetFileTransferRecursiveMaxEntries(128);
+    if (!config.Validate(&error)) {
+        std::cerr << "valid recursive file transfer limits rejected: " << error << "\n";
+        return 1;
+    }
+    config.SetFileTransferRecursiveMaxDepth(0);
+    if (config.Validate(&error) || error.empty()) {
+        std::cerr << "invalid recursive depth accepted\n";
+        return 1;
+    }
+    config.SetFileTransferRecursiveMaxDepth(8);
+    config.SetFileTransferRecursiveMaxEntries(0);
+    if (config.Validate(&error) || error.empty()) {
+        std::cerr << "invalid recursive entry limit accepted\n";
+        return 1;
+    }
+    config.SetFileTransferRecursiveMaxEntries(128);
     config.SetMaxSharedClients(4);
     if (config.MaxSharedClients() != 4 || !config.Validate(&error)) {
         std::cerr << "valid max shared clients rejected: " << error << "\n";
