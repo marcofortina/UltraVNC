@@ -40,6 +40,8 @@ public:
     unsigned int ClientCutTextMessages() const { return clientCutTextMessages_; }
     unsigned int ClientCutTextBytes() const { return clientCutTextBytes_; }
     const std::string& LastClientCutText() const { return lastClientCutText_; }
+    FileTransferMode FileTransferModeValue() const { return fileTransferMode_; }
+    unsigned int FileTransferPayloadLimit() const { return fileTransferPayloadLimit_; }
 
     void SetPixelFormat(const rfbPixelFormat& format);
     void SetEncodings(const std::vector<CARD32>& encodings);
@@ -63,6 +65,8 @@ private:
     bool cursorShapeSent_;
     bool sharedClientRequested_;
     bool clientInitReceived_;
+    FileTransferMode fileTransferMode_;
+    unsigned int fileTransferPayloadLimit_;
 };
 
 } // namespace portable
