@@ -42,7 +42,8 @@ std::vector<CARD8> SecurityTypesForAuthMode(ServerAuthMode mode)
 {
     std::vector<CARD8> types;
     types.push_back(1);
-    types.push_back(mode == ServerAuthMode::VncPassword ? rfbVncAuth : rfbNoAuth);
+    types.push_back(mode == ServerAuthMode::VncPassword ? rfbVncAuth :
+                    (mode == ServerAuthMode::MsLogonII ? rfbUltraVNC_MsLogonIIAuth : rfbNoAuth));
     return types;
 }
 

@@ -12,6 +12,7 @@
 #include "vncPortableCursor.h"
 #include "vncPortableExtendedClipboard.h"
 #include "vncPortableFileTransfer.h"
+#include "vncPortableMsLogonServer.h"
 #include "vncPortableRfbMessages.h"
 #include "vncPortableRfbUpdate.h"
 #include "vncPortableRfbTransport.h"
@@ -369,13 +370,23 @@ bool RunVncPasswordAuthentication(RfbTransport& socket, const std::string& passw
 
 namespace {
 
-bool RunVncPasswordSecurity(RfbTransport& transport, const ServerConfig& config)
+bool RunSelectedSecurity(RfbTransport& transport, const ServerConfig& config, CARD8 selectedSecurity)
 {
-    if (config.AuthMode() == ServerAuthMode::VncPassword) {
+    if (selectedSecurity == rfbVncAuth && config.AuthMode() == ServerAuthMode::VncPassword) {
         return RunVncPasswordAuthentication(transport, config.VncPassword());
     }
-    const CARD32 authOk = AuthOkValue();
-    return transport.WriteAll(&authOk, sizeof(authOk));
+    if (selectedSecurity == rfbUltraVNC_MsLogonIIAuth && config.AuthMode() == ServerAuthMode::MsLogonII) {
+        std::string error;
+        const bool ok = RunMsLogonIIServerAuthentication(transport, config.AuthHelperPath(), &error);
+        const CARD32 authResult = ok ? AuthOkValue() : AuthFailedValue();
+        transport.WriteAll(&authResult, sizeof(authResult));
+        return ok;
+    }
+    if (selectedSecurity == rfbNoAuth && config.AuthMode() == ServerAuthMode::NoAuth) {
+        const CARD32 authOk = AuthOkValue();
+        return transport.WriteAll(&authOk, sizeof(authOk));
+    }
+    return false;
 }
 
 bool RunClientInitAndServerInit(RfbTransport& transport, const ServerConfig& config, RfbClientState *state)
@@ -480,12 +491,13 @@ bool RfbServerSession::RunHandshake(RfbTransport& socket, const ServerConfig& co
     }
 
     CARD8 selectedSecurity = 0;
-    const CARD8 expectedSecurity = config.AuthMode() == ServerAuthMode::VncPassword ? rfbVncAuth : rfbNoAuth;
+    const CARD8 expectedSecurity = config.AuthMode() == ServerAuthMode::VncPassword ? rfbVncAuth :
+                                   (config.AuthMode() == ServerAuthMode::MsLogonII ? rfbUltraVNC_MsLogonIIAuth : rfbNoAuth);
     if (!socket.ReadExact(&selectedSecurity, sizeof(selectedSecurity)) || selectedSecurity != expectedSecurity) {
         return false;
     }
 
-    return RunVncPasswordSecurity(socket, config) &&
+    return RunSelectedSecurity(socket, config, selectedSecurity) &&
            RunClientInitAndServerInit(socket, config, state);
 }
 
@@ -1038,7 +1050,7 @@ bool RfbServerSession::RunHandshake(TcpSocket& socket, const ServerConfig& confi
         std::cerr << "TLS transport failed: " << error << "\n";
         return false;
     }
-    if (!RunVncPasswordSecurity(*tls, config) || !RunClientInitAndServerInit(*tls, config, state)) {
+    if (!RunSelectedSecurity(*tls, config, rfbVncAuth) || !RunClientInitAndServerInit(*tls, config, state)) {
         std::cerr << "TLS RFB authentication/client-init failed\n";
         return false;
     }
