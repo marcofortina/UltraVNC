@@ -82,6 +82,62 @@ bool ClientConnectionPolicy::HasExclusiveClient() const
     return exclusiveClientActive_;
 }
 
+ClientConnectionLease::ClientConnectionLease(ClientConnectionPolicy *policy, bool sharedClientRequested)
+    : policy_(policy),
+      sharedClientRequested_(sharedClientRequested),
+      active_(false)
+{
+}
+
+ClientConnectionLease::ClientConnectionLease(ClientConnectionLease&& other) noexcept
+    : policy_(other.policy_),
+      sharedClientRequested_(other.sharedClientRequested_),
+      active_(other.active_)
+{
+    other.policy_ = nullptr;
+    other.active_ = false;
+}
+
+ClientConnectionLease& ClientConnectionLease::operator=(ClientConnectionLease&& other) noexcept
+{
+    if (this != &other) {
+        Release();
+        policy_ = other.policy_;
+        sharedClientRequested_ = other.sharedClientRequested_;
+        active_ = other.active_;
+        other.policy_ = nullptr;
+        other.active_ = false;
+    }
+    return *this;
+}
+
+ClientConnectionLease::~ClientConnectionLease()
+{
+    Release();
+}
+
+bool ClientConnectionLease::Acquire(std::string *reason)
+{
+    if (!policy_) {
+        if (reason) *reason = "client policy is not configured";
+        return false;
+    }
+    if (active_) {
+        if (reason) reason->clear();
+        return true;
+    }
+    active_ = policy_->RegisterClient(sharedClientRequested_, reason);
+    return active_;
+}
+
+void ClientConnectionLease::Release()
+{
+    if (policy_ && active_) {
+        policy_->UnregisterClient(sharedClientRequested_);
+        active_ = false;
+    }
+}
+
 } // namespace portable
 } // namespace winvnc
 } // namespace uvnc

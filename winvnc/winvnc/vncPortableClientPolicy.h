@@ -34,6 +34,25 @@ private:
     bool exclusiveClientActive_;
 };
 
+class ClientConnectionLease {
+public:
+    ClientConnectionLease(ClientConnectionPolicy *policy, bool sharedClientRequested);
+    ClientConnectionLease(const ClientConnectionLease&) = delete;
+    ClientConnectionLease& operator=(const ClientConnectionLease&) = delete;
+    ClientConnectionLease(ClientConnectionLease&& other) noexcept;
+    ClientConnectionLease& operator=(ClientConnectionLease&& other) noexcept;
+    ~ClientConnectionLease();
+
+    bool Acquire(std::string *reason = nullptr);
+    void Release();
+    bool Active() const { return active_; }
+
+private:
+    ClientConnectionPolicy *policy_;
+    bool sharedClientRequested_;
+    bool active_;
+};
+
 } // namespace portable
 } // namespace winvnc
 } // namespace uvnc
