@@ -103,6 +103,14 @@ set_tests_properties(vncviewer_qt_smoke PROPERTIES
     TIMEOUT 10
 )
 
+add_custom_target(vncviewer_qt_all_smokes
+    DEPENDS
+        uvnc_qt_viewer
+        vncviewer_qt_connection_panel_smoke
+        vncviewer_qt_surface_smoke
+        vncviewer_qt_smoke
+)
+
 
 add_executable(uvnc_qt_server_settings
     "${CMAKE_SOURCE_DIR}/../winvnc/qtserver/vncQtServerSettingsMain.cpp"
@@ -167,6 +175,19 @@ set_tests_properties(winvnc_qt_server_settings_cli_smoke PROPERTIES
     LABELS "native-linux;winvnc-qt"
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
     TIMEOUT 10
+)
+
+add_custom_target(winvnc_qt_server_settings_all_smokes
+    DEPENDS
+        uvnc_qt_server_settings
+        winvnc_qt_server_settings_smoke
+        winvnc_qt_server_settings_cli_smoke
+)
+
+add_custom_target(native_linux_qt_legacy_parity_smokes
+    DEPENDS
+        vncviewer_qt_all_smokes
+        winvnc_qt_server_settings_all_smokes
 )
 
 install(TARGETS uvnc_qt_viewer uvnc_qt_server_settings RUNTIME DESTINATION bin)
