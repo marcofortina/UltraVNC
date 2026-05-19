@@ -71,6 +71,19 @@ if grep -qi 'secret1\|password_file=' "${WORK_DIR}/print.out"; then
   exit 1
 fi
 
+"${BIN}" --config "${CONFIG_FILE}" --print-admin-summary >"${WORK_DIR}/admin-summary.out" 2>"${WORK_DIR}/admin-summary.err"
+grep -q '^linux_admin_equivalent=systemd-user-service$' "${WORK_DIR}/admin-summary.out"
+grep -q '^windows_service_equivalent=uvnc-winvnc-memory-server.service$' "${WORK_DIR}/admin-summary.out"
+grep -q '^windows_tray_ui_equivalent=not-ported-linux-use-status-files-and-journal$' "${WORK_DIR}/admin-summary.out"
+grep -q '^windows_settings_ui_equivalent=config-file-plus-validate-config$' "${WORK_DIR}/admin-summary.out"
+grep -q '^http_java_viewer=legacy-disabled$' "${WORK_DIR}/admin-summary.out"
+grep -q '^dsm_mslogon_security_plugins=unsupported-fail-closed$' "${WORK_DIR}/admin-summary.out"
+if grep -qi 'secret1\|password_file=' "${WORK_DIR}/admin-summary.out"; then
+  echo "operator print-admin-summary leaked password material or password-file path" >&2
+  cat "${WORK_DIR}/admin-summary.out" >&2
+  exit 1
+fi
+
 LAN_CONFIG="${CONFIG_DIR}/uvnc-winvnc-linux-server-lan.conf"
 cp "${CONFIG_FILE}" "${LAN_CONFIG}"
 cat >>"${LAN_CONFIG}" <<'EOF_LAN'
