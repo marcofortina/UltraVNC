@@ -159,6 +159,17 @@ int main()
 
     args.clear();
     args.push_back("--security-extension");
+    args.push_back("mslogon");
+    args.push_back("--username");
+    args.push_back("LAB\\alice");
+    args.push_back("--password");
+    args.push_back("secret");
+    assert(ParseViewerCli(args, options, error));
+    assert(options.config.SecurityExtension() == ViewerSecurityExtensionMode::MsLogon);
+    assert(options.config.Username() == "LAB\\alice");
+
+    args.clear();
+    args.push_back("--security-extension");
     args.push_back("dsm-plugin");
     assert(!ParseViewerCli(args, options, error));
     assert(error.find("dsm-plugin") != std::string::npos);

@@ -71,6 +71,13 @@ int main()
     assert(summary.find("password_configured=yes") != std::string::npos);
     assert(summary.find("tls_server_name=viewer.test") != std::string::npos);
 
+    config.SetSecurityExtension(ViewerSecurityExtensionMode::MsLogon);
+    assert(!config.Validate(&error));
+    assert(error.find("--username") != std::string::npos);
+    config.SetUsername("LAB\\alice");
+    assert(config.Validate(&error));
+    assert(ViewerConfigSummary(config).find("username_configured=yes") != std::string::npos);
+
     config.SetSecurityExtension(ViewerSecurityExtensionMode::DsmPlugin);
     assert(!config.Validate(&error));
     assert(error.find("dsm-plugin") != std::string::npos);
