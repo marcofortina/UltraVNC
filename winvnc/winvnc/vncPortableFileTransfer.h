@@ -40,6 +40,20 @@ struct FileTransferDirectoryEntry {
     bool inaccessible;
 };
 
+struct FileTransferRecursiveEntry {
+    std::string relativePath;
+    bool directory;
+    CARD32 size;
+    bool inaccessible;
+};
+
+struct FileTransferRecursiveSize {
+    CARD32 files;
+    CARD32 directories;
+    CARD32 bytesLow;
+    bool truncated;
+};
+
 struct FileTransferCommandResult {
     bool success;
     CARD16 responseParam;
@@ -61,6 +75,18 @@ bool ListFileTransferDirectory(const std::string& root,
                                const std::string& requestedPath,
                                std::vector<FileTransferDirectoryEntry>& entries,
                                std::string *reason = nullptr);
+bool ListFileTransferDirectoryRecursive(const std::string& root,
+                                        const std::string& requestedPath,
+                                        unsigned int maxDepth,
+                                        unsigned int maxEntries,
+                                        std::vector<FileTransferRecursiveEntry>& entries,
+                                        std::string *reason = nullptr);
+bool MeasureFileTransferDirectoryRecursive(const std::string& root,
+                                           const std::string& requestedPath,
+                                           unsigned int maxDepth,
+                                           unsigned int maxEntries,
+                                           FileTransferRecursiveSize& size,
+                                           std::string *reason = nullptr);
 bool PrepareFileTransferUpload(const std::string& root,
                                const std::string& requestedPath,
                                std::string& finalPath,

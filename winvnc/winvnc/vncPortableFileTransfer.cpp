@@ -11,6 +11,7 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 
@@ -93,6 +94,98 @@ bool IsRegularFilePath(const std::string& path, std::string *reason)
     return false;
 #endif
 }
+
+
+#ifndef _WIN32
+CARD32 SaturatingFileSize(off_t size)
+{
+    if (size <= 0) {
+        return 0;
+    }
+    return size > static_cast<off_t>(0xFFFFFFFFULL) ? 0xFFFFFFFFU : static_cast<CARD32>(size);
+}
+
+bool AppendRecursiveDirectory(const std::string& root,
+                              const std::string& relativePath,
+                              unsigned int depth,
+                              unsigned int maxDepth,
+                              unsigned int maxEntries,
+                              std::vector<FileTransferRecursiveEntry>& entries,
+                              FileTransferRecursiveSize *size,
+                              std::string *reason)
+{
+    if (entries.size() >= maxEntries) {
+        if (size) size->truncated = true;
+        return true;
+    }
+    std::string resolved;
+    if (relativePath.empty()) {
+        resolved = root;
+    } else if (!ResolveFileTransferPath(root, relativePath, resolved, reason)) {
+        return false;
+    }
+
+    DIR *dir = opendir(resolved.c_str());
+    if (!dir) {
+        if (reason) *reason = LastSystemError("opendir");
+        return false;
+    }
+
+    std::vector<std::string> names;
+    while (dirent *entry = readdir(dir)) {
+        const std::string name(entry->d_name);
+        if (name == "." || name == "..") {
+            continue;
+        }
+        names.push_back(name);
+    }
+    closedir(dir);
+    std::sort(names.begin(), names.end());
+
+    for (std::vector<std::string>::const_iterator it = names.begin(); it != names.end(); ++it) {
+        if (entries.size() >= maxEntries) {
+            if (size) size->truncated = true;
+            return true;
+        }
+        const std::string childRelative = relativePath.empty() ? *it : relativePath + "/" + *it;
+        const std::string childPath = JoinRootPath(resolved, *it);
+        struct stat st;
+        FileTransferRecursiveEntry item;
+        item.relativePath = childRelative;
+        item.directory = false;
+        item.size = 0;
+        item.inaccessible = false;
+        if (lstat(childPath.c_str(), &st) != 0 || S_ISLNK(st.st_mode)) {
+            item.inaccessible = true;
+        } else {
+            item.directory = S_ISDIR(st.st_mode);
+            if (S_ISREG(st.st_mode)) {
+                item.size = SaturatingFileSize(st.st_size);
+            }
+        }
+        entries.push_back(item);
+        if (size && !item.inaccessible) {
+            if (item.directory) {
+                size->directories += 1;
+            } else {
+                size->files += 1;
+                const CARD32 before = size->bytesLow;
+                size->bytesLow += item.size;
+                if (size->bytesLow < before) {
+                    size->truncated = true;
+                    size->bytesLow = 0xFFFFFFFFU;
+                }
+            }
+        }
+        if (item.directory && !item.inaccessible && depth < maxDepth) {
+            if (!AppendRecursiveDirectory(root, childRelative, depth + 1, maxDepth, maxEntries, entries, size, reason)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+#endif
 
 bool IsDirectoryPath(const std::string& path, std::string *reason)
 {
@@ -295,6 +388,79 @@ bool ListFileTransferDirectory(const std::string& root,
     (void)root;
     (void)requestedPath;
     if (reason) *reason = "portable directory listing is not used on Windows builds";
+    return false;
+#endif
+}
+
+
+bool ListFileTransferDirectoryRecursive(const std::string& root,
+                                        const std::string& requestedPath,
+                                        unsigned int maxDepth,
+                                        unsigned int maxEntries,
+                                        std::vector<FileTransferRecursiveEntry>& entries,
+                                        std::string *reason)
+{
+    entries.clear();
+    if (maxDepth == 0 || maxEntries == 0) {
+        if (reason) *reason = "recursive directory limits must be non-zero";
+        return false;
+    }
+#ifndef _WIN32
+    std::string resolved;
+    if (requestedPath.empty()) {
+        resolved = root;
+    } else if (!ResolveFileTransferPath(root, requestedPath, resolved, reason)) {
+        return false;
+    }
+    if (!IsDirectoryPath(resolved, reason)) {
+        return false;
+    }
+    const std::string relativeRoot = requestedPath == "." ? std::string() : requestedPath;
+    const bool ok = AppendRecursiveDirectory(root, relativeRoot, 1, maxDepth, maxEntries, entries, nullptr, reason);
+    if (ok && reason) reason->clear();
+    return ok;
+#else
+    (void)root;
+    (void)requestedPath;
+    (void)maxDepth;
+    (void)maxEntries;
+    if (reason) *reason = "portable recursive directory listing is not used on Windows builds";
+    return false;
+#endif
+}
+
+bool MeasureFileTransferDirectoryRecursive(const std::string& root,
+                                           const std::string& requestedPath,
+                                           unsigned int maxDepth,
+                                           unsigned int maxEntries,
+                                           FileTransferRecursiveSize& size,
+                                           std::string *reason)
+{
+    size.files = 0;
+    size.directories = 0;
+    size.bytesLow = 0;
+    size.truncated = false;
+    std::vector<FileTransferRecursiveEntry> entries;
+#ifndef _WIN32
+    const bool ok = ListFileTransferDirectoryRecursive(root, requestedPath, maxDepth, maxEntries, entries, reason);
+    if (!ok) {
+        return false;
+    }
+    // Re-run with accounting to avoid exposing partially measured state when listing fails.
+    entries.clear();
+    const std::string relativeRoot = requestedPath == "." ? std::string() : requestedPath;
+    if (!AppendRecursiveDirectory(root, relativeRoot, 1, maxDepth, maxEntries, entries, &size, reason)) {
+        return false;
+    }
+    if (reason) reason->clear();
+    return true;
+#else
+    (void)entries;
+    (void)root;
+    (void)requestedPath;
+    (void)maxDepth;
+    (void)maxEntries;
+    if (reason) *reason = "portable recursive directory measurement is not used on Windows builds";
     return false;
 #endif
 }
