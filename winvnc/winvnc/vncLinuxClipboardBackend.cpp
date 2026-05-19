@@ -9,6 +9,8 @@
 #include "vncLinuxClipboardBackend.h"
 
 #include <cstdlib>
+#include <chrono>
+#include <thread>
 
 #if defined(UVNC_HAVE_X11)
 #include <X11/Xatom.h>
@@ -37,6 +39,8 @@ X11ClipboardBackend::X11ClipboardBackend()
       targetsAtom_(None),
       utf8StringAtom_(None),
       textAtom_(None),
+      selectionPropertyAtom_(None),
+      incrAtom_(None),
       ownedText_()
 #endif
 {
@@ -97,6 +101,8 @@ bool X11ClipboardBackend::EnsureOwnerDisplay(std::string *error) const
     targetsAtom_ = XInternAtom(display_, "TARGETS", False);
     utf8StringAtom_ = XInternAtom(display_, "UTF8_STRING", False);
     textAtom_ = XInternAtom(display_, "TEXT", False);
+    selectionPropertyAtom_ = XInternAtom(display_, "UVNC_CLIPBOARD_TRANSFER", False);
+    incrAtom_ = XInternAtom(display_, "INCR", False);
     return true;
 }
 
@@ -140,6 +146,73 @@ void X11ClipboardBackend::PumpSelectionRequests() const
         XFlush(display_);
     }
 }
+
+bool X11ClipboardBackend::FetchExternalSelectionText(std::string& text, std::string *error) const
+{
+    text.clear();
+    if (display_ == nullptr || window_ == 0 || clipboardAtom_ == None) {
+        if (error) *error = "X11 clipboard display is not initialized";
+        return false;
+    }
+
+    XDeleteProperty(display_, window_, selectionPropertyAtom_);
+    XConvertSelection(display_, clipboardAtom_, utf8StringAtom_, selectionPropertyAtom_, window_, CurrentTime);
+    XFlush(display_);
+
+    for (int attempt = 0; attempt < 40; ++attempt) {
+        while (XPending(display_) > 0) {
+            XEvent event;
+            XNextEvent(display_, &event);
+            if (event.type == SelectionRequest) {
+                XPutBackEvent(display_, &event);
+                PumpSelectionRequests();
+                continue;
+            }
+            if (event.type != SelectionNotify) {
+                continue;
+            }
+            XSelectionEvent *selection = &event.xselection;
+            if (selection->selection != clipboardAtom_) {
+                continue;
+            }
+            if (selection->property == None) {
+                if (error) *error = "X11 clipboard owner refused UTF8_STRING";
+                return false;
+            }
+
+            Atom actualType = None;
+            int actualFormat = 0;
+            unsigned long itemCount = 0;
+            unsigned long bytesAfter = 0;
+            unsigned char *property = nullptr;
+            const int result = XGetWindowProperty(display_, window_, selectionPropertyAtom_, 0, 1024 * 1024,
+                                                  True, AnyPropertyType, &actualType, &actualFormat,
+                                                  &itemCount, &bytesAfter, &property);
+            if (result != Success) {
+                if (error) *error = "cannot read X11 clipboard selection property";
+                return false;
+            }
+            if (actualType == incrAtom_) {
+                if (property) XFree(property);
+                if (error) *error = "X11 INCR clipboard transfers are not supported yet";
+                return false;
+            }
+            if (actualFormat != 8 || property == nullptr) {
+                if (property) XFree(property);
+                if (error) *error = "X11 clipboard selection is not byte text";
+                return false;
+            }
+            text.assign(reinterpret_cast<const char *>(property), itemCount);
+            XFree(property);
+            return true;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+
+    if (error) *error = "timed out waiting for X11 clipboard selection";
+    return false;
+}
+
 #endif
 
 bool X11ClipboardBackend::SetText(const std::string& text, std::string *error)
@@ -174,9 +247,19 @@ bool X11ClipboardBackend::GetText(std::string& text, std::string *error) const
         return false;
     }
     PumpSelectionRequests();
-    if (!ownedText_.empty() && XGetSelectionOwner(display_, clipboardAtom_) == window_) {
+    const Window owner = XGetSelectionOwner(display_, clipboardAtom_);
+    if (!ownedText_.empty() && owner == window_) {
         text = ownedText_;
         return true;
+    }
+    if (owner != None && owner != window_) {
+        std::string selectionError;
+        if (FetchExternalSelectionText(text, &selectionError)) {
+            return true;
+        }
+        if (error && !selectionError.empty()) {
+            *error = selectionError;
+        }
     }
     int bytes = 0;
     char *buffer = XFetchBuffer(display_, &bytes, 0);

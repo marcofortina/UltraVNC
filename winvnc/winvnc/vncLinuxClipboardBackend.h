@@ -36,6 +36,7 @@ private:
 #if defined(UVNC_HAVE_X11)
     bool EnsureOwnerDisplay(std::string *error) const;
     void PumpSelectionRequests() const;
+    bool FetchExternalSelectionText(std::string& text, std::string *error) const;
 
     mutable std::mutex mutex_;
     mutable Display *display_;
@@ -44,6 +45,8 @@ private:
     mutable Atom targetsAtom_;
     mutable Atom utf8StringAtom_;
     mutable Atom textAtom_;
+    mutable Atom selectionPropertyAtom_;
+    mutable Atom incrAtom_;
     mutable std::string ownedText_;
 #endif
 };
