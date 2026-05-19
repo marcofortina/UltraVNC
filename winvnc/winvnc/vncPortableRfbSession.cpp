@@ -85,6 +85,23 @@ bool MaybeSendClipboardSource(RfbTransport& socket, RfbClientState *state, RfbCl
 }
 
 
+bool MaybeSendCursorSource(RfbTransport& socket, RfbClientState *state, RfbCursorSource *cursorSource, const RfbServerSession& session)
+{
+    if (!state || !cursorSource || !state->SupportsCursorShapeUpdates()) {
+        return true;
+    }
+    CursorShape shape;
+    std::string error;
+    if (!cursorSource->GetCursorShape(shape, &error) || !shape.Valid()) {
+        shape = EmptyCursorShape();
+    }
+    const CARD32 fingerprint = CursorShapeFingerprint(shape);
+    if (!state->CursorShapeChanged(fingerprint)) {
+        return true;
+    }
+    return session.SendCursorShape(socket, *state, &shape);
+}
+
 bool SendExtendedClipboardCaps(RfbTransport& socket, RfbClientState& state, RfbSessionStats *stats)
 {
     if (!state.SupportsExtendedClipboard() || state.ExtendedClipboardCapsSent()) {
@@ -487,10 +504,13 @@ bool RfbServerSession::ServeFramebufferUpdateRequest(RfbTransport& socket, const
     return socket.WriteAll(update.data(), update.size());
 }
 
-bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource) const
+bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, RfbCursorSource *cursorSource) const
 {
     updateSent = false;
     if (!MaybeSendClipboardSource(socket, state, clipboardSource)) {
+        return false;
+    }
+    if (!MaybeSendCursorSource(socket, state, cursorSource, *this)) {
         return false;
     }
     CARD8 type = 0;
@@ -852,11 +872,11 @@ bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Frameb
     }
 }
 
-bool RfbServerSession::ServeUntilFramebufferUpdate(RfbTransport& socket, const Framebuffer& framebuffer, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource) const
+bool RfbServerSession::ServeUntilFramebufferUpdate(RfbTransport& socket, const Framebuffer& framebuffer, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, RfbCursorSource *cursorSource) const
 {
     for (unsigned int i = 0; i < maxMessages; ++i) {
         bool updateSent = false;
-        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state, inputSink, forceRawIncremental, clipboardSink, clipboardSource)) {
+        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state, inputSink, forceRawIncremental, clipboardSink, clipboardSource, cursorSource)) {
             return false;
         }
         if (updateSent) {
@@ -866,7 +886,7 @@ bool RfbServerSession::ServeUntilFramebufferUpdate(RfbTransport& socket, const F
     return false;
 }
 
-bool RfbServerSession::ServeFramebufferUpdates(RfbTransport& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource) const
+bool RfbServerSession::ServeFramebufferUpdates(RfbTransport& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, RfbCursorSource *cursorSource) const
 {
     if (updateCount == 0) {
         return true;
@@ -875,7 +895,7 @@ bool RfbServerSession::ServeFramebufferUpdates(RfbTransport& socket, const Frame
     unsigned int sent = 0;
     for (unsigned int i = 0; i < maxMessages && sent < updateCount; ++i) {
         bool updateSent = false;
-        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state, inputSink, forceRawIncremental, clipboardSink, clipboardSource)) {
+        if (!ServeNextClientMessage(socket, framebuffer, updateSent, stats, state, inputSink, forceRawIncremental, clipboardSink, clipboardSource, cursorSource)) {
             return false;
         }
         if (updateSent) {
@@ -897,12 +917,12 @@ bool RfbServerSession::SendServerCutText(RfbTransport& socket, const std::string
     return socket.WriteAll(bytes.data(), bytes.size());
 }
 
-bool RfbServerSession::SendCursorShape(RfbTransport& socket, RfbClientState& state) const
+bool RfbServerSession::SendCursorShape(RfbTransport& socket, RfbClientState& state, const CursorShape *shape) const
 {
     if (!state.SupportsCursorShapeUpdates()) {
         return true;
     }
-    const CursorShape cursor = DefaultArrowCursorShape();
+    const CursorShape cursor = shape != nullptr ? *shape : DefaultArrowCursorShape();
     std::vector<CARD8> bytes;
     if (state.SupportsRichCursorUpdates()) {
         bytes = cursor.Valid() ? EncodeRichCursorShapeUpdate(cursor) : EncodeEmptyCursorShapeUpdate(rfbEncodingRichCursor);
@@ -915,7 +935,7 @@ bool RfbServerSession::SendCursorShape(RfbTransport& socket, RfbClientState& sta
     if (!socket.WriteAll(bytes.data(), bytes.size())) {
         return false;
     }
-    state.MarkCursorShapeSent();
+    state.MarkCursorShapeSent(CursorShapeFingerprint(cursor));
     return true;
 }
 
@@ -989,22 +1009,22 @@ bool RfbServerSession::ServeFramebufferUpdateRequest(TcpSocket& socket, const Fr
     return ServeFramebufferUpdateRequest(transport, framebuffer);
 }
 
-bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource) const
+bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, RfbCursorSource *cursorSource) const
 {
     TcpRfbTransport transport(socket);
-    return ServeNextClientMessage(transport, framebuffer, updateSent, stats, state, inputSink, forceRawIncremental, clipboardSink, clipboardSource);
+    return ServeNextClientMessage(transport, framebuffer, updateSent, stats, state, inputSink, forceRawIncremental, clipboardSink, clipboardSource, cursorSource);
 }
 
-bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource) const
+bool RfbServerSession::ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, RfbCursorSource *cursorSource) const
 {
     TcpRfbTransport transport(socket);
-    return ServeUntilFramebufferUpdate(transport, framebuffer, maxMessages, stats, state, inputSink, forceRawIncremental, clipboardSink, clipboardSource);
+    return ServeUntilFramebufferUpdate(transport, framebuffer, maxMessages, stats, state, inputSink, forceRawIncremental, clipboardSink, clipboardSource, cursorSource);
 }
 
-bool RfbServerSession::ServeFramebufferUpdates(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource) const
+bool RfbServerSession::ServeFramebufferUpdates(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages, RfbSessionStats *stats, RfbClientState *state, RfbInputSink *inputSink, bool forceRawIncremental, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource, RfbCursorSource *cursorSource) const
 {
     TcpRfbTransport transport(socket);
-    return ServeFramebufferUpdates(transport, framebuffer, updateCount, maxMessages, stats, state, inputSink, forceRawIncremental, clipboardSink, clipboardSource);
+    return ServeFramebufferUpdates(transport, framebuffer, updateCount, maxMessages, stats, state, inputSink, forceRawIncremental, clipboardSink, clipboardSource, cursorSource);
 }
 
 bool RfbServerSession::SendBell(TcpSocket& socket) const
@@ -1019,10 +1039,10 @@ bool RfbServerSession::SendServerCutText(TcpSocket& socket, const std::string& t
     return SendServerCutText(transport, text);
 }
 
-bool RfbServerSession::SendCursorShape(TcpSocket& socket, RfbClientState& state) const
+bool RfbServerSession::SendCursorShape(TcpSocket& socket, RfbClientState& state, const CursorShape *shape) const
 {
     TcpRfbTransport transport(socket);
-    return SendCursorShape(transport, state);
+    return SendCursorShape(transport, state, shape);
 }
 
 bool RfbServerSession::SendFileTransferAbort(TcpSocket& socket, CARD16 contentParam, CARD32 size) const
