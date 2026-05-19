@@ -117,13 +117,16 @@ int main()
     viewerConfig.SetTlsCaFile(certPath);
     viewerConfig.SetTlsServerName("localhost");
 
+    PersistentViewerSession session;
     ViewerSessionResult result;
     std::string error;
-if (!ViewerSession().RunHandshake(viewerConfig, result, &error)) { std::cerr << error << "\n"; assert(false); }
+    assert(session.Connect(viewerConfig, result, &error));
     assert(error.empty());
     assert(result.width == 64);
     assert(result.height == 32);
     assert(result.desktopName == "viewer-tls-vencrypt-smoke");
+    assert(session.RequestFramebufferUpdate(false, result, &error));
+    assert(result.update.received);
 
     worker.join();
     server.Stop();
