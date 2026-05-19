@@ -184,14 +184,12 @@ bool MemoryServer::ServeConnectedUpdatesFromSource(TcpSocket client, DesktopSour
     for (unsigned int i = 0; i < maxMessages && sent < updateCount; ++i) {
         Framebuffer current;
         rfb::Region2D changed;
-        if (!source.Snapshot(current, changed) ||
-            current.Width() != config_.Width() ||
-            current.Height() != config_.Height()) {
+        if (!source.Snapshot(current, changed)) {
             return false;
         }
 
         bool updateSent = false;
-        if (!session.ServeNextClientMessage(*transport, current, updateSent, &stats, &state, inputSink, true, clipboardSink, clipboardSource, cursorSource)) {
+        if (!session.ServeNextClientMessage(*transport, current, updateSent, &stats, &state, inputSink, false, clipboardSink, clipboardSource, cursorSource, &changed)) {
             return false;
         }
         if (updateSent) {
