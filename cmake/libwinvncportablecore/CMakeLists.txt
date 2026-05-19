@@ -55,6 +55,7 @@ add_library(${PROJECT_NAME} STATIC
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableFileTransfer.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableCursor.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableRfbClientState.cpp"
+    "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableClientPolicy.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableRfbUpdate.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableRfbSession.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableMemoryServer.cpp"
