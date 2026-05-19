@@ -92,9 +92,49 @@ set_tests_properties(vncviewer_qt_smoke PROPERTIES
     TIMEOUT 10
 )
 
-install(TARGETS uvnc_qt_viewer RUNTIME DESTINATION bin)
+
+add_executable(uvnc_qt_server_settings
+    "${CMAKE_SOURCE_DIR}/../winvnc/qtserver/vncQtServerSettingsMain.cpp"
+    "${CMAKE_SOURCE_DIR}/../winvnc/qtserver/vncQtServerSettingsPanel.cpp"
+)
+target_include_directories(uvnc_qt_server_settings PRIVATE
+    "${CMAKE_SOURCE_DIR}/../winvnc/qtserver"
+    "${CMAKE_SOURCE_DIR}/../winvnc/winvnc"
+    "${CMAKE_SOURCE_DIR}/../common"
+)
+target_link_libraries(uvnc_qt_server_settings PRIVATE Qt6::Widgets libwinvncportablecore)
+
+add_executable(winvnc_qt_server_settings_smoke
+    "${CMAKE_SOURCE_DIR}/tests/winvnc_qt_server_settings_smoke.cpp"
+    "${CMAKE_SOURCE_DIR}/../winvnc/qtserver/vncQtServerSettingsPanel.cpp"
+)
+target_include_directories(winvnc_qt_server_settings_smoke PRIVATE
+    "${CMAKE_SOURCE_DIR}/../winvnc/qtserver"
+    "${CMAKE_SOURCE_DIR}/../winvnc/winvnc"
+    "${CMAKE_SOURCE_DIR}/../common"
+)
+target_link_libraries(winvnc_qt_server_settings_smoke PRIVATE Qt6::Widgets libwinvncportablecore)
+add_test(NAME winvnc_qt_server_settings_smoke COMMAND winvnc_qt_server_settings_smoke)
+set_tests_properties(winvnc_qt_server_settings_smoke PROPERTIES
+    LABELS "native-linux;winvnc-qt"
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+    TIMEOUT 10
+)
+
+add_test(NAME winvnc_qt_server_settings_cli_smoke
+    COMMAND uvnc_qt_server_settings --smoke-test
+)
+set_tests_properties(winvnc_qt_server_settings_cli_smoke PROPERTIES
+    LABELS "native-linux;winvnc-qt"
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+    TIMEOUT 10
+)
+
+install(TARGETS uvnc_qt_viewer uvnc_qt_server_settings RUNTIME DESTINATION bin)
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/uvnc_qt_viewer.desktop" DESTINATION share/applications)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/uvnc_qt_server_settings.desktop" DESTINATION share/applications)
 install(FILES "${CMAKE_SOURCE_DIR}/../vncviewer/res/logo.svg" DESTINATION share/icons/hicolor/scalable/apps RENAME uvnc_qt_viewer.svg)
+install(FILES "${CMAKE_SOURCE_DIR}/../vncviewer/res/logo.svg" DESTINATION share/icons/hicolor/scalable/apps RENAME uvnc_qt_server_settings.svg)
 install(FILES "${CMAKE_SOURCE_DIR}/../docs/native-linux-qt-viewer.md" DESTINATION share/doc/ultravnc)
 install(FILES "${CMAKE_SOURCE_DIR}/../docs/native-linux-qt-viewer-production-checklist.md" DESTINATION share/doc/ultravnc)
 install(FILES "${CMAKE_SOURCE_DIR}/../docs/examples/native-linux-qt-viewer-real-server-matrix.example" DESTINATION share/doc/ultravnc/examples)

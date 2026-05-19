@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=UltraVNC Linux Server Settings
+Comment=Configure the native Linux UltraVNC server runtime
+Exec=uvnc_qt_server_settings
+Icon=uvnc_qt_server_settings
+Terminal=false
+Categories=Network;RemoteAccess;Settings;
