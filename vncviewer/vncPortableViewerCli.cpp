@@ -171,6 +171,15 @@ bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& opti
                 return false;
             }
             options.config.SetTransportSecurity(mode);
+        } else if (arg == "--security-extension" && i + 1 < args.size()) {
+            ViewerSecurityExtensionMode mode = ViewerSecurityExtensionMode::None;
+            if (!ParseViewerSecurityExtensionMode(args[++i], mode)) {
+                error = "invalid --security-extension";
+                return false;
+            }
+            options.config.SetSecurityExtension(mode);
+        } else if (arg == "--security-extension-name" && i + 1 < args.size()) {
+            options.config.SetSecurityExtensionName(args[++i]);
         } else if (arg == "--tls-ca-file" && i + 1 < args.size()) {
             options.config.SetTlsCaFile(args[++i]);
         } else if (arg == "--tls-server-name" && i + 1 < args.size()) {
@@ -275,6 +284,8 @@ std::string ViewerCliUsage(const char *programName)
         << "  --allow-no-auth        Permit no-auth servers, default\n"
         << "  --disable-no-auth      Reject no-auth-only servers\n"
         << "  --transport-security <mode> Transport security: none, vencrypt-x509-vnc\n"
+        << "  --security-extension <mode> Unsupported legacy extension request: none,dsm-plugin,mslogon,securevnc-plugin\n"
+        << "  --security-extension-name <name> Legacy plugin/provider name for diagnostics only\n"
         << "  --tls-ca-file <path> CA file for VeNCrypt TLS peer verification\n"
         << "  --tls-server-name <name> Name used for TLS SNI and hostname verification\n"
         << "  --tls-insecure         Disable TLS peer verification for throwaway lab tests only\n"
