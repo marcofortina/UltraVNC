@@ -14,7 +14,10 @@
 #include "vncPortableRfbMessages.h"
 #include "vncPortableRfbUpdate.h"
 
+#include <algorithm>
 #include <cstring>
+#include <fstream>
+#include <limits>
 #include <random>
 #include <string>
 #include <vector>
@@ -71,6 +74,98 @@ std::vector<CARD8> GenerateVncAuthChallenge()
         challenge[i] = static_cast<CARD8>(random());
     }
     return challenge;
+}
+
+bool IsReadFileTransferMode(FileTransferMode mode)
+{
+    return mode == FileTransferMode::ReadOnly || mode == FileTransferMode::ReadWrite;
+}
+
+bool IsWriteFileTransferMode(FileTransferMode mode)
+{
+    return mode == FileTransferMode::ReadWrite;
+}
+
+bool SendFileTransferAccess(TcpSocket& socket, bool allowed)
+{
+    const std::vector<CARD8> bytes = EncodeFileTransferAccess(allowed);
+    return socket.WriteAll(bytes.data(), bytes.size());
+}
+
+bool SendFileTransferPacketMessage(TcpSocket& socket, CARD8 contentType, CARD16 contentParam, CARD32 size, const std::vector<CARD8>& payload)
+{
+    const std::vector<CARD8> bytes = EncodeFileTransferPacket(contentType, contentParam, size, payload);
+    return socket.WriteAll(bytes.data(), bytes.size());
+}
+
+bool SendFileTransferPacketMessage(TcpSocket& socket, CARD8 contentType, CARD16 contentParam, CARD32 size, const std::string& payload)
+{
+    const std::vector<CARD8> bytes = EncodeFileTransferPacket(contentType, contentParam, size, payload);
+    return socket.WriteAll(bytes.data(), bytes.size());
+}
+
+bool SendFileTransferError(TcpSocket& socket)
+{
+    const std::vector<CARD8> bytes = EncodeFileTransferAbort(0, static_cast<CARD32>(rfbRErrorCmd));
+    return socket.WriteAll(bytes.data(), bytes.size());
+}
+
+bool SendFileDownload(TcpSocket& socket, const std::string& path, const std::string& displayPath, CARD32 payloadLimit)
+{
+    std::ifstream input(path.c_str(), std::ios::binary);
+    if (!input) {
+        return SendFileTransferError(socket);
+    }
+    input.seekg(0, std::ios::end);
+    const std::ifstream::pos_type end = input.tellg();
+    if (end < 0 || static_cast<unsigned long long>(end) > std::numeric_limits<CARD32>::max()) {
+        return SendFileTransferError(socket);
+    }
+    const CARD32 fileSize = static_cast<CARD32>(end);
+    input.seekg(0, std::ios::beg);
+
+    if (!SendFileTransferPacketMessage(socket, rfbFileHeader, rfbAFile, fileSize, displayPath)) {
+        return false;
+    }
+
+    const CARD32 chunkLimit = payloadLimit == 0 ? static_cast<CARD32>(sz_rfbBlockSize) : payloadLimit;
+    const CARD32 chunkSize = std::min<CARD32>(static_cast<CARD32>(sz_rfbBlockSize), chunkLimit);
+    std::vector<CARD8> chunk(chunkSize == 0 ? static_cast<CARD32>(sz_rfbBlockSize) : chunkSize);
+    CARD32 offset = 0;
+    while (input && offset < fileSize) {
+        const CARD32 remaining = fileSize - offset;
+        const CARD32 toRead = std::min<CARD32>(static_cast<CARD32>(chunk.size()), remaining);
+        input.read(reinterpret_cast<char *>(chunk.data()), toRead);
+        const std::streamsize got = input.gcount();
+        if (got <= 0) {
+            return SendFileTransferError(socket);
+        }
+        std::vector<CARD8> payload(chunk.begin(), chunk.begin() + got);
+        if (!SendFileTransferPacketMessage(socket, rfbFilePacket, 0, offset, payload)) {
+            return false;
+        }
+        offset += static_cast<CARD32>(got);
+    }
+
+    return SendFileTransferPacketMessage(socket, rfbEndOfFile, 0, fileSize, std::vector<CARD8>());
+}
+
+bool TruncateUploadTarget(const std::string& path)
+{
+    std::ofstream output(path.c_str(), std::ios::binary | std::ios::trunc);
+    return static_cast<bool>(output);
+}
+
+bool AppendUploadPayload(const std::string& path, const std::vector<CARD8>& payload)
+{
+    std::ofstream output(path.c_str(), std::ios::binary | std::ios::app);
+    if (!output) {
+        return false;
+    }
+    if (!payload.empty()) {
+        output.write(reinterpret_cast<const char *>(payload.data()), static_cast<std::streamsize>(payload.size()));
+    }
+    return static_cast<bool>(output);
 }
 
 bool RunVncPasswordAuthentication(TcpSocket& socket, const std::string& password)
@@ -361,23 +456,81 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
         if (!payload.empty() && !socket.ReadExact(payload.data(), payload.size())) {
             return false;
         }
-        if (state && FileTransferMessageMayCarryPath(message.contentType) && !state->FileTransferRoot().empty()) {
-            const std::string requestedPath(reinterpret_cast<const char *>(payload.data()), payload.size());
-            std::string resolvedPath;
-            std::string pathError;
-            if (!ResolveFileTransferPath(state->FileTransferRoot(), requestedPath, resolvedPath, &pathError)) {
-                if (stats) {
-                    stats->fileTransferMessages += 1;
-                    stats->fileTransferBytesDiscarded += decision.payloadBytes;
-                }
-                return SendFileTransferAbort(socket, 0, rfbRErrorCmd);
-            }
-        }
         if (stats) {
             stats->fileTransferMessages += 1;
-            stats->fileTransferBytesDiscarded += decision.payloadBytes;
         }
-        return SendFileTransferAbort(socket, decision.abortReason);
+
+        if (message.contentType == rfbFileTransferAccess || message.contentType == rfbFileTransferProtocolVersion) {
+            return SendFileTransferAccess(socket, mode != FileTransferMode::Disabled && mode != FileTransferMode::RejectOnly);
+        }
+        if (message.contentType == rfbFileTransferSessionStart || message.contentType == rfbFileTransferSessionEnd) {
+            if (message.contentType == rfbFileTransferSessionEnd && state) {
+                state->EndFileUpload();
+            }
+            return true;
+        }
+        if (!decision.accepted || !state) {
+            if (stats) {
+                stats->fileTransferBytesDiscarded += decision.payloadBytes;
+            }
+            return SendFileTransferAbort(socket, decision.abortReason);
+        }
+
+        const std::string requestedPath(reinterpret_cast<const char *>(payload.data()), payload.size());
+        std::string resolvedPath;
+        std::string pathError;
+        if (FileTransferMessageMayCarryPath(message.contentType) &&
+            !ResolveFileTransferPath(state->FileTransferRoot(), requestedPath, resolvedPath, &pathError)) {
+            if (stats) {
+                stats->fileTransferBytesDiscarded += decision.payloadBytes;
+            }
+            return SendFileTransferAbort(socket, 0, static_cast<CARD32>(rfbRErrorCmd));
+        }
+
+        switch (message.contentType) {
+        case rfbDirContentRequest:
+            if (!IsReadFileTransferMode(mode)) {
+                return SendFileTransferAccess(socket, false);
+            }
+            return SendFileTransferPacketMessage(socket, rfbDirPacket, 0, 0, std::vector<CARD8>());
+        case rfbFileTransferRequest:
+            if (!IsReadFileTransferMode(mode)) {
+                return SendFileTransferAccess(socket, false);
+            }
+            return SendFileDownload(socket, resolvedPath, requestedPath, limit);
+        case rfbFileTransferOffer:
+            if (!IsWriteFileTransferMode(mode)) {
+                return SendFileTransferAccess(socket, false);
+            }
+            if (!TruncateUploadTarget(resolvedPath)) {
+                return SendFileTransferError(socket);
+            }
+            state->BeginFileUpload(resolvedPath);
+            return SendFileTransferPacketMessage(socket, rfbFileAcceptHeader, 0, 1, std::vector<CARD8>());
+        case rfbFilePacket:
+            if (!IsWriteFileTransferMode(mode) || !state->FileUploadActive()) {
+                if (stats) {
+                    stats->fileTransferBytesDiscarded += decision.payloadBytes;
+                }
+                return SendFileTransferError(socket);
+            }
+            if (!AppendUploadPayload(state->FileUploadPath(), payload)) {
+                state->EndFileUpload();
+                return SendFileTransferError(socket);
+            }
+            state->AddFileUploadBytes(static_cast<CARD32>(payload.size()));
+            return true;
+        case rfbEndOfFile:
+            if (state->FileUploadActive()) {
+                state->EndFileUpload();
+            }
+            return true;
+        default:
+            if (stats) {
+                stats->fileTransferBytesDiscarded += decision.payloadBytes;
+            }
+            return SendFileTransferAbort(socket, decision.abortReason);
+        }
     }
     default:
         return false;
