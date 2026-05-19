@@ -15,6 +15,7 @@
 #include <QFileDialog>
 #include <QFormLayout>
 #include <QHBoxLayout>
+#include <QGroupBox>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
@@ -24,6 +25,7 @@
 #include <QStandardPaths>
 #include <QTemporaryFile>
 #include <QSpinBox>
+#include <QTabWidget>
 #include <QTextEdit>
 #include <QVBoxLayout>
 
@@ -231,14 +233,34 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
     runtimeButtons->addWidget(runtimeStatusButton_);
     runtimeButtons->addWidget(runtimeLogButton_);
 
+    QWidget *settingsPage = new QWidget();
+    QVBoxLayout *settingsLayout = new QVBoxLayout(settingsPage);
+    settingsLayout->addLayout(form);
+    settingsLayout->addLayout(flags);
+    settingsLayout->addLayout(buttons);
+
+    QWidget *runtimePage = new QWidget();
+    QVBoxLayout *runtimeLayout = new QVBoxLayout(runtimePage);
+    runtimeLayout->addLayout(runtimeButtons);
+    runtimeLayout->addWidget(runtimeOutputEdit_);
+
+    QWidget *previewPage = new QWidget();
+    QVBoxLayout *previewLayout = new QVBoxLayout(previewPage);
+    previewLayout->addWidget(previewEdit_);
+
+    QTabWidget *tabs = new QTabWidget();
+    tabs->setObjectName(QStringLiteral("serverSettingsTabs"));
+    tabs->addTab(settingsPage, QStringLiteral("Settings"));
+    tabs->addTab(runtimePage, QStringLiteral("Runtime"));
+    tabs->addTab(previewPage, QStringLiteral("Config preview"));
+
     QVBoxLayout *layout = new QVBoxLayout(this);
-    layout->addLayout(form);
-    layout->addLayout(flags);
-    layout->addLayout(buttons);
-    layout->addLayout(runtimeButtons);
+    QLabel *title = new QLabel(QStringLiteral("UltraVNC Linux Server"));
+    title->setObjectName(QStringLiteral("serverSettingsTitle"));
+    title->setStyleSheet(QStringLiteral("font-weight: 600; font-size: 16px;"));
+    layout->addWidget(title);
     layout->addWidget(statusLabel_);
-    layout->addWidget(previewEdit_);
-    layout->addWidget(runtimeOutputEdit_);
+    layout->addWidget(tabs);
 
     QObject::connect(validateButton_, &QPushButton::clicked, this, [this]() { ValidateConfig(true); });
     QObject::connect(saveButton_, &QPushButton::clicked, this, [this]() { SaveConfig(); });
