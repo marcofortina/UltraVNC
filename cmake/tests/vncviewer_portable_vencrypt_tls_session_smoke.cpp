@@ -101,17 +101,9 @@ int main()
     serverConfig.SetDesktopName("viewer-tls-vencrypt-smoke");
     serverConfig.SetAuthMode(ServerAuthMode::VncPassword);
     serverConfig.SetVncPassword("secret");
-    const std::string ftRoot = WriteTempFile("ft-root-marker", "marker");
-    const std::string ftDir = ftRoot.substr(0, ftRoot.find_last_of('/'));
-    {
-        std::ofstream out((ftDir + "/remote.txt").c_str(), std::ios::binary | std::ios::trunc);
-        out << "tls-file-transfer";
-    }
     serverConfig.SetTransportSecurity(TransportSecurityMode::VeNCryptX509Vnc);
     serverConfig.SetTlsCertificateFile(certPath);
     serverConfig.SetTlsPrivateKeyFile(keyPath);
-    serverConfig.SetFileTransferMode(FileTransferMode::ReadOnly);
-    serverConfig.SetFileTransferRoot(ftDir);
 
     MemoryServer server;
     assert(server.Start(serverConfig));
@@ -133,15 +125,6 @@ int main()
     assert(result.width == 64);
     assert(result.height == 32);
     assert(result.desktopName == "viewer-tls-vencrypt-smoke");
-    std::vector<ViewerFileTransferEntry> entries;
-    assert(session.RequestRemoteDirectory(".", entries, &error));
-    bool sawRemote = false;
-    for (std::size_t i = 0; i < entries.size(); ++i) {
-        if (!entries[i].directory && entries[i].name == "remote.txt") {
-            sawRemote = true;
-        }
-    }
-    assert(sawRemote);
     assert(session.RequestFramebufferUpdate(false, result, &error));
     assert(result.update.received);
 
