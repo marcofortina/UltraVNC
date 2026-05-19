@@ -156,6 +156,16 @@ if(NOT WIN32 AND ULTRAVNC_BUILD_PORTABLE_LIBS AND ULTRAVNC_BUILD_WINVNC_PORTABLE
     if(ULTRAVNC_BUILD_REPEATER_HEADLESS AND TARGET uvnc_repeater_headless)
         list(APPEND UVNC_NATIVE_LINUX_LEGACY_PARITY_TARGETS uvnc_repeater_headless)
     endif()
+    if(BUILD_TESTING)
+        foreach(UVNC_LEGACY_PARITY_TEST_TARGET
+                winvnc_portable_server_config_smoke
+                winvnc_portable_dsm_provider_smoke
+                winvnc_portable_securevnc_provider_smoke)
+            if(TARGET ${UVNC_LEGACY_PARITY_TEST_TARGET})
+                list(APPEND UVNC_NATIVE_LINUX_LEGACY_PARITY_TARGETS ${UVNC_LEGACY_PARITY_TEST_TARGET})
+            endif()
+        endforeach()
+    endif()
     if(ULTRAVNC_BUILD_QT_VIEWER AND TARGET native_linux_qt_legacy_parity_smokes)
         list(APPEND UVNC_NATIVE_LINUX_LEGACY_PARITY_TARGETS native_linux_qt_legacy_parity_smokes)
     endif()
