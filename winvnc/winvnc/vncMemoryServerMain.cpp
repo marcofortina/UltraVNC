@@ -502,6 +502,8 @@ bool AddConfigOption(const std::string& key, const std::string& value, std::vect
         args.push_back("--file-transfer-mode");
     } else if (key == "file_transfer_payload_limit") {
         args.push_back("--file-transfer-payload-limit");
+    } else if (key == "file_transfer_root") {
+        args.push_back("--file-transfer-root");
     } else if (key == "allow_unencrypted_public") {
         if (value == "true" || value == "1" || value == "yes") {
             args.push_back("--allow-unencrypted-public");
@@ -795,6 +797,8 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
                 return false;
             }
             config.SetFileTransferPayloadLimit(limit);
+        } else if (arg == "--file-transfer-root" && i + 1 < argc) {
+            config.SetFileTransferRoot(argv[++i]);
         } else if (arg == "--security-plugin" || arg == "--dsm-plugin" || arg == "--mslogon" || arg == "--http-java-viewer") {
             std::cerr << arg << " is not supported by the native Linux server runtime yet\n";
             return false;
@@ -1046,6 +1050,7 @@ void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBac
               << "max_shared_clients=" << config.MaxSharedClients() << "\n"
               << "file_transfer_mode=" << FileTransferModeName(config.FileTransferModeValue()) << "\n"
               << "file_transfer_payload_limit=" << config.FileTransferPayloadLimit() << "\n"
+              << "file_transfer_root=" << config.FileTransferRoot() << "\n"
               << "client_mode=" << ClientServiceModeName(clientMode) << "\n"
               << "serve_updates=" << (serveUpdates ? "yes" : "no") << "\n"
               << "serve_forever=" << (serveForever ? "yes" : "no") << "\n"
