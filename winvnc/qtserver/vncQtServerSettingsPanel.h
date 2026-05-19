@@ -45,6 +45,10 @@ private:
     void StopServer(bool showDialog);
     void RefreshRuntimeStatus();
     void RefreshRuntimeLog();
+    void StartSystemdService(bool showDialog);
+    void StopSystemdService(bool showDialog);
+    void RefreshSystemdServiceStatus();
+    QStringList SystemdArguments(const QString& action) const;
     QString WriteRuntimeConfig(QString *error) const;
     void SetStatus(const QString& status);
     void ShowError(const QString& message, bool showDialog);
@@ -94,6 +98,11 @@ private:
     QLabel *statusLabel_;
     QTextEdit *previewEdit_;
     QTextEdit *runtimeOutputEdit_;
+    QLineEdit *systemdServiceEdit_;
+    QComboBox *systemdScopeCombo_;
+    QPushButton *systemdStartButton_;
+    QPushButton *systemdStopButton_;
+    QPushButton *systemdStatusButton_;
     QProcess *serverProcess_;
 };
 

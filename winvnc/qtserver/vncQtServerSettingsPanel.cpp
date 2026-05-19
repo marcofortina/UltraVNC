@@ -95,6 +95,11 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
       statusLabel_(new QLabel(QStringLiteral("Not validated"))),
       previewEdit_(new QTextEdit()),
       runtimeOutputEdit_(new QTextEdit()),
+      systemdServiceEdit_(new QLineEdit(QStringLiteral("uvnc-winvnc-memory-server.service"))),
+      systemdScopeCombo_(new QComboBox()),
+      systemdStartButton_(new QPushButton(QStringLiteral("Start service"))),
+      systemdStopButton_(new QPushButton(QStringLiteral("Stop service"))),
+      systemdStatusButton_(new QPushButton(QStringLiteral("Service status"))),
       serverProcess_(new QProcess(this))
 {
     bindAddressEdit_->setObjectName(QStringLiteral("bindAddressEdit"));
@@ -136,6 +141,11 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
     stopButton_->setObjectName(QStringLiteral("stopButton"));
     runtimeStatusButton_->setObjectName(QStringLiteral("runtimeStatusButton"));
     runtimeLogButton_->setObjectName(QStringLiteral("runtimeLogButton"));
+    systemdServiceEdit_->setObjectName(QStringLiteral("systemdServiceEdit"));
+    systemdScopeCombo_->setObjectName(QStringLiteral("systemdScopeCombo"));
+    systemdStartButton_->setObjectName(QStringLiteral("systemdStartButton"));
+    systemdStopButton_->setObjectName(QStringLiteral("systemdStopButton"));
+    systemdStatusButton_->setObjectName(QStringLiteral("systemdStatusButton"));
     statusLabel_->setObjectName(QStringLiteral("statusLabel"));
     previewEdit_->setObjectName(QStringLiteral("previewEdit"));
     runtimeOutputEdit_->setObjectName(QStringLiteral("runtimeOutputEdit"));
@@ -160,6 +170,9 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
     pidFileEdit_->setPlaceholderText(QStringLiteral("/run/ultravnc/winvnc.pid"));
     statusFileEdit_->setPlaceholderText(QStringLiteral("/run/ultravnc/winvnc.status"));
     runtimeConfigPathEdit_->setPlaceholderText(QStringLiteral("empty = write a temporary runtime config"));
+    systemdServiceEdit_->setPlaceholderText(QStringLiteral("uvnc-winvnc-memory-server.service"));
+    systemdScopeCombo_->addItem(QStringLiteral("User service"), QStringLiteral("user"));
+    systemdScopeCombo_->addItem(QStringLiteral("System service"), QStringLiteral("system"));
     previewEdit_->setReadOnly(true);
     previewEdit_->setMinimumHeight(220);
     runtimeOutputEdit_->setReadOnly(true);
@@ -233,6 +246,15 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
     runtimeButtons->addWidget(runtimeStatusButton_);
     runtimeButtons->addWidget(runtimeLogButton_);
 
+    QFormLayout *systemdForm = new QFormLayout();
+    systemdForm->addRow(QStringLiteral("Service name"), systemdServiceEdit_);
+    systemdForm->addRow(QStringLiteral("Service scope"), systemdScopeCombo_);
+
+    QHBoxLayout *systemdButtons = new QHBoxLayout();
+    systemdButtons->addWidget(systemdStartButton_);
+    systemdButtons->addWidget(systemdStopButton_);
+    systemdButtons->addWidget(systemdStatusButton_);
+
     QWidget *settingsPage = new QWidget();
     QVBoxLayout *settingsLayout = new QVBoxLayout(settingsPage);
     settingsLayout->addLayout(form);
@@ -242,6 +264,9 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
     QWidget *runtimePage = new QWidget();
     QVBoxLayout *runtimeLayout = new QVBoxLayout(runtimePage);
     runtimeLayout->addLayout(runtimeButtons);
+    runtimeLayout->addSpacing(8);
+    runtimeLayout->addLayout(systemdForm);
+    runtimeLayout->addLayout(systemdButtons);
     runtimeLayout->addWidget(runtimeOutputEdit_);
 
     QWidget *previewPage = new QWidget();
@@ -269,6 +294,9 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
     QObject::connect(stopButton_, &QPushButton::clicked, this, [this]() { StopServer(true); });
     QObject::connect(runtimeStatusButton_, &QPushButton::clicked, this, [this]() { RefreshRuntimeStatus(); });
     QObject::connect(runtimeLogButton_, &QPushButton::clicked, this, [this]() { RefreshRuntimeLog(); });
+    QObject::connect(systemdStartButton_, &QPushButton::clicked, this, [this]() { StartSystemdService(true); });
+    QObject::connect(systemdStopButton_, &QPushButton::clicked, this, [this]() { StopSystemdService(true); });
+    QObject::connect(systemdStatusButton_, &QPushButton::clicked, this, [this]() { RefreshSystemdServiceStatus(); });
     QObject::connect(serverProcess_, &QProcess::readyReadStandardOutput, this, [this]() { runtimeOutputEdit_->append(QString::fromUtf8(serverProcess_->readAllStandardOutput())); });
     QObject::connect(serverProcess_, &QProcess::readyReadStandardError, this, [this]() { runtimeOutputEdit_->append(QString::fromUtf8(serverProcess_->readAllStandardError())); });
     QObject::connect(serverProcess_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this](int code, QProcess::ExitStatus status) {
@@ -497,6 +525,64 @@ void QtServerSettingsPanel::RefreshRuntimeLog()
     const QByteArray bytes = file.readAll();
     runtimeOutputEdit_->setPlainText(QString::fromUtf8(bytes.right(64 * 1024)));
     SetStatus(QStringLiteral("Runtime log refreshed"));
+}
+
+
+QStringList QtServerSettingsPanel::SystemdArguments(const QString& action) const
+{
+    QStringList args;
+    if (systemdScopeCombo_->currentData().toString() == QStringLiteral("user")) {
+        args << QStringLiteral("--user");
+    }
+    args << action << systemdServiceEdit_->text().trimmed();
+    return args;
+}
+
+void QtServerSettingsPanel::StartSystemdService(bool showDialog)
+{
+    if (systemdServiceEdit_->text().trimmed().isEmpty()) {
+        ShowError(QStringLiteral("Systemd service name is empty"), showDialog);
+        return;
+    }
+    QProcess systemctl;
+    systemctl.start(QStringLiteral("systemctl"), SystemdArguments(QStringLiteral("start")));
+    systemctl.waitForFinished(10000);
+    runtimeOutputEdit_->setPlainText(QString::fromUtf8(systemctl.readAllStandardOutput()) + QString::fromUtf8(systemctl.readAllStandardError()));
+    if (systemctl.exitStatus() != QProcess::NormalExit || systemctl.exitCode() != 0) {
+        ShowError(QStringLiteral("Failed to start systemd service"), showDialog);
+        return;
+    }
+    SetStatus(QStringLiteral("Systemd service start requested"));
+}
+
+void QtServerSettingsPanel::StopSystemdService(bool showDialog)
+{
+    if (systemdServiceEdit_->text().trimmed().isEmpty()) {
+        ShowError(QStringLiteral("Systemd service name is empty"), showDialog);
+        return;
+    }
+    QProcess systemctl;
+    systemctl.start(QStringLiteral("systemctl"), SystemdArguments(QStringLiteral("stop")));
+    systemctl.waitForFinished(10000);
+    runtimeOutputEdit_->setPlainText(QString::fromUtf8(systemctl.readAllStandardOutput()) + QString::fromUtf8(systemctl.readAllStandardError()));
+    if (systemctl.exitStatus() != QProcess::NormalExit || systemctl.exitCode() != 0) {
+        ShowError(QStringLiteral("Failed to stop systemd service"), showDialog);
+        return;
+    }
+    SetStatus(QStringLiteral("Systemd service stop requested"));
+}
+
+void QtServerSettingsPanel::RefreshSystemdServiceStatus()
+{
+    if (systemdServiceEdit_->text().trimmed().isEmpty()) {
+        ShowError(QStringLiteral("Systemd service name is empty"), false);
+        return;
+    }
+    QProcess systemctl;
+    systemctl.start(QStringLiteral("systemctl"), SystemdArguments(QStringLiteral("status")) << QStringLiteral("--no-pager"));
+    systemctl.waitForFinished(10000);
+    runtimeOutputEdit_->setPlainText(QString::fromUtf8(systemctl.readAllStandardOutput()) + QString::fromUtf8(systemctl.readAllStandardError()));
+    SetStatus(QStringLiteral("Systemd service status refreshed"));
 }
 
 void QtServerSettingsPanel::ValidateConfig(bool showDialog)
