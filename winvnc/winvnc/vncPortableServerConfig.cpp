@@ -96,6 +96,7 @@ ServerConfig::ServerConfig()
       maxSharedClients_(8),
       vncPassword_(),
       authHelperPath_(),
+      dsmProviderPath_(),
       allowNoAuth_(false),
       allowPublicNoAuth_(false),
       allowUnencryptedPublic_(false),
@@ -183,6 +184,9 @@ bool ServerConfig::Validate(std::string *error) const
             if (error) *error = "external auth helper path must be absolute";
             return false;
         }
+    }
+    if (!dsmProviderPath_.empty() && !ValidateDsmProviderPath(dsmProviderPath_, error)) {
+        return false;
     }
     if (fileTransferPayloadLimit_ == 0 || fileTransferPayloadLimit_ > 16U * 1024U * 1024U) {
         if (error) *error = "file-transfer payload guard limit must be between 1 and 16777216 bytes";

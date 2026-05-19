@@ -12,6 +12,7 @@
 #include "rfb.h"
 #include "vncPortableFramebufferPattern.h"
 #include "vncPortableFileTransfer.h"
+#include "vncPortableDsmProvider.h"
 
 #include <string>
 
@@ -50,6 +51,7 @@ public:
     ServerAuthMode AuthMode() const { return authMode_; }
     const std::string& VncPassword() const { return vncPassword_; }
     const std::string& AuthHelperPath() const { return authHelperPath_; }
+    const std::string& DsmProviderPath() const { return dsmProviderPath_; }
     bool AllowNoAuth() const { return allowNoAuth_; }
     bool AllowPublicNoAuth() const { return allowPublicNoAuth_; }
     bool AllowUnencryptedPublic() const { return allowUnencryptedPublic_; }
@@ -80,6 +82,7 @@ public:
     void SetAuthMode(ServerAuthMode mode) { authMode_ = mode; }
     void SetVncPassword(const std::string& password) { vncPassword_ = password; }
     void SetAuthHelperPath(const std::string& path) { authHelperPath_ = path; }
+    void SetDsmProviderPath(const std::string& path) { dsmProviderPath_ = path; }
     void SetAllowNoAuth(bool allow) { allowNoAuth_ = allow; }
     void SetAllowPublicNoAuth(bool allow) { allowPublicNoAuth_ = allow; }
     void SetAllowUnencryptedPublic(bool allow) { allowUnencryptedPublic_ = allow; }
@@ -117,6 +120,7 @@ private:
     unsigned int maxSharedClients_;
     std::string vncPassword_;
     std::string authHelperPath_;
+    std::string dsmProviderPath_;
     bool allowNoAuth_;
     bool allowPublicNoAuth_;
     bool allowUnencryptedPublic_;
