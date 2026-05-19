@@ -65,6 +65,9 @@ using uvnc::winvnc::portable::RfbInputSink;
 using uvnc::winvnc::portable::RfbClipboardSink;
 using uvnc::winvnc::portable::TcpSocket;
 using uvnc::winvnc::portable::FramebufferPattern;
+using uvnc::winvnc::portable::FileTransferMode;
+using uvnc::winvnc::portable::FileTransferModeName;
+using uvnc::winvnc::portable::ParseFileTransferMode;
 using uvnc::winvnc::portable::FramebufferPatternName;
 using uvnc::winvnc::portable::ParseFramebufferPattern;
 
@@ -368,6 +371,8 @@ void PrintUsage(const char *name)
               << "  --password-file <path>  Read VNCAuth password from a private file, max 8 bytes\n"
               << "  --bell-on-connect     Send an RFB Bell message after client handshake\n"
               << "  --server-cut-text <text> Send initial ServerCutText clipboard text after handshake\n"
+              << "  --file-transfer-mode <mode> File transfer policy: disabled, reject-only\n"
+              << "  --file-transfer-payload-limit <bytes> Max file-transfer payload accepted for discard\n"
               << "  --allow-no-auth         Explicitly allow no-auth loopback/lab mode\n"
               << "  --allow-public-no-auth  Explicitly allow no-auth on non-loopback lab binds\n"
               << "  --allow-unencrypted-public Explicitly allow non-loopback VNCAuth without transport encryption\n"
@@ -461,6 +466,10 @@ bool AddConfigOption(const std::string& key, const std::string& value, std::vect
         return false;
     } else if (key == "server_cut_text") {
         args.push_back("--server-cut-text");
+    } else if (key == "file_transfer_mode") {
+        args.push_back("--file-transfer-mode");
+    } else if (key == "file_transfer_payload_limit") {
+        args.push_back("--file-transfer-payload-limit");
     } else if (key == "allow_unencrypted_public") {
         if (value == "true" || value == "1" || value == "yes") {
             args.push_back("--allow-unencrypted-public");
@@ -721,7 +730,22 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
                 return false;
             }
         } else if (arg == "--enable-file-transfer") {
-            config.SetEnableFileTransfer(true);
+            std::cerr << "--enable-file-transfer is obsolete; use --file-transfer-mode reject-only for guarded protocol rejects\n";
+            return false;
+        } else if (arg == "--file-transfer-mode" && i + 1 < argc) {
+            FileTransferMode mode = FileTransferMode::Disabled;
+            if (!ParseFileTransferMode(argv[++i], mode)) {
+                std::cerr << "invalid --file-transfer-mode\n";
+                return false;
+            }
+            config.SetFileTransferMode(mode);
+        } else if (arg == "--file-transfer-payload-limit" && i + 1 < argc) {
+            unsigned int limit = 0;
+            if (!ParseUnsigned(argv[++i], 1, 16U * 1024U * 1024U, limit)) {
+                std::cerr << "invalid --file-transfer-payload-limit\n";
+                return false;
+            }
+            config.SetFileTransferPayloadLimit(limit);
         } else if (arg == "--security-plugin" || arg == "--dsm-plugin" || arg == "--mslogon" || arg == "--http-java-viewer") {
             std::cerr << arg << " is not supported by the native Linux server runtime yet\n";
             return false;
