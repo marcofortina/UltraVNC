@@ -1968,7 +1968,7 @@ bool PersistentViewerSession::RequestRemoteDirectory(const std::string& path, st
         SetError(error, "viewer is not connected");
         return false;
     }
-    return RequestViewerDirectoryListing(socket_, path, entries, error);
+    return RequestViewerDirectoryListing(*transport_, path, entries, error);
 }
 
 bool PersistentViewerSession::RequestRemoteDrives(std::vector<ViewerFileTransferEntry>& entries, std::string *error)
@@ -1977,7 +1977,7 @@ bool PersistentViewerSession::RequestRemoteDrives(std::vector<ViewerFileTransfer
         SetError(error, "viewer is not connected");
         return false;
     }
-    return RequestViewerDrivesList(socket_, entries, error);
+    return RequestViewerDrivesList(*transport_, entries, error);
 }
 
 bool PersistentViewerSession::DownloadRemoteFile(const std::string& path, ViewerFileDownload& download, std::string *error)
@@ -1986,7 +1986,7 @@ bool PersistentViewerSession::DownloadRemoteFile(const std::string& path, Viewer
         SetError(error, "viewer is not connected");
         return false;
     }
-    return RequestViewerFileDownload(socket_, path, download, error);
+    return RequestViewerFileDownload(*transport_, path, download, error);
 }
 
 bool PersistentViewerSession::RequestRemoteFileChecksums(const std::string& path, std::vector<std::string>& checksums, std::string *error)
@@ -1995,7 +1995,7 @@ bool PersistentViewerSession::RequestRemoteFileChecksums(const std::string& path
         SetError(error, "viewer is not connected");
         return false;
     }
-    return RequestViewerFileChecksums(socket_, path, checksums, error);
+    return RequestViewerFileChecksums(*transport_, path, checksums, error);
 }
 
 } // namespace portable

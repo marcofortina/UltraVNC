@@ -23,23 +23,23 @@ void SetError(std::string *error, const std::string& message)
     }
 }
 
-bool WritePacket(uvnc::winvnc::portable::TcpSocket& socket,
+bool WritePacket(uvnc::winvnc::portable::RfbTransport& transport,
                  CARD8 contentType,
                  CARD16 contentParam,
                  CARD32 size,
                  const std::string& payload)
 {
     const std::vector<CARD8> bytes = EncodeViewerFileTransferRequest(contentType, contentParam, size, payload);
-    return socket.WriteAll(bytes.data(), bytes.size());
+    return transport.WriteAll(bytes.data(), bytes.size());
 }
 
-bool ReadPacket(uvnc::winvnc::portable::TcpSocket& socket,
+bool ReadPacket(uvnc::winvnc::portable::RfbTransport& transport,
                 rfbFileTransferMsg& message,
                 std::vector<CARD8>& payload,
                 std::string *error)
 {
     std::memset(&message, 0, sizeof(message));
-    if (!socket.ReadExact(&message, sz_rfbFileTransferMsg)) {
+    if (!transport.ReadExact(&message, sz_rfbFileTransferMsg)) {
         SetError(error, "failed to read RFB file-transfer header");
         return false;
     }
@@ -49,7 +49,7 @@ bool ReadPacket(uvnc::winvnc::portable::TcpSocket& socket,
     }
     const CARD32 length = Swap32IfLE(message.length);
     payload.assign(length, 0);
-    if (length > 0 && !socket.ReadExact(payload.data(), payload.size())) {
+    if (length > 0 && !transport.ReadExact(payload.data(), payload.size())) {
         SetError(error, "failed to read RFB file-transfer payload");
         return false;
     }
@@ -94,7 +94,7 @@ std::vector<CARD8> EncodeViewerFileTransferRequest(CARD8 contentType,
     return bytes;
 }
 
-bool ReadViewerDirectoryListing(uvnc::winvnc::portable::TcpSocket& socket,
+bool ReadViewerDirectoryListing(uvnc::winvnc::portable::RfbTransport& transport,
                                 std::vector<ViewerFileTransferEntry>& entries,
                                 std::string *error)
 {
@@ -102,7 +102,7 @@ bool ReadViewerDirectoryListing(uvnc::winvnc::portable::TcpSocket& socket,
     while (true) {
         rfbFileTransferMsg message;
         std::vector<CARD8> payload;
-        if (!ReadPacket(socket, message, payload, error)) {
+        if (!ReadPacket(transport, message, payload, error)) {
             return false;
         }
         if (message.contentType != rfbDirPacket) {
@@ -123,36 +123,36 @@ bool ReadViewerDirectoryListing(uvnc::winvnc::portable::TcpSocket& socket,
     }
 }
 
-bool RequestViewerDirectoryListing(uvnc::winvnc::portable::TcpSocket& socket,
+bool RequestViewerDirectoryListing(uvnc::winvnc::portable::RfbTransport& transport,
                                    const std::string& path,
                                    std::vector<ViewerFileTransferEntry>& entries,
                                    std::string *error)
 {
-    if (!WritePacket(socket, rfbDirContentRequest, rfbRDirContent, 0, path)) {
+    if (!WritePacket(transport, rfbDirContentRequest, rfbRDirContent, 0, path)) {
         SetError(error, "failed to request RFB directory listing");
         return false;
     }
-    return ReadViewerDirectoryListing(socket, entries, error);
+    return ReadViewerDirectoryListing(transport, entries, error);
 }
 
-bool RequestViewerDrivesList(uvnc::winvnc::portable::TcpSocket& socket,
+bool RequestViewerDrivesList(uvnc::winvnc::portable::RfbTransport& transport,
                              std::vector<ViewerFileTransferEntry>& entries,
                              std::string *error)
 {
-    if (!WritePacket(socket, rfbDirContentRequest, rfbRDrivesList, 0, std::string())) {
+    if (!WritePacket(transport, rfbDirContentRequest, rfbRDrivesList, 0, std::string())) {
         SetError(error, "failed to request RFB drives list");
         return false;
     }
-    return ReadViewerDirectoryListing(socket, entries, error);
+    return ReadViewerDirectoryListing(transport, entries, error);
 }
 
-bool RequestViewerFileDownload(uvnc::winvnc::portable::TcpSocket& socket,
+bool RequestViewerFileDownload(uvnc::winvnc::portable::RfbTransport& transport,
                                const std::string& path,
                                ViewerFileDownload& download,
                                std::string *error)
 {
     download = ViewerFileDownload();
-    if (!WritePacket(socket, rfbFileTransferRequest, 0, 0, path)) {
+    if (!WritePacket(transport, rfbFileTransferRequest, 0, 0, path)) {
         SetError(error, "failed to request RFB file download");
         return false;
     }
@@ -161,7 +161,7 @@ bool RequestViewerFileDownload(uvnc::winvnc::portable::TcpSocket& socket,
     while (true) {
         rfbFileTransferMsg message;
         std::vector<CARD8> payload;
-        if (!ReadPacket(socket, message, payload, error)) {
+        if (!ReadPacket(transport, message, payload, error)) {
             return false;
         }
         const CARD32 size = Swap32IfLE(message.size);
@@ -200,19 +200,19 @@ bool RequestViewerFileDownload(uvnc::winvnc::portable::TcpSocket& socket,
     }
 }
 
-bool RequestViewerFileChecksums(uvnc::winvnc::portable::TcpSocket& socket,
+bool RequestViewerFileChecksums(uvnc::winvnc::portable::RfbTransport& transport,
                                 const std::string& path,
                                 std::vector<std::string>& checksums,
                                 std::string *error)
 {
     checksums.clear();
-    if (!WritePacket(socket, rfbFileChecksums, 0, 0, path)) {
+    if (!WritePacket(transport, rfbFileChecksums, 0, 0, path)) {
         SetError(error, "failed to request RFB file checksums");
         return false;
     }
     rfbFileTransferMsg message;
     std::vector<CARD8> payload;
-    if (!ReadPacket(socket, message, payload, error)) {
+    if (!ReadPacket(transport, message, payload, error)) {
         return false;
     }
     if (message.contentType != rfbFileChecksums) {
@@ -227,6 +227,50 @@ bool RequestViewerFileChecksums(uvnc::winvnc::portable::TcpSocket& socket,
         }
     }
     return true;
+}
+
+
+bool ReadViewerDirectoryListing(uvnc::winvnc::portable::TcpSocket& socket,
+                                std::vector<ViewerFileTransferEntry>& entries,
+                                std::string *error)
+{
+    uvnc::winvnc::portable::TcpRfbTransport transport(socket);
+    return ReadViewerDirectoryListing(transport, entries, error);
+}
+
+bool RequestViewerDirectoryListing(uvnc::winvnc::portable::TcpSocket& socket,
+                                   const std::string& path,
+                                   std::vector<ViewerFileTransferEntry>& entries,
+                                   std::string *error)
+{
+    uvnc::winvnc::portable::TcpRfbTransport transport(socket);
+    return RequestViewerDirectoryListing(transport, path, entries, error);
+}
+
+bool RequestViewerDrivesList(uvnc::winvnc::portable::TcpSocket& socket,
+                             std::vector<ViewerFileTransferEntry>& entries,
+                             std::string *error)
+{
+    uvnc::winvnc::portable::TcpRfbTransport transport(socket);
+    return RequestViewerDrivesList(transport, entries, error);
+}
+
+bool RequestViewerFileDownload(uvnc::winvnc::portable::TcpSocket& socket,
+                               const std::string& path,
+                               ViewerFileDownload& download,
+                               std::string *error)
+{
+    uvnc::winvnc::portable::TcpRfbTransport transport(socket);
+    return RequestViewerFileDownload(transport, path, download, error);
+}
+
+bool RequestViewerFileChecksums(uvnc::winvnc::portable::TcpSocket& socket,
+                                const std::string& path,
+                                std::vector<std::string>& checksums,
+                                std::string *error)
+{
+    uvnc::winvnc::portable::TcpRfbTransport transport(socket);
+    return RequestViewerFileChecksums(transport, path, checksums, error);
 }
 
 } // namespace portable

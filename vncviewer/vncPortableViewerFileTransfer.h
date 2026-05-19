@@ -11,6 +11,7 @@
 
 #include "rfb.h"
 #include "vncPortableTcp.h"
+#include "vncPortableRfbTransport.h"
 
 #include <string>
 #include <vector>
@@ -40,6 +41,25 @@ std::vector<CARD8> EncodeViewerFileTransferRequest(CARD8 contentType,
                                                    CARD16 contentParam,
                                                    CARD32 size,
                                                    const std::string& payload);
+bool ReadViewerDirectoryListing(uvnc::winvnc::portable::RfbTransport& transport,
+                                std::vector<ViewerFileTransferEntry>& entries,
+                                std::string *error = nullptr);
+bool RequestViewerDirectoryListing(uvnc::winvnc::portable::RfbTransport& transport,
+                                   const std::string& path,
+                                   std::vector<ViewerFileTransferEntry>& entries,
+                                   std::string *error = nullptr);
+bool RequestViewerDrivesList(uvnc::winvnc::portable::RfbTransport& transport,
+                             std::vector<ViewerFileTransferEntry>& entries,
+                             std::string *error = nullptr);
+bool RequestViewerFileDownload(uvnc::winvnc::portable::RfbTransport& transport,
+                               const std::string& path,
+                               ViewerFileDownload& download,
+                               std::string *error = nullptr);
+bool RequestViewerFileChecksums(uvnc::winvnc::portable::RfbTransport& transport,
+                                const std::string& path,
+                                std::vector<std::string>& checksums,
+                                std::string *error = nullptr);
+
 bool ReadViewerDirectoryListing(uvnc::winvnc::portable::TcpSocket& socket,
                                 std::vector<ViewerFileTransferEntry>& entries,
                                 std::string *error = nullptr);
