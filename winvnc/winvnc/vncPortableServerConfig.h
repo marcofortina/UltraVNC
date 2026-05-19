@@ -43,6 +43,8 @@ public:
     bool AllowNoAuth() const { return allowNoAuth_; }
     bool AllowPublicNoAuth() const { return allowPublicNoAuth_; }
     bool AllowUnencryptedPublic() const { return allowUnencryptedPublic_; }
+    bool BellOnConnect() const { return bellOnConnect_; }
+    const std::string& ServerCutText() const { return serverCutText_; }
 
     void SetBindAddress(const std::string& bindAddress) { bindAddress_ = bindAddress; }
     void SetPort(unsigned short port) { port_ = port; }
@@ -56,6 +58,8 @@ public:
     void SetAllowNoAuth(bool allow) { allowNoAuth_ = allow; }
     void SetAllowPublicNoAuth(bool allow) { allowPublicNoAuth_ = allow; }
     void SetAllowUnencryptedPublic(bool allow) { allowUnencryptedPublic_ = allow; }
+    void SetBellOnConnect(bool enable) { bellOnConnect_ = enable; }
+    void SetServerCutText(const std::string& text) { serverCutText_ = text; }
 
     bool Validate(std::string *error = nullptr) const;
 
@@ -75,6 +79,8 @@ private:
     bool allowNoAuth_;
     bool allowPublicNoAuth_;
     bool allowUnencryptedPublic_;
+    bool bellOnConnect_;
+    std::string serverCutText_;
 };
 
 } // namespace portable

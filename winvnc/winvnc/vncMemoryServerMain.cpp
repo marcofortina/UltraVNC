@@ -332,6 +332,8 @@ void PrintUsage(const char *name)
               << "  --config <path>         Load key=value server runtime config before CLI overrides\n"
               << "  --auth <mode>           Auth mode: none or vnc-password\n"
               << "  --password-file <path>  Read VNCAuth password from a private file, max 8 bytes\n"
+              << "  --bell-on-connect     Send an RFB Bell message after client handshake\n"
+              << "  --server-cut-text <text> Send initial ServerCutText clipboard text after handshake\n"
               << "  --allow-no-auth         Explicitly allow no-auth loopback/lab mode\n"
               << "  --allow-public-no-auth  Explicitly allow no-auth on non-loopback lab binds\n"
               << "  --allow-unencrypted-public Explicitly allow non-loopback VNCAuth without transport encryption\n"
@@ -413,6 +415,18 @@ bool AddConfigOption(const std::string& key, const std::string& value, std::vect
         }
         if (error) *error = "invalid boolean value for allow_public_no_auth";
         return false;
+    } else if (key == "bell_on_connect") {
+        if (value == "true" || value == "1" || value == "yes") {
+            args.push_back("--bell-on-connect");
+            return true;
+        }
+        if (value == "false" || value == "0" || value == "no") {
+            return true;
+        }
+        if (error) *error = "invalid boolean value for bell_on_connect";
+        return false;
+    } else if (key == "server_cut_text") {
+        args.push_back("--server-cut-text");
     } else if (key == "allow_unencrypted_public") {
         if (value == "true" || value == "1" || value == "yes") {
             args.push_back("--allow-unencrypted-public");
@@ -631,6 +645,10 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
             config.SetAuthMode(mode);
         } else if (arg == "--password-file" && i + 1 < argc) {
             passwordFile = argv[++i];
+        } else if (arg == "--bell-on-connect") {
+            config.SetBellOnConnect(true);
+        } else if (arg == "--server-cut-text" && i + 1 < argc) {
+            config.SetServerCutText(argv[++i]);
         } else if (arg == "--serve-updates") {
             serveUpdates = true;
         } else if (arg == "--serve-forever") {
@@ -904,6 +922,8 @@ void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBac
               << "allow_no_auth=" << (config.AllowNoAuth() ? "yes" : "no") << "\n"
               << "allow_public_no_auth=" << (config.AllowPublicNoAuth() ? "yes" : "no") << "\n"
               << "allow_unencrypted_public=" << (config.AllowUnencryptedPublic() ? "yes" : "no") << "\n"
+              << "bell_on_connect=" << (config.BellOnConnect() ? "yes" : "no") << "\n"
+              << "server_cut_text_bytes=" << config.ServerCutText().size() << "\n"
               << "serve_updates=" << (serveUpdates ? "yes" : "no") << "\n"
               << "serve_forever=" << (serveForever ? "yes" : "no") << "\n"
               << "max_updates=" << maxUpdates << "\n"

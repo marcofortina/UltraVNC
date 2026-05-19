@@ -80,7 +80,8 @@ RfbSessionStats::RfbSessionStats()
       setEncodingsMessages(0),
       keyEvents(0),
       pointerEvents(0),
-      clientCutTextMessages(0)
+      clientCutTextMessages(0),
+      pointerPositionUpdatesSent(0)
 {
 }
 
@@ -175,7 +176,9 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
             return false;
         }
         const std::vector<CARD8> update = (request.incremental && !forceRawIncremental) ?
-            EmptyFramebufferUpdateBytes() : RawFramebufferUpdateBytes(framebuffer, request);
+            EmptyFramebufferUpdateBytes() :
+            (state ? EncodedFramebufferUpdateBytes(framebuffer, request, state->PixelFormat(), state->Encodings()) :
+                     RawFramebufferUpdateBytes(framebuffer, request));
         updateSent = socket.WriteAll(update.data(), update.size());
         if (updateSent && stats) {
             stats->framebufferUpdatesSent += 1;
@@ -259,6 +262,17 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
                     return false;
                 }
             }
+            if (state && state->SupportsPointerPositionUpdates()) {
+                const std::vector<CARD8> pointerUpdate = PointerPositionUpdateBytes(event.x, event.y);
+                if (!socket.WriteAll(pointerUpdate.data(), pointerUpdate.size())) {
+                    return false;
+                }
+                updateSent = true;
+                if (stats) {
+                    stats->pointerPositionUpdatesSent += 1;
+                    stats->framebufferUpdatesSent += 1;
+                }
+            }
         }
         if (ok && stats) {
             stats->pointerEvents += 1;
@@ -318,6 +332,18 @@ bool RfbServerSession::ServeFramebufferUpdates(TcpSocket& socket, const Framebuf
         }
     }
     return sent == updateCount;
+}
+
+bool RfbServerSession::SendBell(TcpSocket& socket) const
+{
+    const std::vector<CARD8> bytes = EncodeBell();
+    return socket.WriteAll(bytes.data(), bytes.size());
+}
+
+bool RfbServerSession::SendServerCutText(TcpSocket& socket, const std::string& text) const
+{
+    const std::vector<CARD8> bytes = EncodeServerCutText(text);
+    return socket.WriteAll(bytes.data(), bytes.size());
 }
 
 } // namespace portable

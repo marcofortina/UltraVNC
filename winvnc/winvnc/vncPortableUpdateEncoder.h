@@ -23,7 +23,11 @@ public:
     UpdateEncoder();
 
     bool Initialize(const rfbPixelFormat& format, unsigned int width, unsigned int height);
+    bool Initialize(const rfbPixelFormat& localFormat, const rfbPixelFormat& remoteFormat, unsigned int width, unsigned int height);
     bool EncodeRawRect(const Framebuffer& framebuffer, const rfb::Rect& rect, std::vector<BYTE>& encoded);
+    bool EncodeRect(const Framebuffer& framebuffer, const rfb::Rect& rect, CARD32 encoding, const rfbPixelFormat& remoteFormat, std::vector<BYTE>& encoded);
+
+    static bool SupportsEncoding(CARD32 encoding);
 
 private:
     vncEncoder encoder_;

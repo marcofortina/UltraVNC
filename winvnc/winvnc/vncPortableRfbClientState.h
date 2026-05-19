@@ -24,6 +24,8 @@ public:
 
     const rfbPixelFormat& PixelFormat() const { return pixelFormat_; }
     const std::vector<CARD32>& Encodings() const { return encodings_; }
+    bool SupportsEncoding(CARD32 encoding) const;
+    bool SupportsPointerPositionUpdates() const;
     const KeyEvent& LastKeyEvent() const { return lastKeyEvent_; }
     const PointerEvent& LastPointerEvent() const { return lastPointerEvent_; }
     unsigned int KeyEventCount() const { return keyEventCount_; }

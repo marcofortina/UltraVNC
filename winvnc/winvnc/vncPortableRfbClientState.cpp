@@ -8,6 +8,7 @@
 
 #include "vncPortableRfbClientState.h"
 
+#include <algorithm>
 #include <cstring>
 
 namespace uvnc {
@@ -26,6 +27,16 @@ RfbClientState::RfbClientState(const ServerConfig& config)
 {
     std::memset(&lastKeyEvent_, 0, sizeof(lastKeyEvent_));
     std::memset(&lastPointerEvent_, 0, sizeof(lastPointerEvent_));
+}
+
+bool RfbClientState::SupportsEncoding(CARD32 encoding) const
+{
+    return std::find(encodings_.begin(), encodings_.end(), encoding) != encodings_.end();
+}
+
+bool RfbClientState::SupportsPointerPositionUpdates() const
+{
+    return SupportsEncoding(rfbEncodingPointerPos);
 }
 
 void RfbClientState::SetPixelFormat(const rfbPixelFormat& format)

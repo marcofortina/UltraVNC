@@ -173,6 +173,32 @@ bool DecodeClientCutTextHeader(const rfbClientCutTextMsg& message, unsigned int&
     return true;
 }
 
+
+std::vector<CARD8> EncodeServerCutText(const std::string& text)
+{
+    rfbServerCutTextMsg header;
+    std::memset(&header, 0, sizeof(header));
+    header.type = rfbServerCutText;
+    header.length = Swap32IfLE(static_cast<CARD32>(text.size()));
+
+    std::vector<CARD8> bytes(sz_rfbServerCutTextMsg + text.size());
+    std::memcpy(bytes.data(), &header, sz_rfbServerCutTextMsg);
+    if (!text.empty()) {
+        std::memcpy(bytes.data() + sz_rfbServerCutTextMsg, text.data(), text.size());
+    }
+    return bytes;
+}
+
+std::vector<CARD8> EncodeBell()
+{
+    rfbBellMsg message;
+    std::memset(&message, 0, sizeof(message));
+    message.type = rfbBell;
+    std::vector<CARD8> bytes(sz_rfbBellMsg);
+    std::memcpy(bytes.data(), &message, sz_rfbBellMsg);
+    return bytes;
+}
+
 } // namespace portable
 } // namespace winvnc
 } // namespace uvnc

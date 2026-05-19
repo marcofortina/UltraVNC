@@ -8,8 +8,46 @@
 
 #include "vncPortableRfbUpdate.h"
 
+#include "vncPortableUpdateEncoder.h"
+
 #include <algorithm>
 #include <cstring>
+
+
+
+namespace {
+
+bool ClipRequestToRect(const uvnc::winvnc::portable::Framebuffer& framebuffer,
+                       const uvnc::winvnc::portable::FramebufferUpdateRequest& request,
+                       rfb::Rect& rect)
+{
+    const unsigned int x = std::min(request.x, framebuffer.Width());
+    const unsigned int y = std::min(request.y, framebuffer.Height());
+    const unsigned int right = std::min(request.x + request.width, framebuffer.Width());
+    const unsigned int bottom = std::min(request.y + request.height, framebuffer.Height());
+    const unsigned int width = right > x ? right - x : 0;
+    const unsigned int height = bottom > y ? bottom - y : 0;
+    if (width == 0 || height == 0) {
+        return false;
+    }
+    rect.tl.x = static_cast<int>(x);
+    rect.tl.y = static_cast<int>(y);
+    rect.br.x = static_cast<int>(right);
+    rect.br.y = static_cast<int>(bottom);
+    return true;
+}
+
+CARD32 SelectFramebufferEncoding(const std::vector<CARD32>& preferredEncodings)
+{
+    for (std::size_t i = 0; i < preferredEncodings.size(); ++i) {
+        if (uvnc::winvnc::portable::UpdateEncoder::SupportsEncoding(preferredEncodings[i])) {
+            return preferredEncodings[i];
+        }
+    }
+    return rfbEncodingRaw;
+}
+
+} // namespace
 
 namespace uvnc {
 namespace winvnc {
@@ -68,6 +106,58 @@ std::vector<CARD8> RawFramebufferUpdateBytes(const Framebuffer& framebuffer,
         const CARD8 *src = framebuffer.PixelAt(x, y + row);
         std::memcpy(dest + row * rowBytes, src, rowBytes);
     }
+    return bytes;
+}
+
+
+std::vector<CARD8> EncodedFramebufferUpdateBytes(const Framebuffer& framebuffer,
+                                                 const FramebufferUpdateRequest& request,
+                                                 const rfbPixelFormat& remoteFormat,
+                                                 const std::vector<CARD32>& preferredEncodings)
+{
+    rfb::Rect rect;
+    if (!ClipRequestToRect(framebuffer, request, rect)) {
+        return EmptyFramebufferUpdateBytes();
+    }
+
+    const CARD32 encoding = SelectFramebufferEncoding(preferredEncodings);
+    std::vector<BYTE> encodedRect;
+    UpdateEncoder encoder;
+    if (!encoder.EncodeRect(framebuffer, rect, encoding, remoteFormat, encodedRect)) {
+        if (!encoder.EncodeRect(framebuffer, rect, rfbEncodingRaw, remoteFormat, encodedRect)) {
+            return EmptyFramebufferUpdateBytes();
+        }
+    }
+
+    rfbFramebufferUpdateMsg update;
+    std::memset(&update, 0, sizeof(update));
+    update.type = rfbFramebufferUpdate;
+    update.nRects = Swap16IfLE(1);
+
+    std::vector<CARD8> bytes(sz_rfbFramebufferUpdateMsg + encodedRect.size());
+    std::memcpy(bytes.data(), &update, sz_rfbFramebufferUpdateMsg);
+    std::memcpy(bytes.data() + sz_rfbFramebufferUpdateMsg, encodedRect.data(), encodedRect.size());
+    return bytes;
+}
+
+std::vector<CARD8> PointerPositionUpdateBytes(unsigned int x, unsigned int y)
+{
+    rfbFramebufferUpdateMsg update;
+    std::memset(&update, 0, sizeof(update));
+    update.type = rfbFramebufferUpdate;
+    update.nRects = Swap16IfLE(1);
+
+    rfbFramebufferUpdateRectHeader header;
+    std::memset(&header, 0, sizeof(header));
+    header.r.x = Swap16IfLE(static_cast<CARD16>(x));
+    header.r.y = Swap16IfLE(static_cast<CARD16>(y));
+    header.r.w = 0;
+    header.r.h = 0;
+    header.encoding = Swap32IfLE(rfbEncodingPointerPos);
+
+    std::vector<CARD8> bytes(sz_rfbFramebufferUpdateMsg + sz_rfbFramebufferUpdateRectHeader);
+    std::memcpy(bytes.data(), &update, sz_rfbFramebufferUpdateMsg);
+    std::memcpy(bytes.data() + sz_rfbFramebufferUpdateMsg, &header, sz_rfbFramebufferUpdateRectHeader);
     return bytes;
 }
 

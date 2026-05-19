@@ -51,6 +51,8 @@ std::vector<CARD8> EncodeSetEncodings(const std::vector<CARD32>& encodings);
 std::vector<CARD32> DecodeSetEncodingsPayload(const std::vector<CARD8>& payload);
 std::vector<CARD8> EncodeClientCutText(const std::string& text);
 bool DecodeClientCutTextHeader(const rfbClientCutTextMsg& message, unsigned int& length);
+std::vector<CARD8> EncodeServerCutText(const std::string& text);
+std::vector<CARD8> EncodeBell();
 
 } // namespace portable
 } // namespace winvnc

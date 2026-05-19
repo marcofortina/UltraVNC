@@ -66,7 +66,9 @@ ServerConfig::ServerConfig()
       vncPassword_(),
       allowNoAuth_(false),
       allowPublicNoAuth_(false),
-      allowUnencryptedPublic_(false)
+      allowUnencryptedPublic_(false),
+      bellOnConnect_(false),
+      serverCutText_()
 {
 }
 
@@ -96,6 +98,10 @@ bool ServerConfig::Validate(std::string *error) const
     }
     if (desktopName_.size() > 1024) {
         if (error) *error = "desktop name is too long";
+        return false;
+    }
+    if (serverCutText_.size() > 1024 * 1024) {
+        if (error) *error = "server cut text is too large";
         return false;
     }
     if (format_.bitsPerPixel != 8 && format_.bitsPerPixel != 16 && format_.bitsPerPixel != 32) {

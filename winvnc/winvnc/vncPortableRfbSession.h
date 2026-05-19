@@ -28,6 +28,7 @@ struct RfbSessionStats {
     unsigned int keyEvents;
     unsigned int pointerEvents;
     unsigned int clientCutTextMessages;
+    unsigned int pointerPositionUpdatesSent;
 
     RfbSessionStats();
 };
@@ -46,6 +47,8 @@ public:
     bool ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr, RfbInputSink *inputSink = nullptr, bool forceRawIncremental = false) const;
     bool ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages = 32, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr, RfbInputSink *inputSink = nullptr, bool forceRawIncremental = false) const;
     bool ServeFramebufferUpdates(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int updateCount, unsigned int maxMessages = 128, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr, RfbInputSink *inputSink = nullptr, bool forceRawIncremental = false) const;
+    bool SendBell(TcpSocket& socket) const;
+    bool SendServerCutText(TcpSocket& socket, const std::string& text) const;
 };
 
 } // namespace portable
