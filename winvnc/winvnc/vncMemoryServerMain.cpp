@@ -64,6 +64,8 @@ using uvnc::winvnc::portable::KeyEvent;
 using uvnc::winvnc::portable::PointerEvent;
 using uvnc::winvnc::portable::RfbInputSink;
 using uvnc::winvnc::portable::RfbClipboardSink;
+using uvnc::winvnc::portable::RfbClipboardSource;
+using uvnc::winvnc::portable::ClientConnectionPolicy;
 using uvnc::winvnc::portable::TcpSocket;
 using uvnc::winvnc::portable::FramebufferPattern;
 using uvnc::winvnc::portable::FileTransferMode;
@@ -423,6 +425,7 @@ void PrintUsage(const char *name)
               << "  --serve-updates        Serve one client through --max-updates framebuffer updates\n"
               << "  --serve-forever        Keep accepting update clients until SIGINT/SIGTERM\n"
               << "  --max-shared-clients <count> Maximum shared clients policy, default 8\n"
+              << "  --client-mode <mode>   Client service mode: sequential, threaded\n"
               << "  --pid-file <path>      Write process id while the server is running\n"
               << "  --status-file <path>   Write coarse runtime status transitions\n"
               << "  --log-file <path>      Append stdout/stderr logs to a file\n"
@@ -1472,8 +1475,7 @@ int main(int argc, char **argv)
             served = RunThreadedStaticServeLoop(server, config, maxUpdates, inputSink, clipboardSink, clipboardSink ? &x11Clipboard : nullptr);
         } else {
             if (clientMode == ClientServiceMode::Threaded && liveSource != nullptr) {
-                std::cerr << "warning: threaded client mode is currently only used for static memory/raw-file capture; live capture remains sequential
-";
+                std::cerr << "warning: threaded client mode is currently only used for static memory/raw-file capture; live capture remains sequential\n";
             }
             while (!StopRequested()) {
                 bool accepted = false;
