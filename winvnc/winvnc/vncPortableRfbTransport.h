@@ -42,6 +42,12 @@ bool CreateOpenSslServerTransport(TcpSocket& socket,
                                   const std::string& privateKeyFile,
                                   std::unique_ptr<RfbTransport>& transport,
                                   std::string *error = nullptr);
+bool CreateOpenSslClientTransport(TcpSocket& socket,
+                                  const std::string& caFile,
+                                  const std::string& serverName,
+                                  bool verifyPeer,
+                                  std::unique_ptr<RfbTransport>& transport,
+                                  std::string *error = nullptr);
 
 bool OpenSslTransportAvailable();
 

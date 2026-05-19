@@ -51,14 +51,14 @@ std::string LastOpenSslError(const char *context)
     return out.str();
 }
 
-class OpenSslServerTransport : public RfbTransport {
+class OpenSslTransport : public RfbTransport {
 public:
-    OpenSslServerTransport(SSL_CTX *context, SSL *ssl)
+    OpenSslTransport(SSL_CTX *context, SSL *ssl)
         : context_(context), ssl_(ssl)
     {
     }
 
-    ~OpenSslServerTransport() override
+    ~OpenSslTransport() override
     {
         if (ssl_) {
             SSL_shutdown(ssl_);
@@ -170,7 +170,7 @@ bool CreateOpenSslServerTransport(TcpSocket& socket,
         SSL_CTX_free(context);
         return false;
     }
-    transport.reset(new OpenSslServerTransport(context, ssl));
+    transport.reset(new OpenSslTransport(context, ssl));
     return true;
 #else
     (void)socket;
@@ -180,6 +180,82 @@ bool CreateOpenSslServerTransport(TcpSocket& socket,
     return false;
 #endif
 }
+
+bool CreateOpenSslClientTransport(TcpSocket& socket,
+                                  const std::string& caFile,
+                                  const std::string& serverName,
+                                  bool verifyPeer,
+                                  std::unique_ptr<RfbTransport>& transport,
+                                  std::string *error)
+{
+    transport.reset();
+#ifdef UVNC_HAVE_OPENSSL
+    SSL_CTX *context = SSL_CTX_new(TLS_client_method());
+    if (!context) {
+        if (error) *error = LastOpenSslError("cannot create TLS client context");
+        return false;
+    }
+    SSL_CTX_set_min_proto_version(context, TLS1_2_VERSION);
+    if (verifyPeer) {
+        if (caFile.empty()) {
+            if (error) *error = "TLS peer verification requires a CA file";
+            SSL_CTX_free(context);
+            return false;
+        }
+        if (SSL_CTX_load_verify_locations(context, caFile.c_str(), nullptr) != 1) {
+            if (error) *error = LastOpenSslError("cannot load TLS CA file");
+            SSL_CTX_free(context);
+            return false;
+        }
+        SSL_CTX_set_verify(context, SSL_VERIFY_PEER, nullptr);
+    } else {
+        SSL_CTX_set_verify(context, SSL_VERIFY_NONE, nullptr);
+    }
+
+    SSL *ssl = SSL_new(context);
+    if (!ssl) {
+        if (error) *error = LastOpenSslError("cannot create TLS client session");
+        SSL_CTX_free(context);
+        return false;
+    }
+    if (!serverName.empty()) {
+        SSL_set_tlsext_host_name(ssl, serverName.c_str());
+        if (verifyPeer) {
+            X509_VERIFY_PARAM *param = SSL_get0_param(ssl);
+            X509_VERIFY_PARAM_set_hostflags(param, X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
+            if (X509_VERIFY_PARAM_set1_host(param, serverName.c_str(), 0) != 1) {
+                if (error) *error = LastOpenSslError("cannot configure TLS hostname verification");
+                SSL_free(ssl);
+                SSL_CTX_free(context);
+                return false;
+            }
+        }
+    }
+    SSL_set_fd(ssl, socket.NativeHandle());
+    if (SSL_connect(ssl) != 1) {
+        if (error) *error = LastOpenSslError("TLS client handshake failed");
+        SSL_free(ssl);
+        SSL_CTX_free(context);
+        return false;
+    }
+    if (verifyPeer && SSL_get_verify_result(ssl) != X509_V_OK) {
+        if (error) *error = "TLS peer certificate verification failed";
+        SSL_free(ssl);
+        SSL_CTX_free(context);
+        return false;
+    }
+    transport.reset(new OpenSslTransport(context, ssl));
+    return true;
+#else
+    (void)socket;
+    (void)caFile;
+    (void)serverName;
+    (void)verifyPeer;
+    if (error) *error = "OpenSSL support is not compiled in";
+    return false;
+#endif
+}
+
 
 } // namespace portable
 } // namespace winvnc
