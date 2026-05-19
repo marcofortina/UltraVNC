@@ -42,6 +42,14 @@ serve_updates=true
 # auth=vnc-password
 # password_file=/home/USER/.config/ultravnc/vnc-password
 
+
+# Optional MSLogonII-style Linux authentication through an external helper.
+# The helper receives UVNC_AUTH_METHOD, UVNC_AUTH_USERNAME and
+# UVNC_AUTH_PASSWORD in its environment and must exit 0 to accept.
+#
+# auth=mslogon-ii
+# auth_helper=/usr/local/libexec/uvnc-mslogon-auth
+
 # VNCAuth is legacy RFB password authentication: max 8 bytes. For LAN/WAN
 # exposure, prefer VeNCrypt/X509Vnc TLS transport instead of unencrypted VNCAuth.
 # Generate/install private certificate material with 0600 permissions, then set:
