@@ -30,7 +30,8 @@ RfbClientState::RfbClientState(const ServerConfig& config)
       sharedClientRequested_(true),
       clientInitReceived_(false),
       fileTransferMode_(config.FileTransferModeValue()),
-      fileTransferPayloadLimit_(config.FileTransferPayloadLimit())
+      fileTransferPayloadLimit_(config.FileTransferPayloadLimit()),
+      fileTransferRoot_(config.FileTransferRoot())
 {
     std::memset(&lastKeyEvent_, 0, sizeof(lastKeyEvent_));
     std::memset(&lastPointerEvent_, 0, sizeof(lastPointerEvent_));

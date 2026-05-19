@@ -43,6 +43,7 @@ public:
     const std::string& LastServerCutText() const { return lastServerCutText_; }
     FileTransferMode FileTransferModeValue() const { return fileTransferMode_; }
     unsigned int FileTransferPayloadLimit() const { return fileTransferPayloadLimit_; }
+    const std::string& FileTransferRoot() const { return fileTransferRoot_; }
 
     void SetPixelFormat(const rfbPixelFormat& format);
     void SetEncodings(const std::vector<CARD32>& encodings);
@@ -70,6 +71,7 @@ private:
     bool clientInitReceived_;
     FileTransferMode fileTransferMode_;
     unsigned int fileTransferPayloadLimit_;
+    std::string fileTransferRoot_;
 };
 
 } // namespace portable
