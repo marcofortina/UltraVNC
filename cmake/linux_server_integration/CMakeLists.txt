@@ -44,6 +44,7 @@ install(FILES
     "${CMAKE_SOURCE_DIR}/../docs/native-linux-input-backend.md"
     "${CMAKE_SOURCE_DIR}/../docs/native-linux-pipewire-capture.md"
     "${CMAKE_SOURCE_DIR}/../docs/native-linux-server-runtime.md"
+    "${CMAKE_SOURCE_DIR}/../docs/native-linux-service-admin-equivalents.md"
     "${CMAKE_SOURCE_DIR}/../docs/native-linux-qt-viewer.md"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/ultravnc/linux"
 )
