@@ -576,8 +576,13 @@ bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Frameb
                 CursorShape cursor;
                 CursorShape *cursorPtr = nullptr;
                 std::string cursorError;
-                if (cursorSource && cursorSource->GetCursorShape(cursor, &cursorError) && cursor.Valid()) {
-                    cursorPtr = &cursor;
+                if (cursorSource) {
+                    if (cursorSource->GetCursorShape(cursor, &cursorError) && cursor.Valid()) {
+                        cursorPtr = &cursor;
+                    } else {
+                        cursor = EmptyCursorShape();
+                        cursorPtr = &cursor;
+                    }
                 }
                 if (!SendCursorShape(socket, *state, cursorPtr)) {
                     return false;
