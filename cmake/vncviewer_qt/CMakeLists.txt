@@ -83,6 +83,9 @@ set_tests_properties(vncviewer_qt_surface_smoke PROPERTIES
     TIMEOUT 10
 )
 
+add_custom_target(vncviewer_qt_smoke
+    DEPENDS uvnc_qt_viewer
+)
 add_test(NAME vncviewer_qt_smoke
     COMMAND uvnc_qt_viewer --smoke-test --host 127.0.0.1 --port 5900 --view-only
 )
@@ -121,6 +124,9 @@ set_tests_properties(winvnc_qt_server_settings_smoke PROPERTIES
     TIMEOUT 10
 )
 
+add_custom_target(winvnc_qt_server_settings_cli_smoke
+    DEPENDS uvnc_qt_server_settings
+)
 add_test(NAME winvnc_qt_server_settings_cli_smoke
     COMMAND uvnc_qt_server_settings --smoke-test
 )
