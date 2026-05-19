@@ -51,6 +51,22 @@ bool SendServerInit(TcpSocket& client)
     return client.WriteAll(&init, sz_rfbServerInitMsg) && client.WriteAll(name.data(), name.size());
 }
 
+bool ReadViewerEncodingsAndCaps(TcpSocket& client)
+{
+    rfbSetEncodingsMsg header;
+    if (!client.ReadExact(&header, sz_rfbSetEncodingsMsg)) return false;
+    unsigned int count = 0;
+    if (!DecodeSetEncodingsHeader(header, count)) return false;
+    std::vector<CARD8> payload(count * sizeof(CARD32));
+    if (!payload.empty() && !client.ReadExact(payload.data(), payload.size())) return false;
+    rfbClientCutTextMsg capsHeader;
+    if (!client.ReadExact(&capsHeader, sz_rfbClientCutTextMsg)) return false;
+    const int32_t length = static_cast<int32_t>(Swap32IfLE(capsHeader.length));
+    if (capsHeader.type != rfbClientCutText || length >= 0) return false;
+    std::vector<CARD8> caps(static_cast<std::size_t>(-length));
+    return caps.empty() || client.ReadExact(caps.data(), caps.size());
+}
+
 } // namespace
 
 int main()
@@ -87,6 +103,7 @@ int main()
         rfbClientInitMsg clientInit;
         if (!client.ReadExact(&clientInit, sz_rfbClientInitMsg)) return;
         if (!SendServerInit(client)) return;
+        if (!ReadViewerEncodingsAndCaps(client)) return;
         serverOk = true;
     });
 

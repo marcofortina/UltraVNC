@@ -74,7 +74,13 @@ bool ReadSetEncodings(TcpSocket& client)
     unsigned int count = 0;
     if (!DecodeSetEncodingsHeader(header, count)) return false;
     std::vector<CARD8> payload(count * sizeof(CARD32));
-    return payload.empty() || client.ReadExact(payload.data(), payload.size());
+    if (!payload.empty() && !client.ReadExact(payload.data(), payload.size())) return false;
+    rfbClientCutTextMsg capsHeader;
+    if (!client.ReadExact(&capsHeader, sz_rfbClientCutTextMsg)) return false;
+    const int32_t length = static_cast<int32_t>(Swap32IfLE(capsHeader.length));
+    if (capsHeader.type != rfbClientCutText || length >= 0) return false;
+    std::vector<CARD8> caps(static_cast<std::size_t>(-length));
+    return caps.empty() || client.ReadExact(caps.data(), caps.size());
 }
 
 bool ReadUpdateRequest(TcpSocket& client)
