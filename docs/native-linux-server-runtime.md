@@ -304,7 +304,12 @@ systemctl --user link /usr/local/share/ultravnc/linux/uvnc-winvnc-memory-server.
 systemctl --user daemon-reload
 systemctl --user start uvnc-winvnc-memory-server.service
 systemctl --user status uvnc-winvnc-memory-server.service
+uvnc_winvnc_memory_server \
+  --config ~/.config/ultravnc/uvnc-winvnc-linux-server.conf \
+  --print-admin-summary
 ```
+
+`--print-admin-summary` is the native Linux replacement for the Windows tray/settings/service overview. It reports the selected Linux service, config/status/log mechanism and explicitly disabled legacy Windows-only features.
 
 The runtime writes pid, status and log files while running. The unit passes
 these paths explicitly with the systemd user runtime directory, so the example
@@ -324,8 +329,6 @@ Prefer clear failure over silent fallback for explicitly selected backends:
 
 ## Current limits
 
-- VNCAuth is available, but transport encryption is not implemented in this
-  milestone.
-- Live X11 capture assumes stable framebuffer geometry during a session; live
-  resize/NewFBSize handling belongs to a follow-up server milestone.
+- VNCAuth is available, but does not encrypt framebuffer/input/clipboard traffic unless paired with VeNCrypt/X509Vnc.
+- Live X11 capture supports resize/NewFBSize and dirty-region refinement, but real viewer matrix validation remains a final gate.
 - Wayland input injection is intentionally not implemented here.
