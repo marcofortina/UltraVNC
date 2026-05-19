@@ -42,6 +42,15 @@ serve_updates=true
 # Non-loopback VNCAuth without TLS is still disabled by default and requires
 # explicit allow_unencrypted_public=true only for controlled legacy/lab exposure.
 
+
+# UltraVNC extended clipboard is enabled by default when a viewer advertises
+# rfbEncodingExtendedClipboard. The Linux server currently exposes UTF-8 text
+# with caps/notify/request/provide semantics and falls back to classic
+# ServerCutText/ClientCutText for clients that do not advertise the extension.
+# Disable only for legacy viewer debugging.
+# extended_clipboard=true
+# extended_clipboard_text_limit=10485760
+
 # Local loopback/lab no-auth, not production:
 # auth=none
 # allow_no_auth=true

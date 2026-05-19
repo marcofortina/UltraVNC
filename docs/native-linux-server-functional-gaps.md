@@ -11,7 +11,10 @@ This document tracks Windows WinVNC server features that are not yet native Linu
 - XCursor and RichCursor shape messages are encoded by the portable server path.
 - Clients that advertise XCursor/RichCursor receive a cursor shape update after SetEncodings.
 - Classic ClientCutText is parsed and can be routed to a Linux clipboard sink.
-- A guarded X11 clipboard backend is available for local desktop sessions.
+- UltraVNC extended clipboard is negotiated for clients that advertise `rfbEncodingExtendedClipboard`.
+- Extended clipboard caps, notify, peek, request and provide messages are supported for UTF-8 text.
+- Extended clipboard `clipProvide` payloads use the UltraVNC zlib-compressed wire format.
+- A guarded X11 clipboard backend is available for local desktop sessions and can own/respond to CLIPBOARD selection requests.
 - UltraVNC file-transfer messages are parsed and explicitly rejected by default.
 - ClientInit shared/non-shared preference is preserved in per-client state.
 
@@ -19,17 +22,7 @@ This document tracks Windows WinVNC server features that are not yet native Linu
 
 ### File transfer
 
-Native Linux file transfer is disabled by default and `--enable-file-transfer` is rejected. The parser consumes the wire message and sends an abort response instead of silently desynchronizing the session.
-
-A production implementation still needs:
-
-- a server-side transfer root;
-- path traversal protection;
-- upload/download policy;
-- quota and size limits;
-- partial transfer cleanup;
-- audit/log messages;
-- compatibility testing against UltraVNC viewers.
+Native Linux file transfer remains disabled by default, but the portable server now includes a guarded Linux file-transfer root, upload/download modes, directory listing, recursive listing/size, checksum responses, atomic upload, overwrite policy and command handling. Compatibility validation against real UltraVNC viewers is still intentionally left to the external matrix.
 
 ### DSM/security plugins and MSLogon
 
