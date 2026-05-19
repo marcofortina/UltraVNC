@@ -112,6 +112,33 @@ bool SendFileTransferError(RfbTransport& socket)
     return socket.WriteAll(bytes.data(), bytes.size());
 }
 
+bool SendFileTransferCommandResult(RfbTransport& socket, const FileTransferCommandResult& result)
+{
+    return SendFileTransferPacketMessage(socket, rfbCommandReturn, result.responseParam, result.status, result.payload);
+}
+
+bool SendDirectoryListing(RfbTransport& socket,
+                          const std::string& root,
+                          const std::string& requestedPath)
+{
+    std::vector<FileTransferDirectoryEntry> entries;
+    std::string reason;
+    if (!ListFileTransferDirectory(root, requestedPath, entries, &reason)) {
+        return SendFileTransferPacketMessage(socket, rfbDirPacket, rfbADirInaccessible, 0, std::vector<CARD8>());
+    }
+
+    if (!SendFileTransferPacketMessage(socket, rfbDirPacket, rfbADirectory, 0, requestedPath)) {
+        return false;
+    }
+    for (std::vector<FileTransferDirectoryEntry>::const_iterator it = entries.begin(); it != entries.end(); ++it) {
+        const CARD16 param = it->inaccessible ? rfbADirInaccessible : (it->directory ? rfbADirectory : rfbAFile);
+        if (!SendFileTransferPacketMessage(socket, rfbDirPacket, param, it->size, it->name)) {
+            return false;
+        }
+    }
+    return SendFileTransferPacketMessage(socket, rfbDirPacket, 0, 0, std::vector<CARD8>());
+}
+
 bool SendFileDownload(RfbTransport& socket, const std::string& path, const std::string& displayPath, CARD32 payloadLimit)
 {
     std::ifstream input(path.c_str(), std::ios::binary);
@@ -518,6 +545,7 @@ bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Frameb
         }
         if (message.contentType == rfbFileTransferSessionStart || message.contentType == rfbFileTransferSessionEnd) {
             if (message.contentType == rfbFileTransferSessionEnd && state) {
+                AbortFileTransferUpload(state->FileUploadTemporaryPath());
                 state->EndFileUpload();
             }
             return true;
@@ -545,7 +573,19 @@ bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Frameb
             if (!IsReadFileTransferMode(mode)) {
                 return SendFileTransferAccess(socket, false);
             }
-            return SendFileTransferPacketMessage(socket, rfbDirPacket, 0, 0, std::vector<CARD8>());
+            if (message.contentParam != rfbRDirContent &&
+                message.contentParam != rfbRDrivesList &&
+                message.contentParam != rfbRDirRecursiveList &&
+                message.contentParam != rfbRDirRecursiveSize) {
+                return SendFileTransferError(socket);
+            }
+            if (message.contentParam == rfbRDrivesList) {
+                return SendDirectoryListing(socket, state->FileTransferRoot(), requestedPath.empty() ? std::string(".") : requestedPath);
+            }
+            if (message.contentParam == rfbRDirRecursiveList || message.contentParam == rfbRDirRecursiveSize) {
+                return SendFileTransferError(socket);
+            }
+            return SendDirectoryListing(socket, state->FileTransferRoot(), requestedPath);
         case rfbFileTransferRequest:
             if (!IsReadFileTransferMode(mode)) {
                 return SendFileTransferAccess(socket, false);
@@ -555,10 +595,15 @@ bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Frameb
             if (!IsWriteFileTransferMode(mode)) {
                 return SendFileTransferAccess(socket, false);
             }
-            if (!TruncateUploadTarget(resolvedPath)) {
-                return SendFileTransferError(socket);
+            {
+                std::string finalPath;
+                std::string temporaryPath;
+                std::string uploadError;
+                if (!PrepareFileTransferUpload(state->FileTransferRoot(), requestedPath, finalPath, temporaryPath, &uploadError)) {
+                    return SendFileTransferError(socket);
+                }
+                state->BeginFileUpload(finalPath, temporaryPath);
             }
-            state->BeginFileUpload(resolvedPath);
             return SendFileTransferPacketMessage(socket, rfbFileAcceptHeader, 0, 1, std::vector<CARD8>());
         case rfbFilePacket:
             if (!IsWriteFileTransferMode(mode) || !state->FileUploadActive()) {
@@ -575,9 +620,21 @@ bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Frameb
             return true;
         case rfbEndOfFile:
             if (state->FileUploadActive()) {
+                std::string commitError;
+                const bool committed = CommitFileTransferUpload(state->FileUploadTemporaryPath(), state->FileUploadFinalPath(), &commitError);
+                if (!committed) {
+                    AbortFileTransferUpload(state->FileUploadTemporaryPath());
+                    state->EndFileUpload();
+                    return SendFileTransferError(socket);
+                }
                 state->EndFileUpload();
             }
             return true;
+        case rfbCommand:
+            if (!IsWriteFileTransferMode(mode)) {
+                return SendFileTransferAccess(socket, false);
+            }
+            return SendFileTransferCommandResult(socket, ExecuteFileTransferCommand(state->FileTransferRoot(), message.contentParam, requestedPath, mode));
         default:
             if (stats) {
                 stats->fileTransferBytesDiscarded += decision.payloadBytes;
