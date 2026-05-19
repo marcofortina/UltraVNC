@@ -1236,6 +1236,41 @@ int RunSmokeXTestInputTest(bool allowInputInjection)
     return 0;
 }
 
+
+bool RunThreadedStaticServeLoop(MemoryServer& server,
+                                const ServerConfig& config,
+                                unsigned int maxUpdates,
+                                RfbInputSink *inputSink,
+                                RfbClipboardSink *clipboardSink,
+                                RfbClipboardSource *clipboardSource)
+{
+    ClientConnectionPolicy clientPolicy(config.MaxSharedClients());
+    std::vector<std::thread> workers;
+    bool ok = true;
+
+    while (!StopRequested()) {
+        bool accepted = false;
+        TcpSocket client;
+        if (!server.TryAccept(client, 250, accepted)) {
+            ok = false;
+            break;
+        }
+        if (!accepted) {
+            continue;
+        }
+        workers.emplace_back([&server, maxUpdates, inputSink, clipboardSink, clipboardSource, &clientPolicy, client = std::move(client)]() mutable {
+            server.ServeConnectedUpdates(std::move(client), maxUpdates, inputSink, clipboardSink, clipboardSource, &clientPolicy);
+        });
+    }
+
+    for (std::size_t i = 0; i < workers.size(); ++i) {
+        if (workers[i].joinable()) {
+            workers[i].join();
+        }
+    }
+    return ok;
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -1428,14 +1463,22 @@ int main(int argc, char **argv)
     bool served = false;
     if (serveForever) {
         served = true;
-        while (!StopRequested()) {
-            bool accepted = false;
-            const bool ok = liveSource ?
-                server.TryServeOneUpdatesFromSource(*liveSource, maxUpdates, inputSink, 128, 250, accepted, clipboardSink, clipboardSink ? &x11Clipboard : nullptr) :
-                server.TryServeOneUpdates(maxUpdates, inputSink, 250, accepted, clipboardSink, clipboardSink ? &x11Clipboard : nullptr);
-            if (!ok) {
-                served = false;
-                break;
+        if (clientMode == ClientServiceMode::Threaded && liveSource == nullptr) {
+            served = RunThreadedStaticServeLoop(server, config, maxUpdates, inputSink, clipboardSink, clipboardSink ? &x11Clipboard : nullptr);
+        } else {
+            if (clientMode == ClientServiceMode::Threaded && liveSource != nullptr) {
+                std::cerr << "warning: threaded client mode is currently only used for static memory/raw-file capture; live capture remains sequential
+";
+            }
+            while (!StopRequested()) {
+                bool accepted = false;
+                const bool ok = liveSource ?
+                    server.TryServeOneUpdatesFromSource(*liveSource, maxUpdates, inputSink, 128, 250, accepted, clipboardSink, clipboardSink ? &x11Clipboard : nullptr) :
+                    server.TryServeOneUpdates(maxUpdates, inputSink, 250, accepted, clipboardSink, clipboardSink ? &x11Clipboard : nullptr);
+                if (!ok) {
+                    served = false;
+                    break;
+                }
             }
         }
     } else {
