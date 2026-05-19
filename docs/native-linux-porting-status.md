@@ -62,11 +62,12 @@ validation commands.
 The following areas are not native Linux implementations yet:
 
 - Real Linux desktop capture and input injection backends.
-- Full Linux daemon/service/session integration around the portable runtime hooks.
+- Linux daemon/service/session integration is represented by a hardened systemd user service and runtime files.
 - Native viewer UI and Windows-specific message loop integration.
-- MFC/Win32 dialogs, resources, registry integration and tray UI.
+- MFC/Win32 dialogs, resources, registry integration and tray UI remain Windows-only; Linux uses documented service/admin equivalents instead.
 - Windows socket/window compatibility layers outside the isolated portable subset.
 - The HTTP Java applet viewer is legacy Windows-server behavior and is documented as not supported by the native Linux server path.
+- Windows service/tray/settings UI are not directly ported; Linux equivalents are documented in `native-linux-service-admin-equivalents.md`.
 
 ## Porting rule
 
@@ -101,6 +102,7 @@ Native Linux input backend progress:
 Native Linux server backend integration progress:
 
 - Example user-session service and environment templates are generated and installed.
+- `--print-admin-summary` reports the Linux equivalents for Windows service/tray/settings workflows.
 - Capture and input backend configuration is documented for the current Linux server path.
 - Manual validation steps are documented for X11 capture, PipeWire/XDG portal scaffolding and XTest input.
 - The integration smoke verifies installed templates, installed docs and backend CLI wiring.

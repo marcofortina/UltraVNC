@@ -39,6 +39,10 @@ The Windows server ships legacy Java applet viewer resources and HTTP serving co
 
 The preferred Linux direction is a real native viewer or a separately reviewed static/web viewer endpoint, not a silent partial Java applet port. See `native-linux-http-java-viewer-legacy.md`.
 
+## Windows service/UI/admin equivalents
+
+The Windows service manager, tray icon and settings UI are not native Linux features. The Linux path uses the systemd user service, config files, validation, status/log/pid files and `--print-admin-summary`. See `native-linux-service-admin-equivalents.md`.
+
 ## Security extensions
 
 DSM/security plugins, MSLogon and the legacy HTTP Java viewer are explicitly rejected on native Linux. See `native-linux-security-extensions.md` for the fail-closed policy and replacement direction.
