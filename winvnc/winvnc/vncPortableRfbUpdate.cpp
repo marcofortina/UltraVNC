@@ -203,6 +203,27 @@ std::vector<CARD8> PointerPositionUpdateBytes(unsigned int x, unsigned int y)
     return bytes;
 }
 
+std::vector<CARD8> NewFramebufferSizeUpdateBytes(unsigned int width, unsigned int height)
+{
+    rfbFramebufferUpdateMsg update;
+    std::memset(&update, 0, sizeof(update));
+    update.type = rfbFramebufferUpdate;
+    update.nRects = Swap16IfLE(1);
+
+    rfbFramebufferUpdateRectHeader header;
+    std::memset(&header, 0, sizeof(header));
+    header.r.x = 0;
+    header.r.y = 0;
+    header.r.w = Swap16IfLE(static_cast<CARD16>(width));
+    header.r.h = Swap16IfLE(static_cast<CARD16>(height));
+    header.encoding = Swap32IfLE(rfbEncodingNewFBSize);
+
+    std::vector<CARD8> bytes(sz_rfbFramebufferUpdateMsg + sz_rfbFramebufferUpdateRectHeader);
+    std::memcpy(bytes.data(), &update, sz_rfbFramebufferUpdateMsg);
+    std::memcpy(bytes.data() + sz_rfbFramebufferUpdateMsg, &header, sz_rfbFramebufferUpdateRectHeader);
+    return bytes;
+}
+
 } // namespace portable
 } // namespace winvnc
 } // namespace uvnc

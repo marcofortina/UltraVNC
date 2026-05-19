@@ -31,6 +31,7 @@ std::vector<CARD8> EncodedFramebufferUpdateBytes(const Framebuffer& framebuffer,
                                                  const rfbPixelFormat& remoteFormat,
                                                  const std::vector<CARD32>& preferredEncodings);
 std::vector<CARD8> PointerPositionUpdateBytes(unsigned int x, unsigned int y);
+std::vector<CARD8> NewFramebufferSizeUpdateBytes(unsigned int width, unsigned int height);
 
 } // namespace portable
 } // namespace winvnc
