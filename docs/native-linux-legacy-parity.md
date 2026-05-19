@@ -44,3 +44,24 @@ uvnc_settings --save-visual-parity-snapshot /tmp/uvnc-settings-parity.png
 The report lists the WinVNC-compatible sections and key runtime/security fields. The snapshot is intended for real host visual review against the original WinVNC dialogs.
 
 Pixel-perfect parity still requires a human visual review on a Qt host with the desired desktop theme, because the original Win32 dialogs and Linux Qt widgets use different native style engines.
+
+## One-command parity smoke
+
+Use the aggregate parity gate to avoid partial build/CTest runs when checking the legacy Linux deliverables:
+
+```sh
+cmake/native-linux-legacy-parity-smoke.sh \
+  /tmp/uvnc-native-linux-legacy-parity-build \
+  /tmp/uvnc-native-linux-legacy-parity-install
+```
+
+The gate configures the native Linux build with Qt enabled, builds the aggregate `native_linux_legacy_parity_targets` target, runs build-tree CTest checks, installs into the supplied prefix, and verifies the installed legacy names:
+
+- `bin/winvnc`;
+- `bin/vncviewer`;
+- `bin/uvnc_settings`;
+- `bin/repeater`;
+- `bin/setpasswd`;
+- `lib/ultravnc/SecureVNCPlugin.dsm`.
+
+Use this gate before claiming parity closure, because direct `ctest` invocations do not build missing test executables automatically.
