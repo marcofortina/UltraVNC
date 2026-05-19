@@ -15,6 +15,7 @@
 
 using uvnc::vncviewer::portable::ViewerConfig;
 using uvnc::vncviewer::portable::ViewerTransportSecurityMode;
+using uvnc::vncviewer::portable::ViewerSecurityExtensionMode;
 
 int main()
 {
