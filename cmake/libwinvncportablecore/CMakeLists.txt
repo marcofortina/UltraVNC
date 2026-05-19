@@ -67,6 +67,7 @@ add_library(${PROJECT_NAME} STATIC
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncPortableMemoryServer.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncLinuxFramebufferSource.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncLinuxX11FramebufferSource.cpp"
+    "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncLinuxX11CursorSource.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncLinuxPipeWirePortalCapture.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncLinuxCaptureBackend.cpp"
     "${CMAKE_SOURCE_DIR}/../winvnc/winvnc/vncLinuxInputBackend.cpp"
@@ -120,6 +121,11 @@ if(ULTRAVNC_BUILD_LINUX_CAPTURE_X11 AND X11_FOUND)
     target_compile_definitions(${PROJECT_NAME} PRIVATE UVNC_HAVE_X11=1)
     target_include_directories(${PROJECT_NAME} PRIVATE ${X11_INCLUDE_DIR})
     target_link_libraries(${PROJECT_NAME} PUBLIC ${X11_LIBRARIES})
+    if(X11_Xfixes_FOUND)
+        target_compile_definitions(${PROJECT_NAME} PRIVATE UVNC_HAVE_X11_XFIXES=1)
+        target_include_directories(${PROJECT_NAME} PRIVATE ${X11_Xfixes_INCLUDE_PATH})
+        target_link_libraries(${PROJECT_NAME} PUBLIC ${X11_Xfixes_LIB})
+    endif()
     if(X11_Xext_FOUND)
         target_compile_definitions(${PROJECT_NAME} PRIVATE UVNC_HAVE_X11_XSHM=1)
         target_include_directories(${PROJECT_NAME} PRIVATE ${X11_Xext_INCLUDE_PATH})
