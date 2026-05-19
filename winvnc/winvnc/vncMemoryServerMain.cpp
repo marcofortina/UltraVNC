@@ -202,6 +202,58 @@ void RemoveFileIfSet(const std::string& path)
 }
 
 
+
+bool ValidateRuntimeFilePath(const std::string& path, const char *label, std::string *error)
+{
+    if (path.empty()) {
+        return true;
+    }
+    if (path[path.size() - 1] == '/') {
+        if (error) *error = std::string(label) + " path must be a file path, not a directory: " + path;
+        return false;
+    }
+
+    const std::size_t slash = path.find_last_of('/');
+    const std::string parent = slash == std::string::npos ? "." : (slash == 0 ? "/" : path.substr(0, slash));
+    struct stat parentStat;
+    if (stat(parent.c_str(), &parentStat) != 0 || !S_ISDIR(parentStat.st_mode)) {
+        if (error) *error = std::string(label) + " parent directory does not exist: " + parent;
+        return false;
+    }
+    if (access(parent.c_str(), W_OK | X_OK) != 0) {
+        if (error) *error = std::string(label) + " parent directory is not writable/searchable: " + parent;
+        return false;
+    }
+
+    struct stat fileStat;
+    if (lstat(path.c_str(), &fileStat) == 0) {
+        if (S_ISLNK(fileStat.st_mode)) {
+            if (error) *error = std::string(label) + " path must not be a symlink: " + path;
+            return false;
+        }
+        if (S_ISDIR(fileStat.st_mode)) {
+            if (error) *error = std::string(label) + " path must not be a directory: " + path;
+            return false;
+        }
+        if (!S_ISREG(fileStat.st_mode)) {
+            if (error) *error = std::string(label) + " path must be a regular file when it already exists: " + path;
+            return false;
+        }
+        if (fileStat.st_mode & (S_IWGRP | S_IWOTH)) {
+            if (error) *error = std::string(label) + " file must not be group/world writable: " + path;
+            return false;
+        }
+    }
+    return true;
+}
+
+bool ValidateRuntimeFilePaths(const std::string& pidFile, const std::string& statusFile, const std::string& logFile, std::string *error)
+{
+    return ValidateRuntimeFilePath(pidFile, "pid-file", error) &&
+           ValidateRuntimeFilePath(statusFile, "status-file", error) &&
+           ValidateRuntimeFilePath(logFile, "log-file", error);
+}
+
 class ScopedStreamBufferRedirect {
 public:
     ScopedStreamBufferRedirect()
@@ -1127,6 +1179,10 @@ int main(int argc, char **argv)
     }
     if (!ResolveInputBackend(inputBackend, resolvedInputBackend, &error)) {
         std::cerr << "invalid input backend: " << error << "\n";
+        return 2;
+    }
+    if (!ValidateRuntimeFilePaths(pidFile, statusFile, logFile, &error)) {
+        std::cerr << "invalid config: " << error << "\n";
         return 2;
     }
     if (validateOnly) {

@@ -73,8 +73,17 @@ grep -q 'invalid --capture-backend' /tmp/uvnc-negative-runtime.err
 expect_fail "invalid input backend" "${BIN}" --allow-no-auth --input-backend definitely-not-a-backend --validate-config
 grep -q 'invalid --input-backend' /tmp/uvnc-negative-runtime.err
 
-expect_fail "unwritable log path serving" "${BIN}" --allow-no-auth --log-file "${WORK_DIR}/missing-dir/server.log" --serve-updates --max-updates 1
-grep -q 'cannot open log file' /tmp/uvnc-negative-runtime.err
+expect_fail "missing log parent validation" "${BIN}" --allow-no-auth --log-file "${WORK_DIR}/missing-dir/server.log" --validate-config
+grep -q 'log-file parent directory does not exist' /tmp/uvnc-negative-runtime.err
+
+ln -s "${WORK_DIR}/target.log" "${WORK_DIR}/server.log"
+expect_fail "symlink log path validation" "${BIN}" --allow-no-auth --log-file "${WORK_DIR}/server.log" --validate-config
+grep -q 'log-file path must not be a symlink' /tmp/uvnc-negative-runtime.err
+
+: >"${WORK_DIR}/status-file"
+chmod 0666 "${WORK_DIR}/status-file"
+expect_fail "world-writable status path validation" "${BIN}" --allow-no-auth --status-file "${WORK_DIR}/status-file" --validate-config
+grep -q 'status-file file must not be group/world writable' /tmp/uvnc-negative-runtime.err
 
 PASSWORD_FILE="${WORK_DIR}/vnc-password"
 printf '%s\n' 'secret1' >"${PASSWORD_FILE}"
