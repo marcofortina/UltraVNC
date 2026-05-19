@@ -8,6 +8,8 @@
 
 #include "vncPortableViewerConfig.h"
 
+#include "rfb.h"
+
 #include <cassert>
 #include <string>
 
@@ -25,6 +27,12 @@ int main()
     assert(!config.ViewOnly());
     assert(config.Validate(&error));
     assert(error.empty());
+    assert(config.Encodings().size() == 14);
+    assert(config.Encodings()[9] == rfbEncodingRichCursor);
+    assert(config.Encodings()[10] == rfbEncodingXCursor);
+    assert(config.Encodings()[11] == rfbEncodingPointerPos);
+    assert(config.Encodings()[12] == rfbEncodingLastRect);
+    assert(config.Encodings()[13] == rfbEncodingExtendedClipboard);
 
     config.SetHost("");
     assert(!config.Validate(&error));
