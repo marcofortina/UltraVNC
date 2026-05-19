@@ -9,6 +9,7 @@
 #ifndef UVNC_WINVNC_PORTABLE_MSLOGON_SERVER_H
 #define UVNC_WINVNC_PORTABLE_MSLOGON_SERVER_H
 
+#include "rfb.h"
 #include "vncPortableExternalAuth.h"
 #include "vncPortableRfbTransport.h"
 
