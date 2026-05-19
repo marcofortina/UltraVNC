@@ -199,6 +199,31 @@ std::vector<CARD8> EncodeBell()
     return bytes;
 }
 
+bool DecodeFileTransferHeader(const rfbFileTransferMsg& message, FileTransferMessage& out)
+{
+    if (message.type != rfbFileTransfer) {
+        return false;
+    }
+    out.contentType = message.contentType;
+    out.contentParam = Swap16IfLE(message.contentParam);
+    out.size = Swap32IfLE(message.size);
+    out.length = Swap32IfLE(message.length);
+    return true;
+}
+
+std::vector<CARD8> EncodeFileTransferAbort(CARD16 contentParam)
+{
+    rfbFileTransferMsg message;
+    std::memset(&message, 0, sizeof(message));
+    message.type = rfbFileTransfer;
+    message.contentType = rfbAbortFileTransfer;
+    message.contentParam = Swap16IfLE(contentParam);
+
+    std::vector<CARD8> bytes(sz_rfbFileTransferMsg);
+    std::memcpy(bytes.data(), &message, sz_rfbFileTransferMsg);
+    return bytes;
+}
+
 } // namespace portable
 } // namespace winvnc
 } // namespace uvnc

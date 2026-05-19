@@ -82,7 +82,9 @@ RfbSessionStats::RfbSessionStats()
       keyEvents(0),
       pointerEvents(0),
       clientCutTextMessages(0),
-      pointerPositionUpdatesSent(0)
+      pointerPositionUpdatesSent(0),
+      fileTransferMessages(0),
+      fileTransferBytesDiscarded(0)
 {
 }
 
@@ -300,6 +302,26 @@ bool RfbServerSession::ServeNextClientMessage(TcpSocket& socket, const Framebuff
         }
         return ok;
     }
+    case rfbFileTransfer: {
+        rfbFileTransferMsg wire;
+        wire.type = type;
+        if (!socket.ReadExact(reinterpret_cast<char *>(&wire) + 1, sz_rfbFileTransferMsg - 1)) {
+            return false;
+        }
+        FileTransferMessage message;
+        if (!DecodeFileTransferHeader(wire, message)) {
+            return false;
+        }
+        std::vector<CARD8> payload(message.length);
+        if (!payload.empty() && !socket.ReadExact(payload.data(), payload.size())) {
+            return false;
+        }
+        if (stats) {
+            stats->fileTransferMessages += 1;
+            stats->fileTransferBytesDiscarded += message.length;
+        }
+        return SendFileTransferAbort(socket);
+    }
     default:
         return false;
     }
@@ -370,6 +392,12 @@ bool RfbServerSession::SendCursorShape(TcpSocket& socket, RfbClientState& state)
     }
     state.MarkCursorShapeSent();
     return true;
+}
+
+bool RfbServerSession::SendFileTransferAbort(TcpSocket& socket) const
+{
+    const std::vector<CARD8> bytes = EncodeFileTransferAbort();
+    return socket.WriteAll(bytes.data(), bytes.size());
 }
 
 } // namespace portable

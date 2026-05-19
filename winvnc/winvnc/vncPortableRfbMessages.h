@@ -37,6 +37,13 @@ struct PointerEvent {
     unsigned int y;
 };
 
+struct FileTransferMessage {
+    CARD8 contentType;
+    CARD16 contentParam;
+    CARD32 size;
+    CARD32 length;
+};
+
 bool DecodeFramebufferUpdateRequest(const rfbFramebufferUpdateRequestMsg& message,
                                     FramebufferUpdateRequest& out);
 rfbFramebufferUpdateRequestMsg EncodeFramebufferUpdateRequest(const FramebufferUpdateRequest& request);
@@ -53,6 +60,8 @@ std::vector<CARD8> EncodeClientCutText(const std::string& text);
 bool DecodeClientCutTextHeader(const rfbClientCutTextMsg& message, unsigned int& length);
 std::vector<CARD8> EncodeServerCutText(const std::string& text);
 std::vector<CARD8> EncodeBell();
+bool DecodeFileTransferHeader(const rfbFileTransferMsg& message, FileTransferMessage& out);
+std::vector<CARD8> EncodeFileTransferAbort(CARD16 contentParam = 0);
 
 } // namespace portable
 } // namespace winvnc

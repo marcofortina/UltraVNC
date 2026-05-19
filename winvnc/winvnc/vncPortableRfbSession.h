@@ -29,6 +29,8 @@ struct RfbSessionStats {
     unsigned int pointerEvents;
     unsigned int clientCutTextMessages;
     unsigned int pointerPositionUpdatesSent;
+    unsigned int fileTransferMessages;
+    unsigned int fileTransferBytesDiscarded;
 
     RfbSessionStats();
 };
@@ -50,6 +52,7 @@ public:
     bool SendBell(TcpSocket& socket) const;
     bool SendServerCutText(TcpSocket& socket, const std::string& text) const;
     bool SendCursorShape(TcpSocket& socket, RfbClientState& state) const;
+    bool SendFileTransferAbort(TcpSocket& socket) const;
 };
 
 } // namespace portable

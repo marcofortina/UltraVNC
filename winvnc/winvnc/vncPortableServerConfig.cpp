@@ -68,7 +68,8 @@ ServerConfig::ServerConfig()
       allowPublicNoAuth_(false),
       allowUnencryptedPublic_(false),
       bellOnConnect_(false),
-      serverCutText_()
+      serverCutText_(),
+      enableFileTransfer_(false)
 {
 }
 
