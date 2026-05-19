@@ -154,6 +154,10 @@ bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& opti
             options.config.SetRequestUpdate(true);
         } else if (arg == "--view-only") {
             options.config.SetViewOnly(true);
+        } else if (arg == "--allow-no-auth") {
+            options.config.SetAllowNoAuth(true);
+        } else if (arg == "--disable-no-auth") {
+            options.config.SetAllowNoAuth(false);
         } else if (arg == "--password" && i + 1 < args.size()) {
             options.config.SetPassword(args[++i]);
         } else if (arg == "--password-file" && i + 1 < args.size()) {
