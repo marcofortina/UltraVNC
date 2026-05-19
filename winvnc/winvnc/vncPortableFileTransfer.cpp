@@ -8,6 +8,8 @@
 
 #include "vncPortableFileTransfer.h"
 
+#include <sstream>
+
 namespace uvnc {
 namespace winvnc {
 namespace portable {
@@ -39,6 +41,51 @@ bool ParseFileTransferMode(const std::string& value, FileTransferMode& mode)
 CARD32 DefaultFileTransferPayloadLimit()
 {
     return 1024U * 1024U;
+}
+
+bool IsSafeFileTransferRelativePath(const std::string& requestedPath, std::string *reason)
+{
+    if (requestedPath.empty()) {
+        if (reason) *reason = "file-transfer path must not be empty";
+        return false;
+    }
+    if (requestedPath[0] == '/' || requestedPath.find('\0') != std::string::npos) {
+        if (reason) *reason = "file-transfer path must be a relative path";
+        return false;
+    }
+    std::size_t start = 0;
+    while (start <= requestedPath.size()) {
+        const std::size_t slash = requestedPath.find('/', start);
+        const std::string part = requestedPath.substr(start, slash == std::string::npos ? std::string::npos : slash - start);
+        if (part.empty() || part == "." || part == "..") {
+            if (reason) *reason = "file-transfer path contains an unsafe component";
+            return false;
+        }
+        if (slash == std::string::npos) {
+            break;
+        }
+        start = slash + 1;
+    }
+    if (reason) reason->clear();
+    return true;
+}
+
+bool ResolveFileTransferPath(const std::string& root, const std::string& requestedPath, std::string& resolvedPath, std::string *reason)
+{
+    if (root.empty() || root[0] != '/') {
+        if (reason) *reason = "file-transfer root must be an absolute path";
+        return false;
+    }
+    if (!IsSafeFileTransferRelativePath(requestedPath, reason)) {
+        return false;
+    }
+    resolvedPath = root;
+    if (!resolvedPath.empty() && resolvedPath[resolvedPath.size() - 1] != '/') {
+        resolvedPath += '/';
+    }
+    resolvedPath += requestedPath;
+    if (reason) reason->clear();
+    return true;
 }
 
 FileTransferDecision EvaluateFileTransferMessage(const FileTransferMessage& message,

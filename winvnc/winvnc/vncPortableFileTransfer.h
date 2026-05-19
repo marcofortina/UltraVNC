@@ -12,6 +12,7 @@
 #include "vncPortableRfbMessages.h"
 
 #include <string>
+#include <vector>
 
 namespace uvnc {
 namespace winvnc {
@@ -33,6 +34,8 @@ struct FileTransferDecision {
 const char *FileTransferModeName(FileTransferMode mode);
 bool ParseFileTransferMode(const std::string& value, FileTransferMode& mode);
 CARD32 DefaultFileTransferPayloadLimit();
+bool IsSafeFileTransferRelativePath(const std::string& requestedPath, std::string *reason = nullptr);
+bool ResolveFileTransferPath(const std::string& root, const std::string& requestedPath, std::string& resolvedPath, std::string *reason = nullptr);
 FileTransferDecision EvaluateFileTransferMessage(const FileTransferMessage& message,
                                                  FileTransferMode mode,
                                                  CARD32 payloadLimitBytes = DefaultFileTransferPayloadLimit());
