@@ -32,12 +32,17 @@ serve_updates=true
 # password_file=/home/USER/.config/ultravnc/vnc-password
 
 # VNCAuth is legacy RFB password authentication: max 8 bytes and no transport
-# encryption. It is still better than no-auth, but use it only with trusted
-# networks, host firewalls or tunnels until TLS/security-type work lands.
+# encryption. It is still better than no-auth, but non-loopback binds require
+# an explicit allow_unencrypted_public=true opt-in until TLS/security-type work
+# lands. Use host firewalls, trusted networks or tunnels for any exposure.
 
 # Local loopback/lab no-auth, not production:
 # auth=none
 # allow_no_auth=true
+
+# Non-loopback VNCAuth without transport encryption is disabled by default.
+# Only set this for explicit controlled exposure behind firewall/tunnel policy.
+# allow_unencrypted_public=false
 
 # Non-loopback no-auth requires both allow_no_auth=true and
 # allow_public_no_auth=true and should only be used for controlled lab tests.

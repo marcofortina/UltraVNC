@@ -76,6 +76,10 @@ The experimental Linux server now fails closed for unsafe no-auth runtime paths:
 - `password_file` must point to a regular private file that is not accessible by
   group or other users;
 - VNCAuth passwords are limited to 8 bytes by the RFB legacy VNCAuth design;
+- VNCAuth on non-loopback bind addresses is blocked by default because this
+  milestone does not implement transport encryption; use
+  `allow_unencrypted_public=true` only for explicit controlled exposure behind
+  firewall, tunnel or trusted-network policy;
 - `--print-config` reports the selected auth mode but never prints the password.
 
 Recommended private password-file setup:
@@ -93,9 +97,12 @@ auth=vnc-password
 password_file=/home/USER/.config/ultravnc/vnc-password
 ```
 
-For any LAN bind, prefer VNCAuth over no-auth and keep the network trusted or
-wrapped in a tunnel. VNCAuth authenticates the handshake, but it does not encrypt
-framebuffer, clipboard or input traffic.
+For any LAN bind, VNCAuth is the minimum accepted auth mode, but this milestone
+still refuses non-loopback VNCAuth unless `allow_unencrypted_public=true` is set.
+That opt-in is intentionally noisy: VNCAuth authenticates the handshake, but it
+does not encrypt framebuffer, clipboard or input traffic. Keep the service behind
+trusted-network, firewall or tunnel controls until a real transport security type
+lands.
 
 ## Bind-address policy
 
@@ -120,6 +127,7 @@ allow_no_auth=true
 bind_address=192.0.2.10
 auth=vnc-password
 password_file=/home/USER/.config/ultravnc/vnc-password
+allow_unencrypted_public=true
 ```
 
 Avoid `bind_address=0.0.0.0` unless the host firewall and network exposure are
@@ -133,8 +141,9 @@ position is:
 
 1. no-auth is explicit loopback/lab-only;
 2. VNCAuth is supported for interoperability but is legacy and unencrypted;
-3. non-loopback deployments should use a trusted network, firewall and/or tunnel;
-4. a future milestone should add a real transport-security strategy instead of
+3. non-loopback VNCAuth requires `allow_unencrypted_public=true`;
+4. non-loopback deployments should use a trusted network, firewall and/or tunnel;
+5. a future milestone should add a real transport-security strategy instead of
    pretending that VNCAuth is strong encryption.
 
 Validate and inspect the resolved runtime config:
