@@ -10,6 +10,7 @@
 
 #include "vncPortableViewerSession.h"
 
+#include <QByteArray>
 #include <QCheckBox>
 #include <QClipboard>
 #include <QFile>
