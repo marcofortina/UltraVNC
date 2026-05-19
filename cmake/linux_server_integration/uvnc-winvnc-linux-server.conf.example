@@ -21,6 +21,17 @@ input_backend=none
 max_updates=1024
 serve_updates=true
 
+
+# Admin/status equivalents for the Windows service/tray/settings UI:
+#
+#   uvnc_winvnc_memory_server --config ~/.config/ultravnc/uvnc-winvnc-linux-server.conf --validate-config
+#   uvnc_winvnc_memory_server --config ~/.config/ultravnc/uvnc-winvnc-linux-server.conf --print-admin-summary
+#   systemctl --user status uvnc-winvnc-memory-server.service
+#   cat "$XDG_RUNTIME_DIR/uvnc-winvnc-memory-server.status"
+#
+# The Linux path intentionally uses config files, systemd user services, status
+# files and journal/log output instead of porting the Windows tray/settings UI.
+
 # Recommended production baseline for this milestone:
 #
 #   install -m 0600 /dev/null ~/.config/ultravnc/vnc-password
