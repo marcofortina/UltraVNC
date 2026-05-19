@@ -468,6 +468,7 @@ bool MeasureFileTransferDirectoryRecursive(const std::string& root,
 
 bool PrepareFileTransferUpload(const std::string& root,
                                const std::string& requestedPath,
+                               bool allowOverwrite,
                                std::string& finalPath,
                                std::string& temporaryPath,
                                std::string *reason)
@@ -476,6 +477,11 @@ bool PrepareFileTransferUpload(const std::string& root,
         return false;
     }
 #ifndef _WIN32
+    struct stat existing;
+    if (!allowOverwrite && lstat(finalPath.c_str(), &existing) == 0) {
+        if (reason) *reason = "upload target already exists and overwrite is disabled";
+        return false;
+    }
     temporaryPath = finalPath + ".uvnc-upload.tmp";
     if (unlink(temporaryPath.c_str()) != 0 && errno != ENOENT) {
         if (reason) *reason = LastSystemError("remove stale upload temp file");
@@ -490,6 +496,7 @@ bool PrepareFileTransferUpload(const std::string& root,
     if (reason) reason->clear();
     return true;
 #else
+    (void)allowOverwrite;
     if (reason) *reason = "portable atomic upload is not used on Windows builds";
     return false;
 #endif

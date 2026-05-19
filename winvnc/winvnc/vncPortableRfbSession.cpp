@@ -670,7 +670,7 @@ bool RfbServerSession::ServeNextClientMessage(RfbTransport& socket, const Frameb
                 std::string finalPath;
                 std::string temporaryPath;
                 std::string uploadError;
-                if (!PrepareFileTransferUpload(state->FileTransferRoot(), requestedPath, finalPath, temporaryPath, &uploadError)) {
+                if (!PrepareFileTransferUpload(state->FileTransferRoot(), requestedPath, state->FileTransferAllowOverwrite(), finalPath, temporaryPath, &uploadError)) {
                     return SendFileTransferError(socket);
                 }
                 state->BeginFileUpload(finalPath, temporaryPath);

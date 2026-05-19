@@ -97,6 +97,7 @@ ServerConfig::ServerConfig()
       fileTransferMode_(FileTransferMode::Disabled),
       fileTransferPayloadLimit_(DefaultFileTransferPayloadLimit()),
       fileTransferRoot_(),
+      fileTransferAllowOverwrite_(false),
       transportSecurity_(TransportSecurityMode::None),
       tlsCertificateFile_(),
       tlsPrivateKeyFile_()

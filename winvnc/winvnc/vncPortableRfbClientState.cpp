@@ -32,6 +32,7 @@ RfbClientState::RfbClientState(const ServerConfig& config)
       fileTransferMode_(config.FileTransferModeValue()),
       fileTransferPayloadLimit_(config.FileTransferPayloadLimit()),
       fileTransferRoot_(config.FileTransferRoot()),
+      fileTransferAllowOverwrite_(config.FileTransferAllowOverwrite()),
       fileUploadActive_(false),
       fileUploadPath_(),
       fileUploadFinalPath_(),

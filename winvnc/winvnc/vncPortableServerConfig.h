@@ -58,6 +58,7 @@ public:
     FileTransferMode FileTransferModeValue() const { return fileTransferMode_; }
     unsigned int FileTransferPayloadLimit() const { return fileTransferPayloadLimit_; }
     const std::string& FileTransferRoot() const { return fileTransferRoot_; }
+    bool FileTransferAllowOverwrite() const { return fileTransferAllowOverwrite_; }
     TransportSecurityMode TransportSecurity() const { return transportSecurity_; }
     const std::string& TlsCertificateFile() const { return tlsCertificateFile_; }
     const std::string& TlsPrivateKeyFile() const { return tlsPrivateKeyFile_; }
@@ -81,6 +82,7 @@ public:
     void SetFileTransferMode(FileTransferMode mode) { fileTransferMode_ = mode; }
     void SetFileTransferPayloadLimit(unsigned int bytes) { fileTransferPayloadLimit_ = bytes; }
     void SetFileTransferRoot(const std::string& root) { fileTransferRoot_ = root; }
+    void SetFileTransferAllowOverwrite(bool allow) { fileTransferAllowOverwrite_ = allow; }
     void SetTransportSecurity(TransportSecurityMode mode) { transportSecurity_ = mode; }
     void SetTlsCertificateFile(const std::string& path) { tlsCertificateFile_ = path; }
     void SetTlsPrivateKeyFile(const std::string& path) { tlsPrivateKeyFile_ = path; }
@@ -109,6 +111,7 @@ private:
     FileTransferMode fileTransferMode_;
     unsigned int fileTransferPayloadLimit_;
     std::string fileTransferRoot_;
+    bool fileTransferAllowOverwrite_;
     TransportSecurityMode transportSecurity_;
     std::string tlsCertificateFile_;
     std::string tlsPrivateKeyFile_;

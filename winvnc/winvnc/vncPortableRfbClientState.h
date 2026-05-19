@@ -44,6 +44,7 @@ public:
     FileTransferMode FileTransferModeValue() const { return fileTransferMode_; }
     unsigned int FileTransferPayloadLimit() const { return fileTransferPayloadLimit_; }
     const std::string& FileTransferRoot() const { return fileTransferRoot_; }
+    bool FileTransferAllowOverwrite() const { return fileTransferAllowOverwrite_; }
     bool FileUploadActive() const { return fileUploadActive_; }
     const std::string& FileUploadPath() const { return fileUploadPath_; }
     const std::string& FileUploadFinalPath() const { return fileUploadFinalPath_; }
@@ -81,6 +82,7 @@ private:
     FileTransferMode fileTransferMode_;
     unsigned int fileTransferPayloadLimit_;
     std::string fileTransferRoot_;
+    bool fileTransferAllowOverwrite_;
     bool fileUploadActive_;
     std::string fileUploadPath_;
     std::string fileUploadFinalPath_;

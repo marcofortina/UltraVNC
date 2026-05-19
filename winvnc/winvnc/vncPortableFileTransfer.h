@@ -95,6 +95,7 @@ bool MeasureFileTransferDirectoryRecursive(const std::string& root,
                                            std::string *reason = nullptr);
 bool PrepareFileTransferUpload(const std::string& root,
                                const std::string& requestedPath,
+                               bool allowOverwrite,
                                std::string& finalPath,
                                std::string& temporaryPath,
                                std::string *reason = nullptr);
