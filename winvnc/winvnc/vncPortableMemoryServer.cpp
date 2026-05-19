@@ -15,13 +15,23 @@ namespace portable {
 
 namespace {
 
-bool SendInitialServerMessages(RfbServerSession& session, TcpSocket& client, const ServerConfig& config)
+bool SendInitialServerMessages(RfbServerSession& session, TcpSocket& client, const ServerConfig& config, RfbClipboardSource *clipboardSource = nullptr)
 {
     if (config.BellOnConnect() && !session.SendBell(client)) {
         return false;
     }
     if (!config.ServerCutText().empty() && !session.SendServerCutText(client, config.ServerCutText())) {
         return false;
+    }
+    if (clipboardSource) {
+        std::string text;
+        std::string error;
+        if (!clipboardSource->GetText(text, &error)) {
+            return false;
+        }
+        if (!text.empty() && !session.SendServerCutText(client, text)) {
+            return false;
+        }
     }
     return true;
 }
@@ -98,7 +108,7 @@ bool MemoryServer::ServeOneUpdates(unsigned int updateCount, RfbInputSink *input
     return TryServeOneUpdates(updateCount, inputSink, 0, accepted) && accepted;
 }
 
-bool MemoryServer::TryServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink)
+bool MemoryServer::TryServeOneUpdates(unsigned int updateCount, RfbInputSink *inputSink, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource)
 {
     accepted = false;
     if (!listener_.Valid()) {
@@ -112,17 +122,17 @@ bool MemoryServer::TryServeOneUpdates(unsigned int updateCount, RfbInputSink *in
     RfbServerSession session;
     RfbClientState state(config_);
     return session.RunHandshake(client, config_, &state) &&
-           SendInitialServerMessages(session, client, config_) &&
+           SendInitialServerMessages(session, client, config_, clipboardSource) &&
            session.ServeFramebufferUpdates(client, framebuffer_, updateCount, 128, nullptr, &state, inputSink, false, clipboardSink);
 }
 
-bool MemoryServer::ServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, RfbClipboardSink *clipboardSink)
+bool MemoryServer::ServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource)
 {
     bool accepted = false;
-    return TryServeOneUpdatesFromSource(source, updateCount, inputSink, maxMessages, 0, accepted, clipboardSink) && accepted;
+    return TryServeOneUpdatesFromSource(source, updateCount, inputSink, maxMessages, 0, accepted, clipboardSink, clipboardSource) && accepted;
 }
 
-bool MemoryServer::TryServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink)
+bool MemoryServer::TryServeOneUpdatesFromSource(DesktopSource& source, unsigned int updateCount, RfbInputSink *inputSink, unsigned int maxMessages, unsigned int acceptTimeoutMs, bool& accepted, RfbClipboardSink *clipboardSink, RfbClipboardSource *clipboardSource)
 {
     accepted = false;
     if (!listener_.Valid()) {
@@ -137,7 +147,7 @@ bool MemoryServer::TryServeOneUpdatesFromSource(DesktopSource& source, unsigned 
     RfbServerSession session;
     RfbClientState state(config_);
     if (!session.RunHandshake(client, config_, &state) ||
-        !SendInitialServerMessages(session, client, config_)) {
+        !SendInitialServerMessages(session, client, config_, clipboardSource)) {
         return false;
     }
 
