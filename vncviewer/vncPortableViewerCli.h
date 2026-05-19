@@ -30,6 +30,12 @@ struct ViewerCliOptions {
     bool connectDisplaySmoke;
     bool persistentInputSmoke;
     std::string clipboardText;
+    bool listRemote;
+    bool listRemoteDrives;
+    bool downloadRemote;
+    bool remoteChecksums;
+    std::string remotePath;
+    std::string downloadOutputPath;
 };
 
 bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& options, std::string& error);

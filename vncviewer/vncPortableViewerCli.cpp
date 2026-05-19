@@ -27,7 +27,13 @@ ViewerCliOptions::ViewerCliOptions()
       connectUpdateSmoke(false),
       connectDisplaySmoke(false),
       persistentInputSmoke(false),
-      clipboardText("qt-viewer-clipboard")
+      clipboardText("qt-viewer-clipboard"),
+      listRemote(false),
+      listRemoteDrives(false),
+      downloadRemote(false),
+      remoteChecksums(false),
+      remotePath(),
+      downloadOutputPath()
 {
 }
 
@@ -189,6 +195,19 @@ bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& opti
             options.config.SetPassword(value);
         } else if (arg == "--clipboard-text" && i + 1 < args.size()) {
             options.clipboardText = args[++i];
+        } else if (arg == "--list-remote" && i + 1 < args.size()) {
+            options.listRemote = true;
+            options.remotePath = args[++i];
+        } else if (arg == "--list-drives") {
+            options.listRemoteDrives = true;
+        } else if (arg == "--download-remote" && i + 1 < args.size()) {
+            options.downloadRemote = true;
+            options.remotePath = args[++i];
+        } else if (arg == "--download-output" && i + 1 < args.size()) {
+            options.downloadOutputPath = args[++i];
+        } else if (arg == "--remote-checksums" && i + 1 < args.size()) {
+            options.remoteChecksums = true;
+            options.remotePath = args[++i];
         } else if (arg == "--continuous-updates") {
             options.config.SetContinuousUpdates(true);
         } else if (arg == "--encodings" && i + 1 < args.size()) {
@@ -216,6 +235,19 @@ bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& opti
             error = "unknown or incomplete option: " + arg;
             return false;
         }
+    }
+
+    const unsigned int fileTransferActions = (options.listRemote ? 1u : 0u) +
+                                             (options.listRemoteDrives ? 1u : 0u) +
+                                             (options.downloadRemote ? 1u : 0u) +
+                                             (options.remoteChecksums ? 1u : 0u);
+    if (fileTransferActions > 1) {
+        error = "choose only one viewer file-transfer operation";
+        return false;
+    }
+    if (options.downloadRemote && options.downloadOutputPath.empty()) {
+        error = "--download-remote requires --download-output";
+        return false;
     }
 
     return options.config.Validate(&error);
@@ -250,6 +282,11 @@ std::string ViewerCliUsage(const char *programName)
         << "  --password-file <path> Read VNCAuth password from a file\n"
         << "  --password-env <name>  Read VNCAuth password from an environment variable\n"
         << "  --clipboard-text <text> Clipboard text sent by persistent input smoke\n"
+        << "  --list-remote <path> List a remote file-transfer directory and exit\n"
+        << "  --list-drives       List remote file-transfer roots/drives and exit\n"
+        << "  --download-remote <path> Download a remote file-transfer file and exit\n"
+        << "  --download-output <path> Destination path for --download-remote\n"
+        << "  --remote-checksums <path> Request remote file-transfer checksums and exit\n"
         << "  --encodings <list>     Comma-separated encodings: raw,copyrect,hextile,zlib,zrle,tight,rre,corre,newfbsize,richcursor,xcursor,pointerpos,lastrect,extendedclipboard\n"
         << "  --continuous-updates   Repeatedly request updates in the interactive Qt shell\n"
         << "  --socket-timeout-ms <ms> Socket read/write timeout, default 15000\n"
