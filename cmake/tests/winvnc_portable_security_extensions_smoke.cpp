@@ -8,6 +8,8 @@
 
 #include "vncPortableSecurityExtensions.h"
 
+#include "rfb.h"
+
 #include <cassert>
 #include <string>
 
