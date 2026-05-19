@@ -113,6 +113,22 @@ int main()
         assert(!checksums.empty());
     }
 
+    config.SetFileTransferMode(FileTransferMode::ReadWrite);
+    RfbClientState writeState(config);
+    {
+        ServerOnce server(serverSocket, writeState);
+        const std::string uploadText = "viewer-upload-payload";
+        const std::vector<CARD8> upload(uploadText.begin(), uploadText.end());
+        std::string error;
+        assert(UploadViewerFile(clientSocket, "dir/upload.txt", upload, &error));
+        assert(server.Wait());
+        std::ifstream uploaded((root + "/dir/upload.txt").c_str(), std::ios::binary);
+        std::string saved;
+        uploaded >> saved;
+        assert(saved == uploadText);
+    }
+
+    unlink((root + "/dir/upload.txt").c_str());
     unlink((root + "/dir/file.txt").c_str());
     rmdir((root + "/dir").c_str());
     rmdir(root.c_str());
