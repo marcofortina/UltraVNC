@@ -21,6 +21,8 @@ namespace portable {
 enum class FileTransferMode {
     Disabled,
     RejectOnly,
+    ReadOnly,
+    ReadWrite,
 };
 
 struct FileTransferDecision {

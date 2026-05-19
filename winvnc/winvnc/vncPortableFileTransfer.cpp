@@ -21,6 +21,10 @@ const char *FileTransferModeName(FileTransferMode mode)
         return "disabled";
     case FileTransferMode::RejectOnly:
         return "reject-only";
+    case FileTransferMode::ReadOnly:
+        return "read-only";
+    case FileTransferMode::ReadWrite:
+        return "read-write";
     }
     return "unknown";
 }
@@ -33,6 +37,14 @@ bool ParseFileTransferMode(const std::string& value, FileTransferMode& mode)
     }
     if (value == "reject-only") {
         mode = FileTransferMode::RejectOnly;
+        return true;
+    }
+    if (value == "read-only" || value == "readonly") {
+        mode = FileTransferMode::ReadOnly;
+        return true;
+    }
+    if (value == "read-write" || value == "readwrite") {
+        mode = FileTransferMode::ReadWrite;
         return true;
     }
     return false;
@@ -120,7 +132,13 @@ FileTransferDecision EvaluateFileTransferMessage(const FileTransferMessage& mess
         return decision;
     }
 
-    decision.reason = "file transfer runtime only supports safe reject-only mode";
+    if (mode == FileTransferMode::RejectOnly) {
+        decision.reason = "file transfer runtime is configured for safe reject-only mode";
+        return decision;
+    }
+
+    decision.reason = "file transfer runtime requires message-specific handling";
+    decision.accepted = true;
     return decision;
 }
 
