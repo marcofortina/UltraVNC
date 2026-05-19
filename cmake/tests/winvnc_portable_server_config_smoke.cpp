@@ -11,6 +11,7 @@
 #include <iostream>
 #include <string>
 
+using uvnc::winvnc::portable::FileTransferMode;
 using uvnc::winvnc::portable::ServerConfig;
 
 int main()
@@ -32,6 +33,22 @@ int main()
     config.SetPixelFormat(format);
     if (config.Validate(&error) || error.empty()) {
         std::cerr << "invalid pixel format accepted\n";
+        return 1;
+    }
+    config.SetPixelFormat(ServerConfig::DefaultPixelFormat());
+    config.SetFileTransferMode(FileTransferMode::RejectOnly);
+    if (!config.EnableFileTransfer() || config.FileTransferModeValue() != FileTransferMode::RejectOnly) {
+        std::cerr << "file transfer reject-only policy not retained\n";
+        return 1;
+    }
+    config.SetFileTransferPayloadLimit(4096);
+    if (!config.Validate(&error)) {
+        std::cerr << "valid file transfer payload limit rejected: " << error << "\n";
+        return 1;
+    }
+    config.SetFileTransferPayloadLimit(0);
+    if (config.Validate(&error) || error.empty()) {
+        std::cerr << "invalid file transfer payload limit accepted\n";
         return 1;
     }
     return 0;
