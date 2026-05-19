@@ -88,7 +88,7 @@ RfbSessionStats::RfbSessionStats()
 {
 }
 
-bool RfbServerSession::RunHandshake(TcpSocket& socket, const ServerConfig& config) const
+bool RfbServerSession::RunHandshake(TcpSocket& socket, const ServerConfig& config, RfbClientState *state) const
 {
     std::string error;
     if (!config.Validate(&error)) {
@@ -133,6 +133,9 @@ bool RfbServerSession::RunHandshake(TcpSocket& socket, const ServerConfig& confi
     rfbClientInitMsg clientInit;
     if (!socket.ReadExact(&clientInit, sz_rfbClientInitMsg)) {
         return false;
+    }
+    if (state) {
+        state->RecordClientInit(clientInit.shared != 0);
     }
 
     const std::vector<CARD8> init = ServerInitBytes(config.Width(), config.Height(), config.PixelFormat(), config.DesktopName());

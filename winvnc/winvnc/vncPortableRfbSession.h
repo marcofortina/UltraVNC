@@ -50,7 +50,7 @@ public:
 
 class RfbServerSession {
 public:
-    bool RunHandshake(TcpSocket& socket, const ServerConfig& config) const;
+    bool RunHandshake(TcpSocket& socket, const ServerConfig& config, RfbClientState *state = nullptr) const;
     bool ServeFramebufferUpdateRequest(TcpSocket& socket, const Framebuffer& framebuffer) const;
     bool ServeNextClientMessage(TcpSocket& socket, const Framebuffer& framebuffer, bool& updateSent, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr, RfbInputSink *inputSink = nullptr, bool forceRawIncremental = false, RfbClipboardSink *clipboardSink = nullptr) const;
     bool ServeUntilFramebufferUpdate(TcpSocket& socket, const Framebuffer& framebuffer, unsigned int maxMessages = 32, RfbSessionStats *stats = nullptr, RfbClientState *state = nullptr, RfbInputSink *inputSink = nullptr, bool forceRawIncremental = false, RfbClipboardSink *clipboardSink = nullptr) const;

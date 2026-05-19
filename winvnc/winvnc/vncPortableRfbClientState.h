@@ -31,6 +31,8 @@ public:
     bool SupportsXCursorUpdates() const;
     bool SupportsCursorShapeUpdates() const;
     bool CursorShapeSent() const { return cursorShapeSent_; }
+    bool SharedClientRequested() const { return sharedClientRequested_; }
+    bool ClientInitReceived() const { return clientInitReceived_; }
     const KeyEvent& LastKeyEvent() const { return lastKeyEvent_; }
     const PointerEvent& LastPointerEvent() const { return lastPointerEvent_; }
     unsigned int KeyEventCount() const { return keyEventCount_; }
@@ -42,6 +44,7 @@ public:
     void SetPixelFormat(const rfbPixelFormat& format);
     void SetEncodings(const std::vector<CARD32>& encodings);
     void MarkCursorShapeSent();
+    void RecordClientInit(bool shared);
     void RecordKeyEvent(const KeyEvent& event);
     void RecordPointerEvent(const PointerEvent& event);
     void RecordClientCutText(unsigned int bytes);
@@ -58,6 +61,8 @@ private:
     unsigned int clientCutTextBytes_;
     std::string lastClientCutText_;
     bool cursorShapeSent_;
+    bool sharedClientRequested_;
+    bool clientInitReceived_;
 };
 
 } // namespace portable

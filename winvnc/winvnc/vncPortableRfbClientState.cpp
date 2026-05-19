@@ -25,7 +25,9 @@ RfbClientState::RfbClientState(const ServerConfig& config)
       clientCutTextMessages_(0),
       clientCutTextBytes_(0),
       lastClientCutText_(),
-      cursorShapeSent_(false)
+      cursorShapeSent_(false),
+      sharedClientRequested_(true),
+      clientInitReceived_(false)
 {
     std::memset(&lastKeyEvent_, 0, sizeof(lastKeyEvent_));
     std::memset(&lastPointerEvent_, 0, sizeof(lastPointerEvent_));
@@ -70,6 +72,12 @@ void RfbClientState::SetEncodings(const std::vector<CARD32>& encodings)
 void RfbClientState::MarkCursorShapeSent()
 {
     cursorShapeSent_ = true;
+}
+
+void RfbClientState::RecordClientInit(bool shared)
+{
+    sharedClientRequested_ = shared;
+    clientInitReceived_ = true;
 }
 
 void RfbClientState::RecordKeyEvent(const KeyEvent& event)

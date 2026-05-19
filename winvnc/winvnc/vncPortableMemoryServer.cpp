@@ -71,7 +71,8 @@ bool MemoryServer::ServeOne()
         return false;
     }
     RfbServerSession session;
-    return session.RunHandshake(client, config_) &&
+    RfbClientState state(config_);
+    return session.RunHandshake(client, config_, &state) &&
            SendInitialServerMessages(session, client, config_);
 }
 
@@ -86,7 +87,7 @@ bool MemoryServer::ServeOneUpdate(RfbInputSink *inputSink)
     }
     RfbServerSession session;
     RfbClientState state(config_);
-    return session.RunHandshake(client, config_) &&
+    return session.RunHandshake(client, config_, &state) &&
            SendInitialServerMessages(session, client, config_) &&
            session.ServeUntilFramebufferUpdate(client, framebuffer_, 32, nullptr, &state, inputSink);
 }
@@ -110,7 +111,7 @@ bool MemoryServer::TryServeOneUpdates(unsigned int updateCount, RfbInputSink *in
     accepted = true;
     RfbServerSession session;
     RfbClientState state(config_);
-    return session.RunHandshake(client, config_) &&
+    return session.RunHandshake(client, config_, &state) &&
            SendInitialServerMessages(session, client, config_) &&
            session.ServeFramebufferUpdates(client, framebuffer_, updateCount, 128, nullptr, &state, inputSink, false, clipboardSink);
 }
@@ -134,13 +135,13 @@ bool MemoryServer::TryServeOneUpdatesFromSource(DesktopSource& source, unsigned 
     accepted = true;
 
     RfbServerSession session;
-    if (!session.RunHandshake(client, config_) ||
+    RfbClientState state(config_);
+    if (!session.RunHandshake(client, config_, &state) ||
         !SendInitialServerMessages(session, client, config_)) {
         return false;
     }
 
     RfbSessionStats stats;
-    RfbClientState state(config_);
     unsigned int sent = 0;
     for (unsigned int i = 0; i < maxMessages && sent < updateCount; ++i) {
         Framebuffer current;
