@@ -9,6 +9,7 @@
 #include "vncQtServerSettingsPanel.h"
 
 #include <QApplication>
+#include <QPixmap>
 
 #include <iostream>
 #include <vector>
@@ -23,6 +24,14 @@ bool HasFlag(const std::vector<std::string>& args, const std::string& flag)
         if (args[i] == flag) return true;
     }
     return false;
+}
+
+std::string OptionValue(const std::vector<std::string>& args, const std::string& option)
+{
+    for (std::size_t i = 0; i + 1 < args.size(); ++i) {
+        if (args[i] == option) return args[i + 1];
+    }
+    return std::string();
 }
 
 } // namespace
@@ -45,6 +54,23 @@ int main(int argc, char **argv)
     }
     if (HasFlag(args, "--print-default-config")) {
         std::cout << panel.GeneratedConfigText().toStdString();
+        return 0;
+    }
+    if (HasFlag(args, "--print-visual-parity-report")) {
+        std::cout << panel.VisualParityReport().toStdString();
+        return 0;
+    }
+    const std::string snapshotPath = OptionValue(args, "--save-visual-parity-snapshot");
+    if (!snapshotPath.empty()) {
+        panel.setWindowTitle(QStringLiteral("UltraVNC Linux Server Settings"));
+        panel.resize(920, 720);
+        panel.show();
+        QApplication::processEvents();
+        if (!panel.grab().save(QString::fromStdString(snapshotPath))) {
+            std::cerr << "failed to save visual parity snapshot
+";
+            return 1;
+        }
         return 0;
     }
 
