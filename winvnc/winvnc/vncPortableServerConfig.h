@@ -11,6 +11,7 @@
 
 #include "rfb.h"
 #include "vncPortableFramebufferPattern.h"
+#include "vncPortableFileTransfer.h"
 
 #include <string>
 
@@ -45,7 +46,9 @@ public:
     bool AllowUnencryptedPublic() const { return allowUnencryptedPublic_; }
     bool BellOnConnect() const { return bellOnConnect_; }
     const std::string& ServerCutText() const { return serverCutText_; }
-    bool EnableFileTransfer() const { return enableFileTransfer_; }
+    bool EnableFileTransfer() const { return fileTransferMode_ != FileTransferMode::Disabled; }
+    FileTransferMode FileTransferModeValue() const { return fileTransferMode_; }
+    unsigned int FileTransferPayloadLimit() const { return fileTransferPayloadLimit_; }
 
     void SetBindAddress(const std::string& bindAddress) { bindAddress_ = bindAddress; }
     void SetPort(unsigned short port) { port_ = port; }
@@ -61,7 +64,9 @@ public:
     void SetAllowUnencryptedPublic(bool allow) { allowUnencryptedPublic_ = allow; }
     void SetBellOnConnect(bool enable) { bellOnConnect_ = enable; }
     void SetServerCutText(const std::string& text) { serverCutText_ = text; }
-    void SetEnableFileTransfer(bool enable) { enableFileTransfer_ = enable; }
+    void SetEnableFileTransfer(bool enable) { fileTransferMode_ = enable ? FileTransferMode::RejectOnly : FileTransferMode::Disabled; }
+    void SetFileTransferMode(FileTransferMode mode) { fileTransferMode_ = mode; }
+    void SetFileTransferPayloadLimit(unsigned int bytes) { fileTransferPayloadLimit_ = bytes; }
 
     bool Validate(std::string *error = nullptr) const;
 
@@ -83,7 +88,8 @@ private:
     bool allowUnencryptedPublic_;
     bool bellOnConnect_;
     std::string serverCutText_;
-    bool enableFileTransfer_;
+    FileTransferMode fileTransferMode_;
+    unsigned int fileTransferPayloadLimit_;
 };
 
 } // namespace portable

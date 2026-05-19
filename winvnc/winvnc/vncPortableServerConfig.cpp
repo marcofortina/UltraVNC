@@ -69,7 +69,8 @@ ServerConfig::ServerConfig()
       allowUnencryptedPublic_(false),
       bellOnConnect_(false),
       serverCutText_(),
-      enableFileTransfer_(false)
+      fileTransferMode_(FileTransferMode::Disabled),
+      fileTransferPayloadLimit_(DefaultFileTransferPayloadLimit())
 {
 }
 
@@ -123,8 +124,8 @@ bool ServerConfig::Validate(std::string *error) const
             return false;
         }
     }
-    if (enableFileTransfer_) {
-        if (error) *error = "native Linux file transfer is not implemented; file-transfer protocol messages are rejected by default";
+    if (fileTransferPayloadLimit_ == 0 || fileTransferPayloadLimit_ > 16U * 1024U * 1024U) {
+        if (error) *error = "file-transfer payload guard limit must be between 1 and 16777216 bytes";
         return false;
     }
     return true;
