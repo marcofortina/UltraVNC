@@ -42,7 +42,7 @@ int main()
         TcpSocket client;
         serverOk = listener.Accept(client) &&
                    RfbServerSession().RunHandshake(client, serverConfig) &&
-                   RfbServerSession().ServeFramebufferUpdates(client, framebuffer, 2, 8, &stats, &state);
+                   RfbServerSession().ServeFramebufferUpdates(client, framebuffer, 2, 16, &stats, &state);
     });
 
     ViewerConfig viewerConfig;
