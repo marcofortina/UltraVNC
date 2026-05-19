@@ -50,6 +50,15 @@ install(FILES
     "${CMAKE_SOURCE_DIR}/../docs/native-linux-pipewire-capture.md"
     "${CMAKE_SOURCE_DIR}/../docs/native-linux-server-runtime.md"
     "${CMAKE_SOURCE_DIR}/../docs/native-linux-service-admin-equivalents.md"
+    "${CMAKE_SOURCE_DIR}/../docs/native-linux-security-extensions.md"
+    "${CMAKE_SOURCE_DIR}/../docs/native-linux-mslogon-server-auth.md"
+    "${CMAKE_SOURCE_DIR}/../docs/native-linux-ci-gate.md"
+    "${CMAKE_SOURCE_DIR}/../docs/native-linux-milestone-closure.md"
     "${CMAKE_SOURCE_DIR}/../docs/native-linux-qt-viewer.md"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/ultravnc/linux"
+)
+
+install(FILES
+    "${CMAKE_SOURCE_DIR}/../docs/examples/native-linux-server-external-viewer-matrix.example"
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/ultravnc/linux/examples"
 )
