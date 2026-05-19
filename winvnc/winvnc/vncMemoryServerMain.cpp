@@ -512,6 +512,18 @@ bool AddConfigOption(const std::string& key, const std::string& value, std::vect
         return false;
     } else if (key == "server_cut_text") {
         args.push_back("--server-cut-text");
+    } else if (key == "extended_clipboard") {
+        if (value == "true" || value == "1" || value == "yes") {
+            return true;
+        }
+        if (value == "false" || value == "0" || value == "no") {
+            args.push_back("--disable-extended-clipboard");
+            return true;
+        }
+        if (error) *error = "invalid boolean value for extended_clipboard";
+        return false;
+    } else if (key == "extended_clipboard_text_limit") {
+        args.push_back("--extended-clipboard-text-limit");
     } else if (key == "file_transfer_mode") {
         args.push_back("--file-transfer-mode");
     } else if (key == "file_transfer_payload_limit") {
@@ -777,6 +789,15 @@ bool ParseArgs(int argc, char **argv, ServerConfig& config, CaptureBackend& capt
             config.SetBellOnConnect(true);
         } else if (arg == "--server-cut-text" && i + 1 < argc) {
             config.SetServerCutText(argv[++i]);
+        } else if (arg == "--disable-extended-clipboard") {
+            config.SetExtendedClipboardEnabled(false);
+        } else if (arg == "--extended-clipboard-text-limit" && i + 1 < argc) {
+            unsigned int limit = 0;
+            if (!ParseUnsigned(argv[++i], 1, 100U * 1024U * 1024U, limit)) {
+                std::cerr << "invalid --extended-clipboard-text-limit\n";
+                return false;
+            }
+            config.SetExtendedClipboardTextLimit(limit);
         } else if (arg == "--serve-updates") {
             serveUpdates = true;
         } else if (arg == "--serve-forever") {
@@ -1111,6 +1132,8 @@ void PrintResolvedConfig(const ServerConfig& config, CaptureBackend requestedBac
               << "tls_private_key_file=" << (config.TlsPrivateKeyFile().empty() ? "" : "<configured>") << "\n"
               << "bell_on_connect=" << (config.BellOnConnect() ? "yes" : "no") << "\n"
               << "server_cut_text_bytes=" << config.ServerCutText().size() << "\n"
+              << "extended_clipboard=" << (config.ExtendedClipboardEnabled() ? "yes" : "no") << "\n"
+              << "extended_clipboard_text_limit=" << config.ExtendedClipboardTextLimit() << "\n"
               << "max_shared_clients=" << config.MaxSharedClients() << "\n"
               << "file_transfer_mode=" << FileTransferModeName(config.FileTransferModeValue()) << "\n"
               << "file_transfer_payload_limit=" << config.FileTransferPayloadLimit() << "\n"
