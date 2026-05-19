@@ -106,6 +106,12 @@ int main()
     assert(options.listRemoteDrives);
 
     args.clear();
+    args.push_back("--upload-local");
+    args.push_back("/tmp/local.txt");
+    assert(!ParseViewerCli(args, options, error));
+    assert(error == "--upload-local requires --upload-remote");
+
+    args.clear();
     args.push_back("--download-remote");
     args.push_back("remote.txt");
     args.push_back("--download-output");
@@ -121,6 +127,22 @@ int main()
     assert(ParseViewerCli(args, options, error));
     assert(options.remoteChecksums);
     assert(options.remotePath == "remote.txt");
+
+    args.clear();
+    args.push_back("--upload-local");
+    args.push_back("/tmp/local.txt");
+    args.push_back("--upload-remote");
+    args.push_back("remote.txt");
+    assert(ParseViewerCli(args, options, error));
+    assert(options.uploadLocal);
+    assert(options.uploadLocalPath == "/tmp/local.txt");
+    assert(options.remotePath == "remote.txt");
+
+    args.clear();
+    args.push_back("--upload-local");
+    args.push_back("/tmp/local.txt");
+    assert(!ParseViewerCli(args, options, error));
+    assert(error == "--upload-local requires --upload-remote");
 
     args.clear();
     args.push_back("--download-remote");
@@ -207,6 +229,7 @@ int main()
     assert(usage.find("--persistent-input-smoke") != std::string::npos);
     assert(usage.find("--list-remote") != std::string::npos);
     assert(usage.find("--download-remote") != std::string::npos);
+    assert(usage.find("--upload-local") != std::string::npos);
     assert(usage.find("--security-extension") != std::string::npos);
     assert(usage.find("--print-config") != std::string::npos);
     return 0;
