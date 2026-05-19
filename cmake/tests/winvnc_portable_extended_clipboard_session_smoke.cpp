@@ -106,6 +106,16 @@ int main()
     std::thread requestWorker([&]() {
         serverOk = session.ServeNextClientMessage(serverSocket, framebuffer, updateSent, &stats, &state, nullptr, false, nullptr, &source);
     });
+    const std::vector<CARD8> combinedCaps = EncodeExtendedClientCutText(EncodeExtendedClipboardCaps(clipCaps | clipRequest | clipProvide | clipText, 4096));
+    serverOk = false;
+    std::thread capsUpdateWorker([&]() {
+        serverOk = session.ServeNextClientMessage(serverSocket, framebuffer, updateSent, &stats, &state, nullptr, false, nullptr, &source);
+    });
+    assert(clientSocket.WriteAll(combinedCaps.data(), combinedCaps.size()));
+    capsUpdateWorker.join();
+    assert(serverOk);
+    assert(state.ExtendedClipboardRemoteTextLimit() == 4096);
+
     const std::vector<CARD8> request = EncodeExtendedClientCutText(EncodeExtendedClipboardRequest());
     assert(clientSocket.WriteAll(request.data(), request.size()));
     assert(ReadExtendedServerCutText(clientSocket, serverPayload));
