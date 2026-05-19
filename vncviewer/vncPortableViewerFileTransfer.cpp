@@ -1,0 +1,234 @@
+// This file is part of UltraVNC
+// https://github.com/ultravnc/UltraVNC
+// https://uvnc.com/
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// SPDX-FileCopyrightText: Copyright (C) 2002-2025 UltraVNC Team Members. All Rights Reserved.
+
+#include "vncPortableViewerFileTransfer.h"
+
+#include <cstring>
+#include <sstream>
+
+namespace uvnc {
+namespace vncviewer {
+namespace portable {
+namespace {
+
+void SetError(std::string *error, const std::string& message)
+{
+    if (error) {
+        *error = message;
+    }
+}
+
+bool WritePacket(uvnc::winvnc::portable::TcpSocket& socket,
+                 CARD8 contentType,
+                 CARD16 contentParam,
+                 CARD32 size,
+                 const std::string& payload)
+{
+    const std::vector<CARD8> bytes = EncodeViewerFileTransferRequest(contentType, contentParam, size, payload);
+    return socket.WriteAll(bytes.data(), bytes.size());
+}
+
+bool ReadPacket(uvnc::winvnc::portable::TcpSocket& socket,
+                rfbFileTransferMsg& message,
+                std::vector<CARD8>& payload,
+                std::string *error)
+{
+    std::memset(&message, 0, sizeof(message));
+    if (!socket.ReadExact(&message, sz_rfbFileTransferMsg)) {
+        SetError(error, "failed to read RFB file-transfer header");
+        return false;
+    }
+    if (message.type != rfbFileTransfer) {
+        SetError(error, "unexpected RFB message while reading file-transfer data");
+        return false;
+    }
+    const CARD32 length = Swap32IfLE(message.length);
+    payload.assign(length, 0);
+    if (length > 0 && !socket.ReadExact(payload.data(), payload.size())) {
+        SetError(error, "failed to read RFB file-transfer payload");
+        return false;
+    }
+    return true;
+}
+
+std::string PayloadString(const std::vector<CARD8>& payload)
+{
+    return std::string(reinterpret_cast<const char *>(payload.data()), payload.size());
+}
+
+} // namespace
+
+ViewerFileTransferEntry::ViewerFileTransferEntry()
+    : name(), directory(false), inaccessible(false), size(0)
+{
+}
+
+ViewerFileDownload::ViewerFileDownload()
+    : name(), expectedSize(0), payload()
+{
+}
+
+std::vector<CARD8> EncodeViewerFileTransferRequest(CARD8 contentType,
+                                                   CARD16 contentParam,
+                                                   CARD32 size,
+                                                   const std::string& payload)
+{
+    rfbFileTransferMsg message;
+    std::memset(&message, 0, sizeof(message));
+    message.type = rfbFileTransfer;
+    message.contentType = contentType;
+    message.contentParam = Swap16IfLE(contentParam);
+    message.size = Swap32IfLE(size);
+    message.length = Swap32IfLE(static_cast<CARD32>(payload.size()));
+
+    std::vector<CARD8> bytes(sz_rfbFileTransferMsg + payload.size());
+    std::memcpy(bytes.data(), &message, sz_rfbFileTransferMsg);
+    if (!payload.empty()) {
+        std::memcpy(bytes.data() + sz_rfbFileTransferMsg, payload.data(), payload.size());
+    }
+    return bytes;
+}
+
+bool ReadViewerDirectoryListing(uvnc::winvnc::portable::TcpSocket& socket,
+                                std::vector<ViewerFileTransferEntry>& entries,
+                                std::string *error)
+{
+    entries.clear();
+    while (true) {
+        rfbFileTransferMsg message;
+        std::vector<CARD8> payload;
+        if (!ReadPacket(socket, message, payload, error)) {
+            return false;
+        }
+        if (message.contentType != rfbDirPacket) {
+            SetError(error, "expected RFB directory packet");
+            return false;
+        }
+        const CARD16 param = Swap16IfLE(message.contentParam);
+        const CARD32 length = Swap32IfLE(message.length);
+        if (param == 0 && length == 0) {
+            return true;
+        }
+        ViewerFileTransferEntry entry;
+        entry.name = PayloadString(payload);
+        entry.size = Swap32IfLE(message.size);
+        entry.directory = param == rfbADirectory || param == rfbADrivesList;
+        entry.inaccessible = param == rfbADirInaccessible;
+        entries.push_back(entry);
+    }
+}
+
+bool RequestViewerDirectoryListing(uvnc::winvnc::portable::TcpSocket& socket,
+                                   const std::string& path,
+                                   std::vector<ViewerFileTransferEntry>& entries,
+                                   std::string *error)
+{
+    if (!WritePacket(socket, rfbDirContentRequest, rfbRDirContent, 0, path)) {
+        SetError(error, "failed to request RFB directory listing");
+        return false;
+    }
+    return ReadViewerDirectoryListing(socket, entries, error);
+}
+
+bool RequestViewerDrivesList(uvnc::winvnc::portable::TcpSocket& socket,
+                             std::vector<ViewerFileTransferEntry>& entries,
+                             std::string *error)
+{
+    if (!WritePacket(socket, rfbDirContentRequest, rfbRDrivesList, 0, std::string())) {
+        SetError(error, "failed to request RFB drives list");
+        return false;
+    }
+    return ReadViewerDirectoryListing(socket, entries, error);
+}
+
+bool RequestViewerFileDownload(uvnc::winvnc::portable::TcpSocket& socket,
+                               const std::string& path,
+                               ViewerFileDownload& download,
+                               std::string *error)
+{
+    download = ViewerFileDownload();
+    if (!WritePacket(socket, rfbFileTransferRequest, 0, 0, path)) {
+        SetError(error, "failed to request RFB file download");
+        return false;
+    }
+
+    bool sawHeader = false;
+    while (true) {
+        rfbFileTransferMsg message;
+        std::vector<CARD8> payload;
+        if (!ReadPacket(socket, message, payload, error)) {
+            return false;
+        }
+        const CARD32 size = Swap32IfLE(message.size);
+        if (message.contentType == rfbFileHeader) {
+            sawHeader = true;
+            download.name = PayloadString(payload);
+            download.expectedSize = size;
+            continue;
+        }
+        if (message.contentType == rfbFilePacket) {
+            if (!sawHeader) {
+                SetError(error, "file packet received before file header");
+                return false;
+            }
+            const CARD32 offset = size;
+            if (download.payload.size() != offset) {
+                SetError(error, "non-contiguous RFB file packet offset");
+                return false;
+            }
+            download.payload.insert(download.payload.end(), payload.begin(), payload.end());
+            continue;
+        }
+        if (message.contentType == rfbEndOfFile) {
+            if (!sawHeader || download.payload.size() != download.expectedSize) {
+                SetError(error, "RFB file download ended with unexpected size");
+                return false;
+            }
+            return true;
+        }
+        if (message.contentType == rfbAbortFileTransfer) {
+            SetError(error, "RFB file download was aborted by the server");
+            return false;
+        }
+        SetError(error, "unexpected RFB file-transfer packet during download");
+        return false;
+    }
+}
+
+bool RequestViewerFileChecksums(uvnc::winvnc::portable::TcpSocket& socket,
+                                const std::string& path,
+                                std::vector<std::string>& checksums,
+                                std::string *error)
+{
+    checksums.clear();
+    if (!WritePacket(socket, rfbFileChecksums, 0, 0, path)) {
+        SetError(error, "failed to request RFB file checksums");
+        return false;
+    }
+    rfbFileTransferMsg message;
+    std::vector<CARD8> payload;
+    if (!ReadPacket(socket, message, payload, error)) {
+        return false;
+    }
+    if (message.contentType != rfbFileChecksums) {
+        SetError(error, "expected RFB file checksum response");
+        return false;
+    }
+    std::istringstream input(PayloadString(payload));
+    std::string line;
+    while (std::getline(input, line)) {
+        if (!line.empty()) {
+            checksums.push_back(line);
+        }
+    }
+    return true;
+}
+
+} // namespace portable
+} // namespace vncviewer
+} // namespace uvnc
