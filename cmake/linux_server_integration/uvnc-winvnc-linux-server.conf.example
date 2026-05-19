@@ -43,6 +43,11 @@ serve_updates=true
 # password_file=/home/USER/.config/ultravnc/vnc-password
 
 
+# Optional native Linux DSM/SecureVNC provider ABI.
+# Legacy Windows .dsm DLL loading is not supported.
+#
+# dsm_provider=/usr/local/lib/ultravnc/libuvnc-securevnc-provider.so
+
 # Optional MSLogonII-style Linux authentication through an external helper.
 # The helper receives UVNC_AUTH_METHOD, UVNC_AUTH_USERNAME and
 # UVNC_AUTH_PASSWORD in its environment and must exit 0 to accept.
