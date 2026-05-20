@@ -61,6 +61,16 @@ int main(int argc, char **argv)
         std::cout << panel.GeneratedCommandLine().toStdString() << "\n";
         return 0;
     }
+    if (HasFlag(args, "--print-legacy-executable-map")) {
+        std::cout << "winvnc=uvnc_winvnc_memory_server\n"
+                  << "vncviewer=uvnc_qt_viewer\n"
+                  << "uvnc_settings=uvnc_qt_server_settings\n"
+                  << "repeater=uvnc_repeater_headless\n"
+                  << "setpasswd=uvnc_winvnc_password_file\n"
+                  << "createpassword=uvnc_winvnc_password_file\n"
+                  << "SecureVNCPlugin.dsm=lib/ultravnc/SecureVNCPlugin.dsm\n";
+        return 0;
+    }
     const std::string loadConfigPath = OptionValue(args, "--load-config-print");
     if (!loadConfigPath.empty()) {
         QFile file(QString::fromStdString(loadConfigPath));
