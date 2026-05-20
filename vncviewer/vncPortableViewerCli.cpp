@@ -180,8 +180,8 @@ bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& opti
 
     std::vector<std::string> expandedArgs;
     for (std::size_t i = 0; i < args.size(); ++i) {
-        if (args[i] == "--config-file" && i + 1 < expandedArgs.size()) {
-            if (!AppendViewerConfigFileArgs(expandedArgs[++i], expandedArgs, error)) {
+        if (args[i] == "--config-file" && i + 1 < args.size()) {
+            if (!AppendViewerConfigFileArgs(args[++i], expandedArgs, error)) {
                 return false;
             }
         } else {
