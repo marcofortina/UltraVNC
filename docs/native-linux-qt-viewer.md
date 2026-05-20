@@ -286,3 +286,20 @@ uvnc_qt_viewer \
 ```
 
 `--tls-insecure` exists only for throwaway lab tests with intentionally untrusted certificates. Production validation should use `--tls-ca-file` and a name that matches the server certificate.
+
+
+## Viewer config files
+
+The native Linux viewer accepts key/value config files for repeatable launches and
+legacy-style profile workflows:
+
+```sh
+vncviewer --config-file /path/to/viewer.conf --connect-smoke
+```
+
+Supported keys include `host`, `port`, `shared`, `view_only`, `allow_no_auth`,
+`transport_security`, `tls_ca_file`, `tls_server_name`, `tls_insecure`,
+`security_extension`, `security_extension_name`, `username`, `password_file`,
+`password_env`, `encodings`, `continuous_updates`, `update_interval_ms`, and
+`socket_timeout_ms`. Password values should be loaded through `password_file` or
+`password_env` rather than stored inline.
