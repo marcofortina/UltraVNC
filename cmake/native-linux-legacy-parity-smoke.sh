@@ -21,7 +21,7 @@ ctest --test-dir "${BUILD_DIR}" --output-on-failure -R "${CTEST_REGEX}"
 
 cmake --install "${BUILD_DIR}" --prefix "${INSTALL_DIR}"
 
-for executable in winvnc vncviewer uvnc_settings repeater setpasswd; do
+for executable in winvnc vncviewer uvnc_settings repeater setpasswd createpassword; do
     path="${INSTALL_DIR}/bin/${executable}"
     if [[ ! -e "${path}" && ! -L "${path}" ]]; then
         echo "missing installed legacy executable: ${path}" >&2

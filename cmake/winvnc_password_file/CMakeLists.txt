@@ -12,10 +12,14 @@ add_executable(uvnc_winvnc_password_file
     "${CMAKE_SOURCE_DIR}/../winvnc/passwordfile/vncPasswordFileMain.cpp"
 )
 uvnc_add_legacy_executable_alias(uvnc_winvnc_password_file setpasswd)
+uvnc_add_legacy_executable_alias(uvnc_winvnc_password_file createpassword)
 
 if(BUILD_TESTING)
     add_test(NAME uvnc_winvnc_password_file_legacy_alias_smoke COMMAND "${CMAKE_SOURCE_DIR}/tests/native_linux_legacy_executable_alias_smoke.sh" "$<TARGET_FILE_DIR:uvnc_winvnc_password_file>/setpasswd")
     set_tests_properties(uvnc_winvnc_password_file_legacy_alias_smoke PROPERTIES LABELS "native-linux;winvnc-password-file" TIMEOUT 5)
+
+    add_test(NAME uvnc_winvnc_createpassword_legacy_alias_smoke COMMAND "${CMAKE_SOURCE_DIR}/tests/native_linux_legacy_executable_alias_smoke.sh" "$<TARGET_FILE_DIR:uvnc_winvnc_password_file>/createpassword")
+    set_tests_properties(uvnc_winvnc_createpassword_legacy_alias_smoke PROPERTIES LABELS "native-linux;winvnc-password-file" TIMEOUT 5)
 
     add_test(NAME uvnc_winvnc_password_file_help COMMAND uvnc_winvnc_password_file --help)
     set_tests_properties(uvnc_winvnc_password_file_help PROPERTIES LABELS "native-linux;winvnc-password-file" TIMEOUT 5)
