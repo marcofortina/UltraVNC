@@ -154,6 +154,9 @@ add_custom_target(winvnc_qt_server_settings_cli_smoke
 add_test(NAME winvnc_qt_server_settings_cli_smoke
     COMMAND uvnc_qt_server_settings --smoke-test
 )
+add_custom_target(winvnc_qt_server_settings_roundtrip_smoke
+    DEPENDS uvnc_qt_server_settings
+)
 add_test(NAME winvnc_qt_server_settings_roundtrip_smoke
     COMMAND "${CMAKE_SOURCE_DIR}/tests/winvnc_qt_server_settings_cli_roundtrip_smoke.sh" "$<TARGET_FILE:uvnc_qt_server_settings>"
 )
@@ -163,6 +166,9 @@ set_tests_properties(winvnc_qt_server_settings_roundtrip_smoke PROPERTIES
     TIMEOUT 10
 )
 
+add_custom_target(winvnc_qt_server_settings_visual_parity_report_smoke
+    DEPENDS uvnc_qt_server_settings
+)
 add_test(NAME winvnc_qt_server_settings_visual_parity_report_smoke
     COMMAND uvnc_qt_server_settings --print-visual-parity-report
 )
@@ -171,6 +177,9 @@ set_tests_properties(winvnc_qt_server_settings_visual_parity_report_smoke PROPER
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
     PASS_REGULAR_EXPRESSION "legacy.window=WinVNC settings"
     TIMEOUT 10
+)
+add_custom_target(winvnc_qt_server_settings_visual_parity_snapshot_smoke
+    DEPENDS uvnc_qt_server_settings
 )
 add_test(NAME winvnc_qt_server_settings_visual_parity_snapshot_smoke
     COMMAND uvnc_qt_server_settings --save-visual-parity-snapshot "${CMAKE_CURRENT_BINARY_DIR}/winvnc-qt-server-settings-visual-parity.png"
@@ -192,6 +201,8 @@ add_custom_target(winvnc_qt_server_settings_all_smokes
         winvnc_qt_server_settings_smoke
         winvnc_qt_server_settings_cli_smoke
         winvnc_qt_server_settings_roundtrip_smoke
+        winvnc_qt_server_settings_visual_parity_report_smoke
+        winvnc_qt_server_settings_visual_parity_snapshot_smoke
 )
 
 add_custom_target(native_linux_qt_legacy_parity_smokes
