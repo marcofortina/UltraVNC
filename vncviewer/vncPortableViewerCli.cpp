@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
+#include <utility>
 #include <vector>
 
 namespace uvnc {
@@ -109,6 +110,56 @@ bool ParseEncodingList(const std::string& text, std::vector<unsigned int>& encod
     return !encodings.empty();
 }
 
+
+void AppendPair(std::vector<std::string>& args, const std::string& key, const std::string& value)
+{
+    args.push_back(key);
+    if (!value.empty()) {
+        args.push_back(value);
+    }
+}
+
+bool AppendViewerConfigFileArgs(const std::string& path, std::vector<std::string>& args, std::string& error)
+{
+    std::string text;
+    if (!ReadTextFile(path, text)) {
+        error = "failed to read --config-file";
+        return false;
+    }
+    std::istringstream lines(text);
+    std::string line;
+    while (std::getline(lines, line)) {
+        while (!line.empty() && (line.back() == '\r' || line.back() == '\n')) line.pop_back();
+        const std::size_t first = line.find_first_not_of(" \t");
+        if (first == std::string::npos || line[first] == '#') continue;
+        const std::size_t sep = line.find('=', first);
+        if (sep == std::string::npos) continue;
+        const std::string key = line.substr(first, sep - first);
+        const std::string value = line.substr(sep + 1);
+        if (key == "host") AppendPair(args, "--host", value);
+        else if (key == "port") AppendPair(args, "--port", value);
+        else if (key == "shared" && value == "true") args.push_back("--shared");
+        else if (key == "shared" && value == "false") args.push_back("--exclusive");
+        else if (key == "view_only" && value == "true") args.push_back("--view-only");
+        else if (key == "allow_no_auth" && value == "true") args.push_back("--allow-no-auth");
+        else if (key == "allow_no_auth" && value == "false") args.push_back("--disable-no-auth");
+        else if (key == "transport_security") AppendPair(args, "--transport-security", value);
+        else if (key == "tls_ca_file") AppendPair(args, "--tls-ca-file", value);
+        else if (key == "tls_server_name") AppendPair(args, "--tls-server-name", value);
+        else if (key == "tls_insecure" && value == "true") args.push_back("--tls-insecure");
+        else if (key == "username") AppendPair(args, "--username", value);
+        else if (key == "security_extension") AppendPair(args, "--security-extension", value);
+        else if (key == "security_extension_name") AppendPair(args, "--security-extension-name", value);
+        else if (key == "password_file") AppendPair(args, "--password-file", value);
+        else if (key == "password_env") AppendPair(args, "--password-env", value);
+        else if (key == "encodings") AppendPair(args, "--encodings", value);
+        else if (key == "continuous_updates" && value == "true") args.push_back("--continuous-updates");
+        else if (key == "update_interval_ms") AppendPair(args, "--update-interval-ms", value);
+        else if (key == "socket_timeout_ms") AppendPair(args, "--socket-timeout-ms", value);
+    }
+    return true;
+}
+
 bool ParsePort(const std::string& text, unsigned short& port)
 {
     char *end = nullptr;
@@ -127,8 +178,19 @@ bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& opti
     options = ViewerCliOptions();
     error.clear();
 
+    std::vector<std::string> expandedArgs;
     for (std::size_t i = 0; i < args.size(); ++i) {
-        const std::string& arg = args[i];
+        if (args[i] == "--config-file" && i + 1 < expandedArgs.size()) {
+            if (!AppendViewerConfigFileArgs(expandedArgs[++i], expandedArgs, error)) {
+                return false;
+            }
+        } else {
+            expandedArgs.push_back(args[i]);
+        }
+    }
+
+    for (std::size_t i = 0; i < expandedArgs.size(); ++i) {
+        const std::string& arg = expandedArgs[i];
         if (arg == "--help" || arg == "-h") {
             options.help = true;
         } else if (arg == "--validate-config") {
@@ -148,11 +210,11 @@ bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& opti
         } else if (arg == "--persistent-input-smoke") {
             options.persistentInputSmoke = true;
             options.config.SetRequestUpdate(true);
-        } else if (arg == "--host" && i + 1 < args.size()) {
-            options.config.SetHost(args[++i]);
-        } else if (arg == "--port" && i + 1 < args.size()) {
+        } else if (arg == "--host" && i + 1 < expandedArgs.size()) {
+            options.config.SetHost(expandedArgs[++i]);
+        } else if (arg == "--port" && i + 1 < expandedArgs.size()) {
             unsigned short port = 0;
-            if (!ParsePort(args[++i], port)) {
+            if (!ParsePort(expandedArgs[++i], port)) {
                 error = "invalid --port";
                 return false;
             }
@@ -169,85 +231,85 @@ bool ParseViewerCli(const std::vector<std::string>& args, ViewerCliOptions& opti
             options.config.SetAllowNoAuth(true);
         } else if (arg == "--disable-no-auth") {
             options.config.SetAllowNoAuth(false);
-        } else if (arg == "--transport-security" && i + 1 < args.size()) {
+        } else if (arg == "--transport-security" && i + 1 < expandedArgs.size()) {
             ViewerTransportSecurityMode mode = ViewerTransportSecurityMode::None;
-            if (!ParseViewerTransportSecurityMode(args[++i], mode)) {
+            if (!ParseViewerTransportSecurityMode(expandedArgs[++i], mode)) {
                 error = "invalid --transport-security";
                 return false;
             }
             options.config.SetTransportSecurity(mode);
-        } else if (arg == "--security-extension" && i + 1 < args.size()) {
+        } else if (arg == "--security-extension" && i + 1 < expandedArgs.size()) {
             ViewerSecurityExtensionMode mode = ViewerSecurityExtensionMode::None;
-            if (!ParseViewerSecurityExtensionMode(args[++i], mode)) {
+            if (!ParseViewerSecurityExtensionMode(expandedArgs[++i], mode)) {
                 error = "invalid --security-extension";
                 return false;
             }
             options.config.SetSecurityExtension(mode);
-        } else if (arg == "--security-extension-name" && i + 1 < args.size()) {
-            options.config.SetSecurityExtensionName(args[++i]);
-        } else if (arg == "--tls-ca-file" && i + 1 < args.size()) {
-            options.config.SetTlsCaFile(args[++i]);
-        } else if (arg == "--tls-server-name" && i + 1 < args.size()) {
-            options.config.SetTlsServerName(args[++i]);
+        } else if (arg == "--security-extension-name" && i + 1 < expandedArgs.size()) {
+            options.config.SetSecurityExtensionName(expandedArgs[++i]);
+        } else if (arg == "--tls-ca-file" && i + 1 < expandedArgs.size()) {
+            options.config.SetTlsCaFile(expandedArgs[++i]);
+        } else if (arg == "--tls-server-name" && i + 1 < expandedArgs.size()) {
+            options.config.SetTlsServerName(expandedArgs[++i]);
         } else if (arg == "--tls-insecure") {
             options.config.SetTlsVerifyPeer(false);
-        } else if (arg == "--username" && i + 1 < args.size()) {
-            options.config.SetUsername(args[++i]);
-        } else if (arg == "--password" && i + 1 < args.size()) {
-            options.config.SetPassword(args[++i]);
-        } else if (arg == "--password-file" && i + 1 < args.size()) {
+        } else if (arg == "--username" && i + 1 < expandedArgs.size()) {
+            options.config.SetUsername(expandedArgs[++i]);
+        } else if (arg == "--password" && i + 1 < expandedArgs.size()) {
+            options.config.SetPassword(expandedArgs[++i]);
+        } else if (arg == "--password-file" && i + 1 < expandedArgs.size()) {
             std::string password;
-            if (!ReadTextFile(args[++i], password)) {
+            if (!ReadTextFile(expandedArgs[++i], password)) {
                 error = "failed to read --password-file";
                 return false;
             }
             options.config.SetPassword(password);
-        } else if (arg == "--password-env" && i + 1 < args.size()) {
-            const char *value = std::getenv(args[++i].c_str());
+        } else if (arg == "--password-env" && i + 1 < expandedArgs.size()) {
+            const char *value = std::getenv(expandedArgs[++i].c_str());
             if (!value) {
                 error = "failed to read --password-env";
                 return false;
             }
             options.config.SetPassword(value);
-        } else if (arg == "--clipboard-text" && i + 1 < args.size()) {
-            options.clipboardText = args[++i];
-        } else if (arg == "--list-remote" && i + 1 < args.size()) {
+        } else if (arg == "--clipboard-text" && i + 1 < expandedArgs.size()) {
+            options.clipboardText = expandedArgs[++i];
+        } else if (arg == "--list-remote" && i + 1 < expandedArgs.size()) {
             options.listRemote = true;
-            options.remotePath = args[++i];
+            options.remotePath = expandedArgs[++i];
         } else if (arg == "--list-drives") {
             options.listRemoteDrives = true;
-        } else if (arg == "--download-remote" && i + 1 < args.size()) {
+        } else if (arg == "--download-remote" && i + 1 < expandedArgs.size()) {
             options.downloadRemote = true;
-            options.remotePath = args[++i];
-        } else if (arg == "--download-output" && i + 1 < args.size()) {
-            options.downloadOutputPath = args[++i];
-        } else if (arg == "--remote-checksums" && i + 1 < args.size()) {
+            options.remotePath = expandedArgs[++i];
+        } else if (arg == "--download-output" && i + 1 < expandedArgs.size()) {
+            options.downloadOutputPath = expandedArgs[++i];
+        } else if (arg == "--remote-checksums" && i + 1 < expandedArgs.size()) {
             options.remoteChecksums = true;
-            options.remotePath = args[++i];
-        } else if (arg == "--upload-local" && i + 1 < args.size()) {
+            options.remotePath = expandedArgs[++i];
+        } else if (arg == "--upload-local" && i + 1 < expandedArgs.size()) {
             options.uploadLocal = true;
-            options.uploadLocalPath = args[++i];
-        } else if (arg == "--upload-remote" && i + 1 < args.size()) {
-            options.remotePath = args[++i];
+            options.uploadLocalPath = expandedArgs[++i];
+        } else if (arg == "--upload-remote" && i + 1 < expandedArgs.size()) {
+            options.remotePath = expandedArgs[++i];
         } else if (arg == "--continuous-updates") {
             options.config.SetContinuousUpdates(true);
-        } else if (arg == "--encodings" && i + 1 < args.size()) {
+        } else if (arg == "--encodings" && i + 1 < expandedArgs.size()) {
             std::vector<unsigned int> encodings;
-            if (!ParseEncodingList(args[++i], encodings)) {
+            if (!ParseEncodingList(expandedArgs[++i], encodings)) {
                 error = "invalid --encodings";
                 return false;
             }
             options.config.SetEncodings(encodings);
-        } else if (arg == "--socket-timeout-ms" && i + 1 < args.size()) {
+        } else if (arg == "--socket-timeout-ms" && i + 1 < expandedArgs.size()) {
             unsigned int timeout = 0;
-            if (!ParseUnsigned(args[++i], timeout)) {
+            if (!ParseUnsigned(expandedArgs[++i], timeout)) {
                 error = "invalid --socket-timeout-ms";
                 return false;
             }
             options.config.SetSocketTimeoutMs(timeout);
-        } else if (arg == "--update-interval-ms" && i + 1 < args.size()) {
+        } else if (arg == "--update-interval-ms" && i + 1 < expandedArgs.size()) {
             unsigned int interval = 0;
-            if (!ParseUnsigned(args[++i], interval)) {
+            if (!ParseUnsigned(expandedArgs[++i], interval)) {
                 error = "invalid --update-interval-ms";
                 return false;
             }
