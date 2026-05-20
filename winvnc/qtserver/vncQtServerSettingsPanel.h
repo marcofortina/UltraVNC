@@ -36,10 +36,12 @@ public:
     QString GeneratedConfigText() const;
     QString StatusText() const;
     QString VisualParityReport() const;
+    bool LoadConfigText(const QString& text, QString *error = nullptr);
     bool ServerRunning() const;
 
 private:
     void ValidateConfig(bool showDialog);
+    void LoadConfig();
     void SaveConfig();
     void RefreshPreview();
     void StartServer(bool showDialog);
@@ -88,6 +90,7 @@ private:
     QCheckBox *extendedClipboardCheck_;
     QSpinBox *clipboardLimitSpin_;
     QPushButton *validateButton_;
+    QPushButton *loadButton_;
     QPushButton *saveButton_;
     QPushButton *refreshButton_;
     QLineEdit *serverExecutableEdit_;

@@ -13,9 +13,11 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QFileDialog>
+#include <QFile>
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QGroupBox>
+#include <QHash>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
@@ -47,6 +49,54 @@ void AddComboItem(QComboBox *combo, const QString& label, int value)
 int ComboValue(const QComboBox *combo)
 {
     return combo->currentData().toInt();
+}
+
+bool SetComboByData(QComboBox *combo, int value)
+{
+    const int index = combo->findData(value);
+    if (index < 0) return false;
+    combo->setCurrentIndex(index);
+    return true;
+}
+
+bool SetComboByText(QComboBox *combo, const QString& text)
+{
+    const int index = combo->findText(text);
+    if (index < 0) return false;
+    combo->setCurrentIndex(index);
+    return true;
+}
+
+bool ParseBoolValue(const QString& value, bool& out)
+{
+    const QString normalized = value.trimmed().toLower();
+    if (normalized == QStringLiteral("true") || normalized == QStringLiteral("yes") || normalized == QStringLiteral("1")) {
+        out = true;
+        return true;
+    }
+    if (normalized == QStringLiteral("false") || normalized == QStringLiteral("no") || normalized == QStringLiteral("0")) {
+        out = false;
+        return true;
+    }
+    return false;
+}
+
+QHash<QString, QString> ParseConfigText(const QString& text)
+{
+    QHash<QString, QString> values;
+    const QStringList lines = text.split(QLatin1Char('\n'));
+    for (const QString& line : lines) {
+        const QString trimmed = line.trimmed();
+        if (trimmed.isEmpty() || trimmed.startsWith(QLatin1Char('#'))) {
+            continue;
+        }
+        const int separator = trimmed.indexOf(QLatin1Char('='));
+        if (separator <= 0) {
+            continue;
+        }
+        values.insert(trimmed.left(separator).trimmed(), trimmed.mid(separator + 1).trimmed());
+    }
+    return values;
 }
 
 } // namespace
@@ -84,6 +134,7 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
       extendedClipboardCheck_(new QCheckBox(QStringLiteral("Enable extended clipboard"))),
       clipboardLimitSpin_(new QSpinBox()),
       validateButton_(new QPushButton(QStringLiteral("Validate"))),
+      loadButton_(new QPushButton(QStringLiteral("Load config"))),
       saveButton_(new QPushButton(QStringLiteral("Save config"))),
       refreshButton_(new QPushButton(QStringLiteral("Refresh preview"))),
       serverExecutableEdit_(new QLineEdit(QStringLiteral("uvnc_winvnc_memory_server"))),
@@ -133,6 +184,7 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
     extendedClipboardCheck_->setObjectName(QStringLiteral("extendedClipboardCheck"));
     clipboardLimitSpin_->setObjectName(QStringLiteral("clipboardLimitSpin"));
     validateButton_->setObjectName(QStringLiteral("validateButton"));
+    loadButton_->setObjectName(QStringLiteral("loadButton"));
     saveButton_->setObjectName(QStringLiteral("saveButton"));
     refreshButton_->setObjectName(QStringLiteral("refreshButton"));
     serverExecutableEdit_->setObjectName(QStringLiteral("serverExecutableEdit"));
@@ -237,6 +289,7 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
 
     QHBoxLayout *buttons = new QHBoxLayout();
     buttons->addWidget(validateButton_);
+    buttons->addWidget(loadButton_);
     buttons->addWidget(saveButton_);
     buttons->addWidget(refreshButton_);
 
@@ -298,6 +351,7 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
     layout->addWidget(tabs);
 
     QObject::connect(validateButton_, &QPushButton::clicked, this, [this]() { ValidateConfig(true); });
+    QObject::connect(loadButton_, &QPushButton::clicked, this, [this]() { LoadConfig(); });
     QObject::connect(saveButton_, &QPushButton::clicked, this, [this]() { SaveConfig(); });
     QObject::connect(refreshButton_, &QPushButton::clicked, this, [this]() { RefreshPreview(); });
     QObject::connect(startButton_, &QPushButton::clicked, this, [this]() { StartServer(true); });
@@ -626,6 +680,77 @@ void QtServerSettingsPanel::ValidateConfig(bool showDialog)
     SetStatus(QStringLiteral("Configuration is valid"));
     if (showDialog) {
         QMessageBox::information(this, QStringLiteral("UltraVNC server settings"), QStringLiteral("Configuration is valid."));
+    }
+}
+
+
+bool QtServerSettingsPanel::LoadConfigText(const QString& text, QString *error)
+{
+    const QHash<QString, QString> values = ParseConfigText(text);
+    if (values.isEmpty()) {
+        if (error) *error = QStringLiteral("Config file did not contain key=value entries");
+        return false;
+    }
+
+    if (values.contains(QStringLiteral("bind_address"))) bindAddressEdit_->setText(values.value(QStringLiteral("bind_address")));
+    if (values.contains(QStringLiteral("port"))) portSpin_->setValue(values.value(QStringLiteral("port")).toInt());
+    if (values.contains(QStringLiteral("width"))) widthSpin_->setValue(values.value(QStringLiteral("width")).toInt());
+    if (values.contains(QStringLiteral("height"))) heightSpin_->setValue(values.value(QStringLiteral("height")).toInt());
+    if (values.contains(QStringLiteral("desktop_name"))) desktopNameEdit_->setText(values.value(QStringLiteral("desktop_name")));
+    if (values.contains(QStringLiteral("password_file"))) passwordFileEdit_->setText(values.value(QStringLiteral("password_file")));
+    if (values.contains(QStringLiteral("auth_helper"))) authHelperEdit_->setText(values.value(QStringLiteral("auth_helper")));
+    if (values.contains(QStringLiteral("dsm_provider"))) dsmProviderEdit_->setText(values.value(QStringLiteral("dsm_provider")));
+    if (values.contains(QStringLiteral("tls_certificate_file"))) tlsCertEdit_->setText(values.value(QStringLiteral("tls_certificate_file")));
+    if (values.contains(QStringLiteral("tls_private_key_file"))) tlsKeyEdit_->setText(values.value(QStringLiteral("tls_private_key_file")));
+    if (values.contains(QStringLiteral("log_file"))) logFileEdit_->setText(values.value(QStringLiteral("log_file")));
+    if (values.contains(QStringLiteral("pid_file"))) pidFileEdit_->setText(values.value(QStringLiteral("pid_file")));
+    if (values.contains(QStringLiteral("status_file"))) statusFileEdit_->setText(values.value(QStringLiteral("status_file")));
+    if (values.contains(QStringLiteral("file_transfer_root"))) fileTransferRootEdit_->setText(values.value(QStringLiteral("file_transfer_root")));
+    if (values.contains(QStringLiteral("server_cut_text"))) serverClipboardEdit_->setText(values.value(QStringLiteral("server_cut_text")));
+
+    if (values.value(QStringLiteral("auth")) == QStringLiteral("none")) SetComboByData(authModeCombo_, static_cast<int>(portable::ServerAuthMode::NoAuth));
+    if (values.value(QStringLiteral("auth")) == QStringLiteral("vnc-password")) SetComboByData(authModeCombo_, static_cast<int>(portable::ServerAuthMode::VncPassword));
+    if (values.value(QStringLiteral("auth")) == QStringLiteral("mslogon-ii")) SetComboByData(authModeCombo_, static_cast<int>(portable::ServerAuthMode::MsLogonII));
+    if (values.value(QStringLiteral("transport_security")) == QStringLiteral("none")) SetComboByData(transportSecurityCombo_, static_cast<int>(portable::TransportSecurityMode::None));
+    if (values.value(QStringLiteral("transport_security")) == QStringLiteral("vencrypt-x509-vnc")) SetComboByData(transportSecurityCombo_, static_cast<int>(portable::TransportSecurityMode::VeNCryptX509Vnc));
+    if (values.value(QStringLiteral("file_transfer_mode")) == QStringLiteral("disabled")) SetComboByData(fileTransferModeCombo_, static_cast<int>(portable::FileTransferMode::Disabled));
+    if (values.value(QStringLiteral("file_transfer_mode")) == QStringLiteral("read-only")) SetComboByData(fileTransferModeCombo_, static_cast<int>(portable::FileTransferMode::ReadOnly));
+    if (values.value(QStringLiteral("file_transfer_mode")) == QStringLiteral("read-write")) SetComboByData(fileTransferModeCombo_, static_cast<int>(portable::FileTransferMode::ReadWrite));
+    if (values.contains(QStringLiteral("capture_backend"))) SetComboByText(captureBackendCombo_, values.value(QStringLiteral("capture_backend")));
+    if (values.contains(QStringLiteral("input_backend"))) SetComboByText(inputBackendCombo_, values.value(QStringLiteral("input_backend")));
+    if (values.contains(QStringLiteral("clipboard_backend"))) SetComboByText(clipboardBackendCombo_, values.value(QStringLiteral("clipboard_backend")));
+
+    bool parsed = false;
+    if (values.contains(QStringLiteral("allow_no_auth")) && ParseBoolValue(values.value(QStringLiteral("allow_no_auth")), parsed)) allowNoAuthCheck_->setChecked(parsed);
+    if (values.contains(QStringLiteral("allow_public_no_auth")) && ParseBoolValue(values.value(QStringLiteral("allow_public_no_auth")), parsed)) allowPublicNoAuthCheck_->setChecked(parsed);
+    if (values.contains(QStringLiteral("allow_unencrypted_public")) && ParseBoolValue(values.value(QStringLiteral("allow_unencrypted_public")), parsed)) allowUnencryptedPublicCheck_->setChecked(parsed);
+    if (values.contains(QStringLiteral("file_transfer_allow_overwrite")) && ParseBoolValue(values.value(QStringLiteral("file_transfer_allow_overwrite")), parsed)) fileTransferOverwriteCheck_->setChecked(parsed);
+    if (values.contains(QStringLiteral("extended_clipboard")) && ParseBoolValue(values.value(QStringLiteral("extended_clipboard")), parsed)) extendedClipboardCheck_->setChecked(parsed);
+
+    if (values.contains(QStringLiteral("max_shared_clients"))) maxSharedClientsSpin_->setValue(values.value(QStringLiteral("max_shared_clients")).toInt());
+    if (values.contains(QStringLiteral("update_pacing_ms"))) updatePacingSpin_->setValue(values.value(QStringLiteral("update_pacing_ms")).toInt());
+    if (values.contains(QStringLiteral("extended_clipboard_text_limit"))) clipboardLimitSpin_->setValue(values.value(QStringLiteral("extended_clipboard_text_limit")).toInt());
+
+    RefreshPreview();
+    SetStatus(QStringLiteral("Configuration loaded"));
+    if (error) error->clear();
+    return true;
+}
+
+void QtServerSettingsPanel::LoadConfig()
+{
+    const QString path = QFileDialog::getOpenFileName(this, QStringLiteral("Load UltraVNC Linux server config"), QString(), QStringLiteral("Config files (*.conf);;All files (*)"));
+    if (path.isEmpty()) {
+        return;
+    }
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        ShowError(QStringLiteral("Failed to open config file"), true);
+        return;
+    }
+    QString error;
+    if (!LoadConfigText(QString::fromUtf8(file.readAll()), &error)) {
+        ShowError(error, true);
     }
 }
 
