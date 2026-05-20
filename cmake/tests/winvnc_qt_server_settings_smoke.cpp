@@ -57,6 +57,7 @@ int main(int argc, char **argv)
     QPushButton *systemdStart = panel.findChild<QPushButton *>("systemdStartButton");
     QPushButton *systemdStop = panel.findChild<QPushButton *>("systemdStopButton");
     QPushButton *systemdStatus = panel.findChild<QPushButton *>("systemdStatusButton");
+    QPushButton *loadButton = panel.findChild<QPushButton *>("loadButton");
     QTextEdit *preview = panel.findChild<QTextEdit *>("previewEdit");
     QTextEdit *runtimeOutput = panel.findChild<QTextEdit *>("runtimeOutputEdit");
     QLabel *title = panel.findChild<QLabel *>("serverSettingsTitle");
@@ -90,6 +91,7 @@ int main(int argc, char **argv)
     assert(systemdStart && systemdStart->text() == "Start service");
     assert(systemdStop && systemdStop->text() == "Stop service");
     assert(systemdStatus && systemdStatus->text() == "Service status");
+    assert(loadButton && loadButton->text() == "Load config");
     assert(preview && preview->toPlainText().contains("auth=vnc-password"));
     assert(runtimeOutput && runtimeOutput->toPlainText().isEmpty());
     assert(title && title->text() == "UltraVNC Linux Server");
@@ -119,6 +121,44 @@ int main(int argc, char **argv)
     dsmProvider->setText("/tmp/libuvnc-test-dsm.so");
     assert(panel.CurrentConfig().DsmProviderPath() == "/tmp/libuvnc-test-dsm.so");
     assert(panel.GeneratedConfigText().contains("dsm_provider=/tmp/libuvnc-test-dsm.so"));
+
+    QString loadError;
+    assert(panel.LoadConfigText(QStringLiteral(
+        "bind_address=0.0.0.0\n"
+        "port=5999\n"
+        "width=1024\n"
+        "height=768\n"
+        "desktop_name=Loaded UltraVNC Server\n"
+        "auth=mslogon-ii\n"
+        "auth_helper=/usr/local/libexec/uvnc-auth\n"
+        "dsm_provider=/usr/lib/ultravnc/SecureVNCPlugin.dsm\n"
+        "transport_security=vencrypt-x509-vnc\n"
+        "tls_certificate_file=/etc/ultravnc/server.crt\n"
+        "tls_private_key_file=/etc/ultravnc/server.key\n"
+        "capture_backend=x11\n"
+        "input_backend=xtest\n"
+        "clipboard_backend=x11\n"
+        "log_file=/tmp/loaded.log\n"
+        "pid_file=/tmp/loaded.pid\n"
+        "status_file=/tmp/loaded.status\n"
+        "file_transfer_mode=read-write\n"
+        "file_transfer_root=/tmp\n"
+        "file_transfer_allow_overwrite=true\n"
+        "max_shared_clients=4\n"
+        "update_pacing_ms=75\n"
+        "extended_clipboard=false\n"
+        "extended_clipboard_text_limit=4096\n"), &loadError));
+    assert(loadError.isEmpty());
+    assert(bindAddress->text() == "0.0.0.0");
+    assert(port->value() == 5999);
+    assert(width->value() == 1024);
+    assert(height->value() == 768);
+    assert(desktop->text() == "Loaded UltraVNC Server");
+    assert(auth->currentData().toInt() == static_cast<int>(ServerAuthMode::MsLogonII));
+    assert(authHelper->text() == "/usr/local/libexec/uvnc-auth");
+    assert(dsmProvider->text() == "/usr/lib/ultravnc/SecureVNCPlugin.dsm");
+    assert(panel.GeneratedConfigText().contains("auth=mslogon-ii"));
+    assert(panel.StatusText() == "Configuration loaded");
 
     return 0;
 }
