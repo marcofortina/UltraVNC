@@ -149,7 +149,7 @@ int main(int argc, char **argv)
         "extended_clipboard=false\n"
         "extended_clipboard_text_limit=4096\n"), &loadError));
     assert(loadError.isEmpty());
-    assert(bindAddress->text() == "0.0.0.0");
+    assert(bind && bind->text() == "0.0.0.0");
     assert(port->value() == 5999);
     assert(width->value() == 1024);
     assert(height->value() == 768);
