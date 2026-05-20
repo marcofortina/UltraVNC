@@ -9,6 +9,7 @@
 #include "vncQtServerSettingsPanel.h"
 
 #include <QApplication>
+#include <QFile>
 #include <QPixmap>
 
 #include <iostream>
@@ -53,6 +54,25 @@ int main(int argc, char **argv)
         return 0;
     }
     if (HasFlag(args, "--print-default-config")) {
+        std::cout << panel.GeneratedConfigText().toStdString();
+        return 0;
+    }
+    if (HasFlag(args, "--print-runtime-command")) {
+        std::cout << panel.GeneratedCommandLine().toStdString() << "\n";
+        return 0;
+    }
+    const std::string loadConfigPath = OptionValue(args, "--load-config-print");
+    if (!loadConfigPath.empty()) {
+        QFile file(QString::fromStdString(loadConfigPath));
+        if (!file.open(QIODevice::ReadOnly)) {
+            std::cerr << "failed to open config file\n";
+            return 1;
+        }
+        QString error;
+        if (!panel.LoadConfigText(QString::fromUtf8(file.readAll()), &error)) {
+            std::cerr << error.toStdString() << "\n";
+            return 1;
+        }
         std::cout << panel.GeneratedConfigText().toStdString();
         return 0;
     }
