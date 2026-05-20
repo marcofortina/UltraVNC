@@ -32,8 +32,9 @@ Production-ready scope currently covered:
 
 Known limits still outside the current production baseline:
 
-- compressed encoding decoders not yet implemented for Tight JPEG/gradient, ZlibHex and vendor-specific extensions;
-- MSLogonII viewer compatibility is implemented for original UltraVNC servers when explicitly configured; DSM/SecureVNC plugin stream transforms remain explicit fail-closed legacy extension requests until a native provider ABI exists;
+- Tight JPEG, Tight gradient, ZlibHex and the known portable compressed encoding paths are covered by the local decoder smokes;
+- MSLogonII viewer compatibility is implemented for original UltraVNC servers when explicitly configured;
+- DSM/SecureVNC stream transforms use the native Linux DSM provider ABI; Windows PE/COFF `.dsm` binaries remain rejected unless a future Wine/IPC bridge is added;
 - broad vendor interoperability matrix beyond the real servers explicitly tested by the helper scripts.
 
 Recommended release validation before promoting beyond technical preview:
