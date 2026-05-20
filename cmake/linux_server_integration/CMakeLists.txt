@@ -57,6 +57,8 @@ install(FILES
     "${CMAKE_SOURCE_DIR}/../docs/native-linux-qt-viewer.md"
     "${CMAKE_SOURCE_DIR}/../docs/native-linux-legacy-parity.md"
     "${CMAKE_SOURCE_DIR}/../docs/native-linux-issue-348-status.md"
+    "${CMAKE_SOURCE_DIR}/../docs/native-linux-pr-readiness.md"
+    "${CMAKE_SOURCE_DIR}/../docs/native-linux-pr-body-template.md"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/ultravnc/linux"
 )
 
