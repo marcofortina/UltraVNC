@@ -172,6 +172,7 @@ int main()
             << "password_env=UVNC_VIEWER_TEST_PASSWORD\n"
             << "transport_security=vencrypt-x509-vnc\n"
             << "tls_server_name=viewer.example\n"
+            << "tls_insecure=true\n"
             << "encodings=raw,copyrect,newfbsize\n";
     }
     setenv("UVNC_VIEWER_TEST_PASSWORD", "secret", 1);
