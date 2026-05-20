@@ -12,10 +12,10 @@ The Linux equivalents are:
 | --- | --- |
 | Windows service install/start/stop | systemd user service `uvnc-winvnc-memory-server.service` |
 | Service Control Manager status | `systemctl --user status uvnc-winvnc-memory-server.service` |
-| Tray status icon | `%t/uvnc-winvnc-memory-server.status`, journal logs, CLI summary |
-| Settings UI | `~/.config/ultravnc/uvnc-winvnc-linux-server.conf` plus `--validate-config` |
+| Tray status icon | Qt live admin/status panel, `%t/uvnc-winvnc-memory-server.status`, journal logs, CLI summary |
+| Settings UI | `uvnc_settings` / `uvnc_qt_server_settings`, config roundtrip, and `--validate-config` |
 | Admin diagnostics | `--print-config`, `--print-admin-summary`, status/log/pid files |
-| Windows-only DSM/plugin UI | unsupported/fail-closed policy on Linux; MSLogonII uses external helper config |
+| Windows-only DSM/plugin UI | Linux DSM provider path plus SecureVNC native provider; Windows `.dsm` binaries rejected |
 | HTTP Java viewer toggle | legacy disabled policy on Linux |
 
 ## Operator lifecycle
@@ -68,10 +68,9 @@ $XDG_RUNTIME_DIR/uvnc-winvnc-memory-server.log
 
 ## Explicit non-goals for this milestone
 
-- No Linux tray icon is shipped.
-- No Linux GUI settings editor is shipped.
+- No Linux tray icon is shipped yet; the Qt live admin panel is the current desktop equivalent.
 - No Windows service-control compatibility layer is shipped.
-- No DSM/SecureVNC security-plugin UI is ported. MSLogonII is represented as external-helper configuration, not as the Windows admin UI.
+- DSM/SecureVNC configuration is represented as a Linux provider path, not as a Windows plugin dialog clone. MSLogonII is represented as external-helper configuration.
 - No HTTP Java viewer service is enabled.
 
 Those are not silently missing features: they are documented platform boundaries. Future Linux admin UI work should be a native Qt/admin tool or a separate management frontend, not a direct port of Windows tray/service UI code.
