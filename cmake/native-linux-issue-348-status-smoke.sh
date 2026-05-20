@@ -14,8 +14,10 @@ STATUS_DOC="${ROOT_DIR}/docs/native-linux-issue-348-status.md"
 VIEWER_DOC="${ROOT_DIR}/docs/native-linux-qt-viewer-production-checklist.md"
 SECURITY_DOC="${ROOT_DIR}/docs/native-linux-security-extensions.md"
 SERVICE_DOC="${ROOT_DIR}/docs/native-linux-service-admin-equivalents.md"
+PR_DOC="${ROOT_DIR}/docs/native-linux-pr-readiness.md"
+PR_BODY="${ROOT_DIR}/docs/native-linux-pr-body-template.md"
 
-for path in "${STATUS_DOC}" "${VIEWER_DOC}" "${SECURITY_DOC}" "${SERVICE_DOC}"; do
+for path in "${STATUS_DOC}" "${VIEWER_DOC}" "${SECURITY_DOC}" "${SERVICE_DOC}" "${PR_DOC}" "${PR_BODY}"; do
   test -f "${path}"
 done
 
@@ -36,6 +38,10 @@ grep -q 'Windows PE/COFF `.dsm` binaries are rejected explicitly' "${SECURITY_DO
 
 grep -q 'Qt live admin/status panel' "${SERVICE_DOC}"
 grep -q 'uvnc_settings' "${SERVICE_DOC}"
+
+grep -q 'Recommended PR split' "${PR_DOC}"
+grep -q 'Refs #348' "${PR_BODY}"
+grep -q 'native Linux DSM provider ABI' "${PR_BODY}"
 
 if grep -R "not-ported-linux-use-status-files-and-journal\|unsupported-fail-closed\|compressed encoding decoders not yet implemented" \
   "${ROOT_DIR}/docs" "${ROOT_DIR}/cmake" >/tmp/uvnc-issue348-stale-status.out; then
