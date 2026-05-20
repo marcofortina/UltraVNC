@@ -1,6 +1,6 @@
 # Native Linux Qt server settings
 
-`uvnc_qt_server_settings` is the native Linux counterpart for the Windows server/settings configuration workflow.  It does not try to load the Win32 `uvnc_settings` dialogs; it drives the portable Linux server configuration model directly and writes config files consumed by `uvnc_winvnc_memory_server`.
+`uvnc_qt_server_settings` is the native Linux counterpart for the Windows server/settings configuration workflow.  It does not try to load the Win32 `uvnc_settings` dialogs; it drives the portable Linux server configuration model directly and writes config files consumed by `winvnc`.
 
 Covered settings:
 
@@ -34,7 +34,7 @@ uvnc_winvnc_password_file --validate --output /etc/ultravnc/vnc-password
 
 ## Runtime tab
 
-The server settings GUI includes a Runtime tab for user-mode start/stop/status/log workflows. It writes the current preview to a runtime config path or a temporary config and starts `uvnc_winvnc_memory_server --config <path> --serve-forever` through `QProcess`. This is the Linux replacement for the basic WinVNC tray/admin live workflow, not a Win32 dialog shim.
+The server settings GUI includes a Runtime tab for user-mode start/stop/status/log workflows. It writes the current preview to a runtime config path or a temporary config and starts `winvnc --config <path> --serve-forever` through `QProcess`. This is the Linux replacement for the basic WinVNC tray/admin live workflow, not a Win32 dialog shim.
 
 ## DSM provider
 
@@ -55,7 +55,7 @@ See `docs/native-linux-legacy-parity.md` for executable-name, DSM and visual par
 
 ## Config load/round-trip
 
-The Linux settings UI can load existing `uvnc_winvnc_memory_server` key/value
+The Linux settings UI can load existing `winvnc` key/value
 configuration files, edit them in the Qt panel, and re-export the resulting
 configuration. This is the native Linux equivalent of editing the legacy WinVNC
 settings dialog and saving the service configuration.
