@@ -46,6 +46,8 @@ fi
 "${INSTALL_DIR}/bin/vncviewer" --help >/tmp/uvnc-core-parity-viewer-help.out
 
 grep -q -- '--config-file' /tmp/uvnc-core-parity-viewer-help.out
-grep -q 'uvnc_winvnc_memory_server --config' /tmp/uvnc-core-parity-runtime-command.out
+grep -q 'winvnc --config' /tmp/uvnc-core-parity-runtime-command.out
+
+bash "${SCRIPT_DIR}/linux-server-operator-config-smoke.sh" "${BUILD_DIR}-operator" "${INSTALL_DIR}-operator"
 
 echo "Native Linux core parity smoke passed."
