@@ -154,6 +154,15 @@ add_custom_target(winvnc_qt_server_settings_cli_smoke
 add_test(NAME winvnc_qt_server_settings_cli_smoke
     COMMAND uvnc_qt_server_settings --smoke-test
 )
+add_test(NAME winvnc_qt_server_settings_roundtrip_smoke
+    COMMAND "${CMAKE_SOURCE_DIR}/tests/winvnc_qt_server_settings_cli_roundtrip_smoke.sh" "$<TARGET_FILE:uvnc_qt_server_settings>"
+)
+set_tests_properties(winvnc_qt_server_settings_roundtrip_smoke PROPERTIES
+    LABELS "native-linux;winvnc-qt"
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+    TIMEOUT 10
+)
+
 add_test(NAME winvnc_qt_server_settings_visual_parity_report_smoke
     COMMAND uvnc_qt_server_settings --print-visual-parity-report
 )
@@ -182,6 +191,7 @@ add_custom_target(winvnc_qt_server_settings_all_smokes
         uvnc_qt_server_settings
         winvnc_qt_server_settings_smoke
         winvnc_qt_server_settings_cli_smoke
+        winvnc_qt_server_settings_roundtrip_smoke
 )
 
 add_custom_target(native_linux_qt_legacy_parity_smokes
