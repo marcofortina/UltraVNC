@@ -13,6 +13,7 @@ Native Linux builds now expose the same user-facing executable names as the lega
 | `uvnc_settings.exe` | `uvnc_settings` | alias for `uvnc_qt_server_settings` |
 | `repeater.exe` | `repeater` | alias for `uvnc_repeater_headless` |
 | `setpasswd.exe` | `setpasswd` | alias for `uvnc_winvnc_password_file` |
+| `createpassword.exe` | `createpassword` | alias for `uvnc_winvnc_password_file` |
 | `SecureVNCPlugin.dsm` | `SecureVNCPlugin.dsm` | native Linux DSM-provider shared object |
 
 The longer `uvnc_*` names remain internal/compatibility targets so existing tests and scripts do not break.
@@ -62,6 +63,7 @@ The gate configures the native Linux build with Qt enabled, builds the aggregate
 - `bin/uvnc_settings`;
 - `bin/repeater`;
 - `bin/setpasswd`;
+- `bin/createpassword`;
 - `lib/ultravnc/SecureVNCPlugin.dsm`.
 
 Use this gate before claiming parity closure, because direct `ctest` invocations do not build missing test executables automatically.
