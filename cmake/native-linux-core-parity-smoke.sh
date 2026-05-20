@@ -26,7 +26,7 @@ cmake --build "${BUILD_DIR}" --target \
   -j"$(nproc)"
 
 ctest --test-dir "${BUILD_DIR}" --output-on-failure \
-  -R 'vncviewer_qt_(legacy_alias|smoke|surface_smoke|connection_panel_smoke)|winvnc_qt_server_settings_(legacy_alias|smoke|cli_smoke|roundtrip_smoke|visual_parity_report_smoke|visual_parity_snapshot_smoke)|winvnc_memory_server_legacy_alias_smoke|uvnc_winvnc_password_file_legacy_alias_smoke|uvnc_repeater_headless_legacy_alias_smoke|vncviewer_portable_(cli|config|mslogon_helper|mslogon_session|mslogon_server)_smoke|winvnc_portable_(external_auth|server_config|dsm_provider|securevnc_provider)_smoke'
+  -R 'vncviewer_qt_(legacy_alias|smoke|surface_smoke|connection_panel_smoke)|winvnc_qt_server_settings_(legacy_alias|smoke|cli_smoke|roundtrip_smoke|visual_parity_report_smoke|visual_parity_snapshot_smoke)|winvnc_memory_server_legacy_alias_smoke|uvnc_winvnc_password_file_legacy_alias_smoke|uvnc_winvnc_createpassword_legacy_alias_smoke|uvnc_repeater_headless_legacy_alias_smoke|vncviewer_portable_(cli|config|mslogon_helper|mslogon_session|mslogon_server)_smoke|winvnc_portable_(external_auth|server_config|dsm_provider|securevnc_provider)_smoke'
 
 cmake --install "${BUILD_DIR}"
 
