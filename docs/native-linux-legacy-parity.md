@@ -65,3 +65,18 @@ The gate configures the native Linux build with Qt enabled, builds the aggregate
 - `lib/ultravnc/SecureVNCPlugin.dsm`.
 
 Use this gate before claiming parity closure, because direct `ctest` invocations do not build missing test executables automatically.
+
+
+## Full core parity smoke
+
+Use the full core parity gate after applying native Linux GUI/viewer/server changes:
+
+```sh
+cmake/native-linux-core-parity-smoke.sh \
+  /tmp/uvnc-native-linux-core-parity-build \
+  /tmp/uvnc-native-linux-core-parity-install
+```
+
+This builds the legacy-named Linux aliases, Qt viewer/settings GUI, portable
+viewer/server MSLogonII paths, DSM/SecureVNC provider boundary, install-tree
+legacy names and installed SecureVNCPlugin.dsm.

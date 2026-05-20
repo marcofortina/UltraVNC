@@ -207,3 +207,5 @@ if(ULTRAVNC_BUILD_WINDOWS_APPS)
 else()
     message(STATUS "Skipping Windows-specific applications on this target")
 endif()
+
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/native-linux-core-parity-smoke.sh" DESTINATION share/ultravnc/linux PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
