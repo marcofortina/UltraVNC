@@ -74,10 +74,12 @@ fi
 "${BIN}" --config "${CONFIG_FILE}" --print-admin-summary >"${WORK_DIR}/admin-summary.out" 2>"${WORK_DIR}/admin-summary.err"
 grep -q '^linux_admin_equivalent=systemd-user-service$' "${WORK_DIR}/admin-summary.out"
 grep -q '^windows_service_equivalent=uvnc-winvnc-memory-server.service$' "${WORK_DIR}/admin-summary.out"
-grep -q '^windows_tray_ui_equivalent=not-ported-linux-use-status-files-and-journal$' "${WORK_DIR}/admin-summary.out"
+grep -q '^windows_tray_ui_equivalent=qt-server-settings-live-admin$' "${WORK_DIR}/admin-summary.out"
 grep -q '^windows_settings_ui_equivalent=config-file-plus-validate-config$' "${WORK_DIR}/admin-summary.out"
 grep -q '^http_java_viewer=legacy-disabled$' "${WORK_DIR}/admin-summary.out"
-grep -q '^dsm_mslogon_security_plugins=unsupported-fail-closed$' "${WORK_DIR}/admin-summary.out"
+grep -q '^dsm_plugin=native-provider-abi-available$' "${WORK_DIR}/admin-summary.out"
+grep -q '^securevnc_plugin=native-dsm-provider-required$' "${WORK_DIR}/admin-summary.out"
+grep -q '^mslogon_ii=server-external-helper-viewer-supported$' "${WORK_DIR}/admin-summary.out"
 if grep -qi 'secret1\|password_file=' "${WORK_DIR}/admin-summary.out"; then
   echo "operator print-admin-summary leaked password material or password-file path" >&2
   cat "${WORK_DIR}/admin-summary.out" >&2
