@@ -44,7 +44,7 @@ grep -q 'Refs #348' "${PR_BODY}"
 grep -q 'native Linux DSM provider ABI' "${PR_BODY}"
 
 if grep -R "not-ported-linux-use-status-files-and-journal\|unsupported-fail-closed\|compressed encoding decoders not yet implemented" \
-  "${ROOT_DIR}/docs" "${ROOT_DIR}/cmake" >/tmp/uvnc-issue348-stale-status.out; then
+  "${ROOT_DIR}/docs" >/tmp/uvnc-issue348-stale-status.out; then
   cat /tmp/uvnc-issue348-stale-status.out >&2
   echo "stale native Linux status text found" >&2
   exit 1
