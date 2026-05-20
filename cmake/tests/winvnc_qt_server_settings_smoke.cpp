@@ -158,6 +158,8 @@ int main(int argc, char **argv)
     assert(authHelper->text() == "/usr/local/libexec/uvnc-auth");
     assert(dsmProvider->text() == "/usr/lib/ultravnc/SecureVNCPlugin.dsm");
     assert(panel.GeneratedConfigText().contains("auth=mslogon-ii"));
+    assert(panel.GeneratedCommandLine().contains("uvnc_winvnc_memory_server --config"));
+    assert(panel.VisualParityReport().contains("runtime.command="));
     assert(panel.StatusText() == "Configuration loaded");
 
     return 0;
