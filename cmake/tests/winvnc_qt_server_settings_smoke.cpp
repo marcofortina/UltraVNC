@@ -80,7 +80,7 @@ int main(int argc, char **argv)
     assert(clipboard && clipboard->currentText() == "memory");
     assert(logFile && pidFile && statusFile);
     assert(serverExecutable);
-    assert(serverExecutable->text() == "uvnc_winvnc_memory_server" || serverExecutable->text().endsWith("/uvnc_winvnc_memory_server"));
+    assert(serverExecutable->text() == "winvnc" || serverExecutable->text().endsWith("/uvnc_winvnc_memory_server"));
     assert(runtimeConfigPath && runtimeConfigPath->text().isEmpty());
     assert(startButton && startButton->text() == "Start user server");
     assert(stopButton && stopButton->text() == "Stop");
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
     assert(authHelper->text() == "/usr/local/libexec/uvnc-auth");
     assert(dsmProvider->text() == "/usr/lib/ultravnc/SecureVNCPlugin.dsm");
     assert(panel.GeneratedConfigText().contains("auth=mslogon-ii"));
-    assert(panel.GeneratedCommandLine().contains("uvnc_winvnc_memory_server --config"));
+    assert(panel.GeneratedCommandLine().contains("winvnc --config"));
     assert(panel.VisualParityReport().contains("runtime.command="));
     assert(panel.StatusText() == "Configuration loaded");
 

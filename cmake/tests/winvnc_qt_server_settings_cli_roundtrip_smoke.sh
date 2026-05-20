@@ -44,7 +44,7 @@ grep -q '^input_backend=xtest$' "${output}"
 grep -q '^clipboard_backend=x11$' "${output}"
 grep -q '^file_transfer_mode=read-write$' "${output}"
 
-QT_QPA_PLATFORM=offscreen "${settings_bin}" --print-runtime-command | grep -q '^uvnc_winvnc_memory_server --config /tmp/uvnc-winvnc-linux-server.conf --serve-forever$'
+QT_QPA_PLATFORM=offscreen "${settings_bin}" --print-runtime-command | grep -q '^winvnc --config /tmp/uvnc-winvnc-linux-server.conf --serve-forever$'
 
 QT_QPA_PLATFORM=offscreen "${settings_bin}" --print-legacy-executable-map >"${work_dir}/legacy-map.out"
 grep -q "^vncviewer=uvnc_qt_viewer$" "${work_dir}/legacy-map.out"
