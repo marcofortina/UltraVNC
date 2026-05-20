@@ -15,6 +15,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <unistd.h>
 
 using namespace uvnc::vncviewer::portable;
 
@@ -156,6 +157,39 @@ int main()
     args.push_back("remote.txt");
     assert(!ParseViewerCli(args, options, error));
     assert(error == "choose only one viewer file-transfer operation");
+
+
+    const std::string viewerConfigPath = std::string("/tmp/uvnc-viewer-cli-config-") + std::to_string(getpid()) + ".conf";
+    {
+        std::ofstream out(viewerConfigPath.c_str(), std::ios::trunc);
+        out << "host=viewer.example\n"
+            << "port=5997\n"
+            << "shared=false\n"
+            << "view_only=true\n"
+            << "allow_no_auth=true\n"
+            << "security_extension=mslogon\n"
+            << "username=LAB\\alice\n"
+            << "password_env=UVNC_VIEWER_TEST_PASSWORD\n"
+            << "transport_security=vencrypt-x509-vnc\n"
+            << "tls_server_name=viewer.example\n"
+            << "encodings=raw,copyrect,newfbsize\n";
+    }
+    setenv("UVNC_VIEWER_TEST_PASSWORD", "secret", 1);
+    args.clear();
+    args.push_back("--config-file");
+    args.push_back(viewerConfigPath);
+    assert(ParseViewerCli(args, options, error));
+    assert(options.config.Host() == "viewer.example");
+    assert(options.config.Port() == 5997);
+    assert(!options.config.Shared());
+    assert(options.config.ViewOnly());
+    assert(options.config.AllowNoAuth());
+    assert(options.config.SecurityExtension() == ViewerSecurityExtensionMode::MsLogon);
+    assert(options.config.Username() == "LAB\\alice");
+    assert(options.config.Password() == "secret");
+    assert(options.config.TransportSecurity() == ViewerTransportSecurityMode::VeNCryptX509Vnc);
+    assert(options.config.TlsServerName() == "viewer.example");
+    unlink(viewerConfigPath.c_str());
 
     args.clear();
     args.push_back("--security-extension");
