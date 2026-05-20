@@ -51,3 +51,21 @@ The Runtime tab can manage either the user service or the system service with `s
 When OpenSSL is available, the Linux build can produce `uvnc_securevnc_provider`, a native DSM-provider shared object that performs AES-256-CTR stream transforms through the Linux DSM provider ABI. Configure it with `dsm_provider=` and provide `UVNC_SECUREVNC_PROVIDER_KEY_HEX` in the service environment.
 
 See `docs/native-linux-legacy-parity.md` for executable-name, DSM and visual parity status.
+
+
+## Config load/round-trip
+
+The Linux settings UI can load existing `uvnc_winvnc_memory_server` key/value
+configuration files, edit them in the Qt panel, and re-export the resulting
+configuration. This is the native Linux equivalent of editing the legacy WinVNC
+settings dialog and saving the service configuration.
+
+For headless validation on CI or support systems, use:
+
+```sh
+uvnc_settings --load-config-print /path/to/uvnc-winvnc-linux-server.conf
+uvnc_settings --print-runtime-command
+```
+
+The runtime command preview is intentionally explicit and shows the command used
+by the GUI user-mode server launcher.
