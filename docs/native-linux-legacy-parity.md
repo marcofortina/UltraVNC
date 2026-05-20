@@ -82,3 +82,16 @@ cmake/native-linux-core-parity-smoke.sh \
 This builds the legacy-named Linux aliases, Qt viewer/settings GUI, portable
 viewer/server MSLogonII paths, DSM/SecureVNC provider boundary, install-tree
 legacy names and installed SecureVNCPlugin.dsm.
+
+
+## Programmatic legacy map
+
+The Qt server settings tool can print the native Linux legacy executable map used
+by the install and parity gates:
+
+```sh
+uvnc_settings --print-legacy-executable-map
+```
+
+This is intended for release checks and support diagnostics when comparing the
+legacy Windows package layout with the Linux install tree.
