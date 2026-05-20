@@ -137,7 +137,7 @@ QtServerSettingsPanel::QtServerSettingsPanel(QWidget *parent)
       loadButton_(new QPushButton(QStringLiteral("Load config"))),
       saveButton_(new QPushButton(QStringLiteral("Save config"))),
       refreshButton_(new QPushButton(QStringLiteral("Refresh preview"))),
-      serverExecutableEdit_(new QLineEdit(QStringLiteral("uvnc_winvnc_memory_server"))),
+      serverExecutableEdit_(new QLineEdit(QStringLiteral("winvnc"))),
       runtimeConfigPathEdit_(new QLineEdit()),
       startButton_(new QPushButton(QStringLiteral("Start user server"))),
       stopButton_(new QPushButton(QStringLiteral("Stop"))),
@@ -473,7 +473,7 @@ QString QtServerSettingsPanel::GeneratedCommandLine() const
 {
     QString executable = serverExecutableEdit_->text().trimmed();
     if (executable.isEmpty()) {
-        executable = QStringLiteral("uvnc_winvnc_memory_server");
+        executable = QStringLiteral("winvnc");
     }
     QString configPath = runtimeConfigPathEdit_->text().trimmed();
     if (configPath.isEmpty()) {
@@ -513,6 +513,26 @@ bool QtServerSettingsPanel::ServerRunning() const
     return serverProcess_->state() != QProcess::NotRunning;
 }
 
+
+
+QString QtServerSettingsPanel::RuntimeExecutable() const
+{
+    QString executable = serverExecutableEdit_->text().trimmed();
+    if (executable.isEmpty()) {
+        executable = QStringLiteral("winvnc");
+    }
+    const QString resolved = QStandardPaths::findExecutable(executable);
+    if (!resolved.isEmpty()) {
+        return resolved;
+    }
+    if (executable == QStringLiteral("winvnc")) {
+        const QString fallback = QStandardPaths::findExecutable(QStringLiteral("uvnc_winvnc_memory_server"));
+        if (!fallback.isEmpty()) {
+            return fallback;
+        }
+    }
+    return executable;
+}
 
 QString QtServerSettingsPanel::WriteRuntimeConfig(QString *error) const
 {
@@ -558,14 +578,7 @@ void QtServerSettingsPanel::StartServer(bool showDialog)
         ShowError(error, showDialog);
         return;
     }
-    QString executable = serverExecutableEdit_->text().trimmed();
-    if (executable.isEmpty()) {
-        executable = QStringLiteral("uvnc_winvnc_memory_server");
-    }
-    const QString resolved = QStandardPaths::findExecutable(executable);
-    if (!resolved.isEmpty()) {
-        executable = resolved;
-    }
+    const QString executable = RuntimeExecutable();
     runtimeOutputEdit_->clear();
     serverProcess_->setProgram(executable);
     serverProcess_->setArguments(QStringList() << QStringLiteral("--config") << configPath << QStringLiteral("--serve-forever"));

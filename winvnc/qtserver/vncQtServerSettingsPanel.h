@@ -54,6 +54,7 @@ private:
     void RefreshSystemdServiceStatus();
     QStringList SystemdArguments(const QString& action) const;
     QString WriteRuntimeConfig(QString *error) const;
+    QString RuntimeExecutable() const;
     void SetStatus(const QString& status);
     void ShowError(const QString& message, bool showDialog);
     portable::ServerAuthMode SelectedAuthMode() const;
