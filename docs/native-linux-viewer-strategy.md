@@ -49,6 +49,6 @@ VeNCrypt/X509Vnc TLS and basic UltraVNC file-transfer operations. The Qt shell i
 the Linux-native frontend for these portable pieces; it is not a Win32 dialog port.
 
 MSLogonII is implemented in the portable Linux viewer for original UltraVNC
-server compatibility. DSM/SecureVNC plugin stream transforms remain intentionally
-fail-closed until a native provider ABI exists; Linux must not load Windows DSM
-plugins blindly.
+server compatibility. DSM/SecureVNC stream transforms use the native Linux DSM
+provider ABI; Windows PE/COFF `.dsm` binaries remain rejected unless a future
+Wine/IPC bridge is added.
