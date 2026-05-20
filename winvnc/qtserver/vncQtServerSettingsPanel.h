@@ -34,6 +34,7 @@ public:
 
     portable::ServerConfig CurrentConfig() const;
     QString GeneratedConfigText() const;
+    QString GeneratedCommandLine() const;
     QString StatusText() const;
     QString VisualParityReport() const;
     bool LoadConfigText(const QString& text, QString *error = nullptr);

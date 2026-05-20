@@ -468,6 +468,20 @@ QString QtServerSettingsPanel::GeneratedConfigText() const
     return text;
 }
 
+
+QString QtServerSettingsPanel::GeneratedCommandLine() const
+{
+    QString executable = serverExecutableEdit_->text().trimmed();
+    if (executable.isEmpty()) {
+        executable = QStringLiteral("uvnc_winvnc_memory_server");
+    }
+    QString configPath = runtimeConfigPathEdit_->text().trimmed();
+    if (configPath.isEmpty()) {
+        configPath = QStringLiteral("/tmp/uvnc-winvnc-linux-server.conf");
+    }
+    return QStringLiteral("%1 --config %2 --serve-forever").arg(executable, configPath);
+}
+
 QString QtServerSettingsPanel::StatusText() const
 {
     return statusLabel_->text();
@@ -486,6 +500,7 @@ QString QtServerSettingsPanel::VisualParityReport() const
     text += QStringLiteral("section.runtime=start,stop,status,log,systemd\n");
     text += QStringLiteral("widget.serverExecutableEdit=%1\n").arg(serverExecutableEdit_->text());
     text += QStringLiteral("widget.systemdServiceEdit=%1\n").arg(systemdServiceEdit_->text());
+    text += QStringLiteral("runtime.command=%1\n").arg(GeneratedCommandLine());
     text += QStringLiteral("tab.count=3\n");
     text += QStringLiteral("tab.0=Settings\n");
     text += QStringLiteral("tab.1=Runtime\n");
@@ -780,7 +795,7 @@ void QtServerSettingsPanel::SaveConfig()
 
 void QtServerSettingsPanel::RefreshPreview()
 {
-    previewEdit_->setPlainText(GeneratedConfigText());
+    previewEdit_->setPlainText(GeneratedConfigText() + QStringLiteral("\n# Runtime command\n") + GeneratedCommandLine() + QStringLiteral("\n"));
 }
 
 void QtServerSettingsPanel::SetStatus(const QString& status)
